@@ -22,13 +22,11 @@
 
 package org.jboss.as.testsuite.integration.jpa.transaction;
 
-import static org.junit.Assert.assertEquals;
-
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-
-import org.jboss.arquillian.container.test.api.Deployment;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.jboss.arquillian.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.as.testsuite.integration.jpa.hibernate.SFSBHibernateSession;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
@@ -36,6 +34,13 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.persistence.TransactionRequiredException;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Transaction tests
@@ -75,7 +80,8 @@ public class TransactionTestCase {
             SFSB1.class
         );
 
-        jar.addAsResource(new StringAsset(persistence_xml), "META-INF/persistence.xml");
+        jar.addResource(new StringAsset(persistence_xml), "META-INF/persistence.xml");
+        jar.addResource(new StringAsset(""), "META-INF/MANIFEST.MF");
         return jar;
     }
 
@@ -87,42 +93,21 @@ public class TransactionTestCase {
         return interfaceType.cast(iniCtx.lookup(name));
     }
 
-    /**
-     * Ensure that calling entityManager.flush outside of a transaction, throws a TransactionRequiredException
-     *
-     * @throws Exception
-     */
+    // test that we didn't break the Hibernate hibernate.session_factory_name (bind Hibernate session factory to
+    // specified jndi name) functionality.
     @Test
     public void testTransactionRequiredException() throws Exception {
-// uncomment after JBCTS-1103 is fixed.
-//        Exception error = null;
-//        try {
-//            SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
-//            sfsb1.createEmployeeNoTx("Sally", "1 home street", 1);
-//        } catch (TransactionRequiredException e) {
-//            error = e;
-//        } catch (Exception failed) {
-//            error = failed;
-//        }
-//        assertTrue(
-//            "attempting to persist entity with transactional entity manager and no transaction, should fail with a TransactionRequiredException"
-//                + " but we instead got a " + error, error instanceof TransactionRequiredException);
-    }
-
-    @Test
-    public void testMultipleNonTXTransactionalEntityManagerInvocations() throws Exception {
-        SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
-        sfsb1.getEmployeeNoTX(1);   // For each call in, we will use a transactional entity manager
-                                    // that isn't running in an transaction.  So, a new underlying
-                                    // entity manager will be obtained.  The is to ensure that we don't blow up.
-        sfsb1.getEmployeeNoTX(1);
-        sfsb1.getEmployeeNoTX(1);
-    }
-
-    @Test
-    public void testQueryNonTXTransactionalEntityManagerInvocations() throws Exception {
-        SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
-        String name = sfsb1.queryEmployeeNameNoTX(1);
-        assertEquals("Query should of thrown NoResultException, which we indicate by returning 'success'","success", name);
+        Exception error = null;
+        try {
+            SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
+            sfsb1.createEmployeeNoTx("Sally", "1 home street", 1);
+        } catch (TransactionRequiredException e) {
+            error = e;
+        } catch (Exception failed) {
+            error = failed;
+        }
+        assertTrue(
+            "attempting to persist entity with transactional entity manager and no transaction, should fail with a TransactionRequiredException"
+                + " but we instead got a " + error, error instanceof TransactionRequiredException);
     }
 }
