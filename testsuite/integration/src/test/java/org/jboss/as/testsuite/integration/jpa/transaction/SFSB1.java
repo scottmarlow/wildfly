@@ -69,6 +69,6 @@ public class SFSB1 {
             throw new RuntimeException("couldn't start tx" , e);
         }
 
-        em.refresh(emp);    // should throw TransactionRequiredException
+        em.flush();         // should throw TransactionRequiredException
     }
 }
