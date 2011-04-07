@@ -91,8 +91,11 @@ public class TransactionTestCase {
         return interfaceType.cast(iniCtx.lookup(name));
     }
 
-    // test that we didn't break the Hibernate hibernate.session_factory_name (bind Hibernate session factory to
-    // specified jndi name) functionality.
+    /**
+     * Ensure that calling entityManager.flush outside of a transaction, throws a TransactionRequiredException
+     *
+     * @throws Exception
+     */
     @Test
     public void testTransactionRequiredException() throws Exception {
         Exception error = null;
