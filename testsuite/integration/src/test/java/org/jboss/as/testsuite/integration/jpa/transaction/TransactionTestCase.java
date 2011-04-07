@@ -22,11 +22,8 @@
 
 package org.jboss.as.testsuite.integration.jpa.transaction;
 
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.jboss.arquillian.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.as.testsuite.integration.jpa.hibernate.SFSBHibernateSession;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
@@ -41,6 +38,7 @@ import javax.persistence.TransactionRequiredException;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+
 
 /**
  * Transaction tests
