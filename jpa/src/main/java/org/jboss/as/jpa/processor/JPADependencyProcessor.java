@@ -27,11 +27,16 @@ import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
+import org.jboss.as.server.deployment.ServicesAttachment;
 import org.jboss.as.server.deployment.module.ModuleDependency;
 import org.jboss.as.server.deployment.module.ModuleSpecification;
+import org.jboss.logging.Logger;
 import org.jboss.modules.Module;
 import org.jboss.modules.ModuleIdentifier;
 import org.jboss.modules.ModuleLoader;
+
+import javax.persistence.spi.PersistenceProvider;
+import java.util.List;
 
 /**
  * Deployment processor which adds a module dependencies for modules needed for JPA deployments.
@@ -47,6 +52,7 @@ public class JPADependencyProcessor implements DeploymentUnitProcessor {
     private static ModuleIdentifier JAVASSIST_ID = ModuleIdentifier.create("org.javassist");
     private static ModuleIdentifier NAMING_ID = ModuleIdentifier.create("org.jboss.as.naming");
 
+    private static final Logger log = Logger.getLogger("org.jboss.as.jpa");
 
     /**
      * Add dependencies for modules required for JPA deployments
@@ -58,13 +64,57 @@ public class JPADependencyProcessor implements DeploymentUnitProcessor {
         if (!JPADeploymentMarker.isJPADeployment(deploymentUnit)) {
             return; // Skip if there are no persistence use in the deployment
         }
+        String providerClassName;
+        if ((providerClassName = PersistenceProviderDeploymentMarker.getPersistenceProvider(deploymentUnit)) != null) {
+            if (log.isDebugEnabled()) {
+                log.debug("parent for deployment: " + deploymentUnit.getName() +" already has " + providerClassName);
+            }
+            return;
+        }
+
+        if (log.isDebugEnabled()) {
+            log.debug("injecting JPA dependencies into deployment: " + deploymentUnit.getName());
+        }
         final ModuleLoader moduleLoader = Module.getBootModuleLoader();
         addDependency(moduleSpecification, moduleLoader, JAVAX_PERSISTENCE_API_ID);
         addDependency(moduleSpecification, moduleLoader, JAVAEE_API_ID);
         addDependency(moduleSpecification, moduleLoader, JBOSS_AS_JPA_ID);
-        addDependency(moduleSpecification, moduleLoader, JBOSS_HIBERNATE_ID);
         addDependency(moduleSpecification, moduleLoader, JAVASSIST_ID);
         addDependency(moduleSpecification, moduleLoader, NAMING_ID);
+
+        final ServicesAttachment servicesAttachment = deploymentUnit.getAttachment(Attachments.SERVICES);
+
+        boolean useGlobalHibernate = true;
+        // check if deployment has its own PersistenceProvider
+        if (servicesAttachment != null) {
+            final List<String> providerNames = servicesAttachment.getServiceImplementations(PersistenceProvider.class.getName());
+            if (providerNames != null && providerNames.size() > 0) {
+                if (providerNames.size() > 1) {
+                    String providers = null;
+                    int counter=0;
+                    for ( String provider: providerNames) {
+                        providers += provider + (counter == 0 ? "" : ",");
+                        counter++;
+                    }
+                    throw new RuntimeException(
+                        "deployment '" + deploymentUnit.getName() +
+                            "' cannot have multiple persistence providers, but it does.  Persistence providers =" + providers);
+                }
+                useGlobalHibernate = false;
+                providerClassName = providerNames.get(0);
+                if (log.isDebugEnabled()) {
+                    log.debug("Deployment '" + deploymentUnit.getName() + "' is using its own packaged copy of " + providerClassName);
+                }
+
+                PersistenceProviderDeploymentMarker.mark(deploymentUnit, providerClassName);
+            }
+        }
+        if (useGlobalHibernate) {
+            addDependency(moduleSpecification, moduleLoader, JBOSS_HIBERNATE_ID);
+            if (log.isDebugEnabled()) {
+                log.debug("injecting Hibernate Entity Manager into deployment: " + deploymentUnit.getName());
+            }
+        }
     }
 
     private void addDependency(ModuleSpecification moduleSpecification, ModuleLoader moduleLoader,

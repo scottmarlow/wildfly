@@ -105,6 +105,12 @@ public class PersistenceUnitMetadata implements PersistenceUnitInfo {
 
     private Index annotationIndex;
 
+    // optional: use the persistence provider that is packaged with the deployment
+    private boolean usePackagedPersistenceProvider;
+
+    // optional:  if non-null and usePackagedPersistenceProvider is true, use to load persistence provider
+    private ClassLoader packagedPeristenceProviderClassloader;
+
     public void setPersistenceUnitName(String name) {
         this.name = name;
     }
@@ -367,4 +373,21 @@ public class PersistenceUnitMetadata implements PersistenceUnitInfo {
     public void setSharedCacheMode(SharedCacheMode sharedCacheMode) {
         this.sharedCacheMode = sharedCacheMode;
     }
+
+    public void setUsePackagedPersistenceProvider(boolean usePackagedPersistenceProvider) {
+        this.usePackagedPersistenceProvider = usePackagedPersistenceProvider;
+    }
+
+    public boolean getUsePackagedPersistenceProvider() {
+        return usePackagedPersistenceProvider;
+    }
+
+    public void setPackagedPersistenceProviderClassLoader(ClassLoader packagedPeristenceProviderClassloader) {
+        this.packagedPeristenceProviderClassloader = packagedPeristenceProviderClassloader;
+    }
+
+    public ClassLoader getPackagedPersistenceProviderClassLoader() {
+        return packagedPeristenceProviderClassloader;
+    }
 }
+

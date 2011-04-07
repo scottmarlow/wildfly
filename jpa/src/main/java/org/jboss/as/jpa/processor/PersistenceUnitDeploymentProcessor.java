@@ -193,9 +193,26 @@ public class PersistenceUnitDeploymentProcessor implements DeploymentUnitProcess
 
             final ServiceTarget serviceTarget = phaseContext.getServiceTarget();
             final ModuleClassLoader classLoader = module.getClassLoader();
+            final String providerClassName = PersistenceProviderDeploymentMarker.getPersistenceProvider(deploymentUnit);
+
 
             for (PersistenceUnitMetadataHolder holder : puList) {
                 for (PersistenceUnitMetadata pu : holder.getPersistenceUnits()) {
+
+                    // using application copy of persistence provider?  set the classloader for loading provider
+                    // which will be cleared after its used, so it doesn't get abused.
+                    if (pu.getPersistenceProviderClassName().equals(providerClassName)) {
+                        pu.setUsePackagedPersistenceProvider(true);
+                        if (deploymentUnit.getParent() != null) {
+                            final ModuleClassLoader parentClassLoader =
+                                deploymentUnit.getParent().getAttachment(Attachments.MODULE).getClassLoader();
+                            pu.setPackagedPersistenceProviderClassLoader(parentClassLoader);
+                        }
+                        else {
+                            pu.setPackagedPersistenceProviderClassLoader(module.getClassLoader());
+                        }
+                    }
+
                     pu.setClassLoader(classLoader);
                     pu.setTempClassloader(new TempClassLoader(classLoader));
                     try {

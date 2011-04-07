@@ -71,7 +71,40 @@ public class PersistenceUnitService implements Service<PersistenceUnitService> {
     @Override
     public void start(StartContext context) throws StartException {
         try {
-            PersistenceProvider provider = lookupProvider(pu.getPersistenceProviderClassName());
+
+            PersistenceProvider provider;
+            // use persistence provider that is packaged with application deployment
+            if (pu.getUsePackagedPersistenceProvider()) {
+                try {
+                    final Class<?> puClass;
+                    if (pu.getPackagedPersistenceProviderClassLoader() != null) {
+                        puClass = pu.getPackagedPersistenceProviderClassLoader().loadClass(pu.getPersistenceProviderClassName());
+                        pu.setPackagedPersistenceProviderClassLoader(null); // clear classloader so it doesn't get abused.
+                    }
+                    else {
+                        puClass = pu.getClassLoader().loadClass(pu.getPersistenceProviderClassName());
+                    }
+                    provider = (PersistenceProvider)puClass.newInstance();
+                } catch (ClassNotFoundException e) {
+                    throw new RuntimeException(
+                        "Couldn't load persistence provider class "
+                            + pu.getPersistenceProviderClassName() +", from deployment",
+                        e);
+                } catch (InstantiationException e) {
+                    throw new RuntimeException(
+                        "Couldn't create instance of persistence provider class "
+                            + pu.getPersistenceProviderClassName() +", from deployment",
+                        e);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(
+                        "Error while creating instance of persistence provider class "
+                            + pu.getPersistenceProviderClassName() +", from deployment",
+                        e);
+                }
+            }
+            else {
+                provider = lookupProvider(pu.getPersistenceProviderClassName());
+            }
 
             pu.setJtaDataSource(jtaDataSource.getOptionalValue());
             pu.setNonJtaDataSource(nonJtaDataSource.getOptionalValue());
