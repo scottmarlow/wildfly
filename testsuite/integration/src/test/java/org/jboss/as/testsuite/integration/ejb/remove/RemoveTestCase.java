@@ -22,23 +22,22 @@
 
 package org.jboss.as.testsuite.integration.ejb.remove;
 
-import javax.ejb.NoSuchEJBException;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-
-import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import javax.ejb.NoSuchEJBException;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+import javax.persistence.TransactionRequiredException;
+
+import static org.junit.Assert.assertTrue;
+
 
 /**
  * @Remove tests
@@ -64,6 +63,7 @@ public class RemoveTestCase {
         jar.addClasses(RemoveTestCase.class,
             SFSB1.class
         );
+        jar.addResource(new StringAsset(""), "META-INF/MANIFEST.MF");
         return jar;
     }
 
@@ -78,16 +78,18 @@ public class RemoveTestCase {
      */
     @Test
     public void testRemoveDestroysBean() throws Exception {
+        Exception error = null;
         try {
             SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
             sfsb1.done();   // first call is expected to work
             sfsb1.done();   // second call is expected to fail since we are calling a destroyed bean
-            // uncomment the following line after @Remove is implemented
-            // fail("Expecting NoSuchEJBException");
-        } catch (NoSuchEJBException expectedException) {
-            // good
-        }
 
-        Assert.assertTrue(SFSB1.preDestroyCalled);
+        } catch (Exception failed) {
+            error = failed;
+        }
+        assertTrue(
+            "We called a @Remove marked method that should of destroyed the bean on the first call."
+                + "  We called the same method again, which should fail (since bean should be destroyed)"
+                + " but the bean @Remove method didn't destroy the bean.  Error=" + error, error != null);
     }
 }
