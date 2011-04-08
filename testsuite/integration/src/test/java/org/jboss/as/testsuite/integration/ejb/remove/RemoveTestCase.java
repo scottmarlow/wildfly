@@ -32,6 +32,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import javax.ejb.NoSuchEJBException;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.persistence.TransactionRequiredException;
@@ -84,7 +85,7 @@ public class RemoveTestCase {
             sfsb1.done();   // first call is expected to work
             sfsb1.done();   // second call is expected to fail since we are calling a destroyed bean
 
-        } catch (Exception failed) {
+        } catch (NoSuchEJBException failed) {
             error = failed;
         }
         assertTrue(
