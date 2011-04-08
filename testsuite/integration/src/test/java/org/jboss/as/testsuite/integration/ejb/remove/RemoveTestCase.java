@@ -84,7 +84,7 @@ public class RemoveTestCase {
             sfsb1.done();   // first call is expected to work
             sfsb1.done();   // second call is expected to fail since we are calling a destroyed bean
             fail("Expecting NoSuchEJBException");
-        } catch (NoSuchEJBException failed) {
+        } catch (NoSuchEJBException success) {
             // success will bring us here.
         }
     }
