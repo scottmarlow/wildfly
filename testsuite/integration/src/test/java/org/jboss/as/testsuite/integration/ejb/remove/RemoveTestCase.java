@@ -38,7 +38,7 @@ import javax.naming.NamingException;
 import javax.persistence.TransactionRequiredException;
 
 import static org.junit.Assert.assertTrue;
-
+import static org.junit.Assert.fail;
 
 /**
  * @Remove tests
@@ -84,6 +84,7 @@ public class RemoveTestCase {
             SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
             sfsb1.done();   // first call is expected to work
             sfsb1.done();   // second call is expected to fail since we are calling a destroyed bean
+            fail("Expecting NoSuchEJBException");
 
         } catch (NoSuchEJBException failed) {
             error = failed;
