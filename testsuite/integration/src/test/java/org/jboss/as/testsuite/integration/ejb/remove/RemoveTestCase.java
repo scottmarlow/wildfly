@@ -79,15 +79,13 @@ public class RemoveTestCase {
      */
     @Test
     public void testRemoveDestroysBean() throws Exception {
-        Exception error = null;
         try {
             SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
             sfsb1.done();   // first call is expected to work
             sfsb1.done();   // second call is expected to fail since we are calling a destroyed bean
             fail("Expecting NoSuchEJBException");
-
         } catch (NoSuchEJBException failed) {
-            error = failed;
+            // success will bring us here.
         }
     }
 }
