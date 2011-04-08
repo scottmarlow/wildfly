@@ -89,9 +89,5 @@ public class RemoveTestCase {
         } catch (NoSuchEJBException failed) {
             error = failed;
         }
-        assertTrue(
-            "We called a @Remove marked method that should of destroyed the bean on the first call."
-                + "  We called the same method again, which should fail (since bean should be destroyed)"
-                + " but the bean @Remove method didn't destroy the bean.  Error=" + error, error != null);
     }
 }
