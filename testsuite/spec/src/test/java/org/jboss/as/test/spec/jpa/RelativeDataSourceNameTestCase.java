@@ -51,7 +51,7 @@ public class RelativeDataSourceNameTestCase {
             "  <persistence-unit name=\"mypc\">" +
             "    <description>Persistence Unit." +
             "    </description>" +
-            "  <jta-data-source>H2DS</jta-data-source>" +
+            "  <jta-data-source>ExampleDS</jta-data-source>" +
             "<properties> <property name=\"hibernate.hbm2ddl.auto\" value=\"create-drop\"/>" +
             "</properties>" +
             "  </persistence-unit>" +

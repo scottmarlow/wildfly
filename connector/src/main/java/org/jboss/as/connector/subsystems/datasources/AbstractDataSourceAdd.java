@@ -65,9 +65,9 @@ public abstract class AbstractDataSourceAdd extends AbstractAddStepHandler {
     protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model, final ServiceVerificationHandler verificationHandler, final List<ServiceController<?>> controllers) throws OperationFailedException {
         final String rawJndiName = operation.require(JNDINAME).asString();
         final String jndiName;
-        if (!rawJndiName.startsWith("java:/") && operation.hasDefined(USE_JAVA_CONTEXT)
+        if (!rawJndiName.startsWith("java:jboss/datasources/") && operation.hasDefined(USE_JAVA_CONTEXT)
                 && operation.get(USE_JAVA_CONTEXT).asBoolean()) {
-            jndiName = "java:/" + rawJndiName;
+            jndiName = "java:jboss/datasources/" + rawJndiName;
         } else {
             jndiName = rawJndiName;
         }
@@ -108,8 +108,8 @@ public abstract class AbstractDataSourceAdd extends AbstractAddStepHandler {
                 referenceFactoryService.getDataSourceInjector());
 
         String bindName = jndiName;
-        if (jndiName.startsWith("java:/")) {
-            bindName = jndiName.substring(6);
+        if (jndiName.startsWith("java:jboss/datasources/")) {
+            bindName = jndiName.substring(23);
         }
         final BinderService binderService = new BinderService(bindName);
         final ServiceName binderServiceName = ContextNames.JAVA_CONTEXT_SERVICE_NAME.append(jndiName);

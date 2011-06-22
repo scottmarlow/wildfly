@@ -288,7 +288,7 @@ public class AddressOnlyParsingTestCase extends TestCase {
     public void testColonAndSlashInTheNodeName() throws Exception {
         DefaultOperationCallbackHandler handler = new DefaultOperationCallbackHandler();
 
-        parser.parse("data-source=\"java:/H2DS\"", handler);
+        parser.parse("data-source=\"java:/ExampleDS\"", handler);
 
         assertTrue(handler.hasAddress());
         assertFalse(handler.hasOperationName());
@@ -308,7 +308,7 @@ public class AddressOnlyParsingTestCase extends TestCase {
         Node node = i.next();
         assertNotNull(node);
         assertEquals("data-source", node.getType());
-        assertEquals("java:/H2DS", node.getName());
+        assertEquals("java:/ExampleDS", node.getName());
         assertFalse(i.hasNext());
     }
 
@@ -587,7 +587,7 @@ public class AddressOnlyParsingTestCase extends TestCase {
 
         DefaultOperationCallbackHandler handler = new DefaultOperationCallbackHandler();
 
-        parser.parse("/subsystem=datasources/data-source=java\\:\\/H2DS", handler);
+        parser.parse("/subsystem=datasources/data-source=java\\:\\/ExampleDS", handler);
 
         OperationRequestAddress address = handler.getAddress();
         assertNotNull(address);
@@ -600,6 +600,6 @@ public class AddressOnlyParsingTestCase extends TestCase {
         assertTrue(nodes.hasNext());
         node = nodes.next();
         assertEquals("data-source", node.getType());
-        assertEquals("java:/H2DS", node.getName());
+        assertEquals("java:/ExampleDS", node.getName());
     }
 }

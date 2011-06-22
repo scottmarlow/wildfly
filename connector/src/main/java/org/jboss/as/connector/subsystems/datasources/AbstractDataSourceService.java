@@ -482,7 +482,14 @@ public abstract class AbstractDataSourceService implements Service<DataSource> {
         // Override this method to change how jndiName is build in AS7
         @Override
         protected String buildJndiName(String jndiName, Boolean javaContext) {
-            return super.buildJndiName(jndiName, javaContext);
+            if (javaContext != null) {
+                if (javaContext.booleanValue() && !jndiName.startsWith("java:jboss/datasources/")) {
+                    jndiName = "java:jboss/datasources/" + jndiName;
+                } else if (!javaContext.booleanValue() && jndiName.startsWith("java:jboss/datasources/")) {
+                    jndiName = jndiName.substring(23);
+                }
+            }
+            return jndiName;
         }
 
         @Override

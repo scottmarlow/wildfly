@@ -38,7 +38,7 @@ import javax.persistence.TransactionRequiredException;
 public class SimpleStatefulSessionBean implements SimpleStatefulSessionLocal {
     private String state;
 
-    @PersistenceContext(type = PersistenceContextType.EXTENDED, unitName = "H2DS",
+    @PersistenceContext(type = PersistenceContextType.EXTENDED, unitName = "ExampleDS",
     properties = @PersistenceProperty(name = "hibernate.hbm2ddl.auto", value = "create-drop"))
     private EntityManager entityManager;
 
