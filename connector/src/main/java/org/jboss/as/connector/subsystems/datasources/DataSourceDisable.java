@@ -58,8 +58,8 @@ public class DataSourceDisable implements OperationStepHandler {
                     final ModelNode model = context.readResource(PathAddress.EMPTY_ADDRESS).getModel();
                     final String rawJndiName = model.require(JNDINAME).asString();
                     final String jndiName;
-                    if (!rawJndiName.startsWith("java:/") && model.hasDefined(USE_JAVA_CONTEXT) && model.get(USE_JAVA_CONTEXT).asBoolean()) {
-                        jndiName = "java:/" + rawJndiName;
+                    if (!rawJndiName.startsWith("java:jboss/datasources/") && model.hasDefined(USE_JAVA_CONTEXT) && model.get(USE_JAVA_CONTEXT).asBoolean()) {
+                        jndiName = "java:jboss/datasources/" + rawJndiName;
                     } else {
                         jndiName = rawJndiName;
                     }
