@@ -117,7 +117,7 @@ public abstract class AbstractDataSourceAdd extends AbstractAddStepHandler {
                 .addService(binderServiceName, binderService)
                 .addDependency(referenceFactoryServiceName, ManagedReferenceFactory.class,
                         binderService.getManagedObjectInjector())
-                .addDependency(ContextNames.JAVA_CONTEXT_SERVICE_NAME, NamingStore.class,
+                .addDependency(ContextNames.JBOSS_CONTEXT_SERVICE_NAME, NamingStore.class,
                         binderService.getNamingStoreInjector()).addListener(new AbstractServiceListener<Object>() {
                     public void transition(final ServiceController<? extends Object> controller, final ServiceController.Transition transition) {
                         switch (transition) {
