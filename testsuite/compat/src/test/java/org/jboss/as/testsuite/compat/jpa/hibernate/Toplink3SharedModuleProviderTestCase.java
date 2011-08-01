@@ -56,24 +56,21 @@ public class Toplink3SharedModuleProviderTestCase {
             "        xsi:schemaLocation=\"http://java.sun.com/xml/ns/persistence\n" +
             "          http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd\"\n" +
             "        version=\"2.0\">\n" +
-            "    <persistence-unit name=\"toplink_pu\" transaction-type=\"JTA\">\n" +
-            "        <provider>oracle.toplink.essentials.ejb.cmp3.EntityManagerFactoryProvider</provider>\n" +
+            "    <persistence-unit name=\"hibernate3_pc\" transaction-type=\"JTA\">\n" +
+            "        <provider>oracle.toplink.essentials.PersistenceProvider</provider>\n" +
             "        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>\n" +
-            "       <jar-file>pluggability_contracts.jar</jar-file>\n" +
-            "       <class>com.sun.ts.tests.pluggability.contracts.Order</class> \n" +
             "        <properties>         \n" +
-            "            <property name=\"javax.persistence.provider\" value=\"oracle.toplink.essentials.ejb.cmp3.EntityManagerFactoryProvider\"/>\n" +
-            "            <property name=\"toplink.logging.logger\" value=\"com.sun.jpalog.TSJavaLog\"/>\n" +
-            "            <property name=\"toplink.logging.level\" value=\"INFO\"/>\n" +
+            "            <property name=\"javax.persistence.provider\" value=\"oracle.toplink.essentials.PersistenceProvider\"/>\n" +
+            "            <property name=\"jboss.as.jpa.providerModule\" value=\"oracle.toplink\"/>" +
+            "            <property name=\"jboss.as.jpa.adapterModule\" value=\"org.jboss.as.jpa.gendapter\"/>" +
+            "            <property name=\"jboss.as.jpa.adapterClass\" value=\"org.jboss.as.jpa.gendapter.GendapterPersistenceProviderAdaptor\"/>" +
             "        </properties>\n" +
             "    </persistence-unit>    \n" +
             "    <persistence-unit name=\"toplink-nontx_pu\" transaction-type=\"RESOURCE_LOCAL\">\n" +
-            "        <provider>oracle.toplink.essentials.ejb.cmp3.EntityManagerFactoryProvider</provider>\n" +
+            "        <provider>oracle.toplink.essentials.PersistenceProvider</provider>\n" +
             "       <non-jta-data-source>java:jboss/datasources/ExampleDS</non-jta-data-source>\n" +
             "        <properties>         \n" +
-            "            <property name=\"javax.persistence.provider\" value=\"oracle.toplink.essentials.ejb.cmp3.EntityManagerFactoryProvider\"/>\n" +
-            "            <property name=\"toplink.logging.logger\" value=\"com.sun.jpalog.TSJavaLog\"/>\n" +
-            "            <property name=\"toplink.logging.level\" value=\"INFO\"/>\n" +
+            "            <property name=\"javax.persistence.provider\" value=\"oracle.toplink.essentials.PersistenceProvider\"/>\n" +
             "            <property name=\"jboss.as.jpa.providerModule\" value=\"oracle.toplink\"/>" +
             "            <property name=\"jboss.as.jpa.adapterModule\" value=\"org.jboss.as.jpa.gendapter\"/>" +
             "            <property name=\"jboss.as.jpa.adapterClass\" value=\"org.jboss.as.jpa.gendapter.GendapterPersistenceProviderAdaptor\"/>" +
