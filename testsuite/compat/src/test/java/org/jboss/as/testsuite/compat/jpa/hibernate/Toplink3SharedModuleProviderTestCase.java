@@ -74,7 +74,7 @@ public class Toplink3SharedModuleProviderTestCase {
             "            <property name=\"javax.persistence.provider\" value=\"oracle.toplink.essentials.ejb.cmp3.EntityManagerFactoryProvider\"/>\n" +
             "            <property name=\"toplink.logging.logger\" value=\"com.sun.jpalog.TSJavaLog\"/>\n" +
             "            <property name=\"toplink.logging.level\" value=\"INFO\"/>\n" +
-            "            <property name=\"jboss.as.jpa.providerModule\" value=\"org.toplink\"/>" +
+            "            <property name=\"jboss.as.jpa.providerModule\" value=\"oracle.toplink\"/>" +
             "            <property name=\"jboss.as.jpa.adapterModule\" value=\"org.jboss.as.jpa.gendapter\"/>" +
             "            <property name=\"jboss.as.jpa.adapterClass\" value=\"org.jboss.as.jpa.gendapter.GendapterPersistenceProviderAdaptor\"/>" +
             "        </properties>\n" +

@@ -466,14 +466,10 @@ public class PersistenceUnitDeploymentProcessor implements DeploymentUnitProcess
                     if (serviceLoader != null) {
                         PersistenceProvider persistenceProvider = null;
                         for (PersistenceProvider provider : serviceLoader) {
-                            if (persistenceProvider != null) {
-                                throw new DeploymentUnitProcessingException(
-                                        "persistence provider module has more than one provider "
-                                                + persistenceProviderModule + "(class " + persistenceProviderClassName + ")");
+                            if (pu.getPersistenceProviderClassName().equals(provider.getClass().getName())) {
+                                persistenceProvider = provider;
                             }
-                            persistenceProvider = provider;
                         }
-
                         PersistenceProviderResolverImpl.getInstance().addPersistenceProvider(persistenceProvider);
                     }
                 }
