@@ -531,6 +531,10 @@
             <maven-resource group="org.jboss.as" artifact="jboss-as-jpa-hibernate4"/>
         </module-def>
 
+        <module-def name="org.jboss.as.jpa.gendapter">
+            <maven-resource group="org.jboss.as" artifact="jboss-as-jpa-gendapter"/>
+        </module-def>
+
         <module-def name="org.jboss.as.jpa.spi">
             <maven-resource group="org.jboss.as" artifact="jboss-as-jpa-spi"/>
         </module-def>

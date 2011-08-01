@@ -3316,6 +3316,12 @@
             </dependency>
 
             <dependency>
+                <groupId>org.jboss.as</groupId>
+                <artifactId>jboss-as-jpa-gendapter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.jboss.jbossts</groupId>
                 <artifactId>jbossjts</artifactId>
                 <version>${version.org.jboss.jbossts.jbossjts}</version>

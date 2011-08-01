@@ -44,6 +44,7 @@
         <module>core</module>
         <module>spi</module>
         <module>hibernate4</module>
+        <module>gendapter</module>
         <module>hibernate3</module>
     </modules>
 
