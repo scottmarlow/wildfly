@@ -366,6 +366,11 @@ public class PersistenceUnitDeploymentProcessor implements DeploymentUnitProcess
         if (adaptor == null) {
             adaptor = loadPersistenceAdapterModule(pu.getPersistenceProviderClassName(), adaptorModule);
         }
+
+        if (adaptor == null) {
+            adaptor = loadPersistenceAdapterModule(pu.getPersistenceProviderClassName(), Configuration.PROVIDER_MODULE_GENERIC);
+        }
+
         if (adaptor == null) {
             throw new DeploymentUnitProcessingException("Failed to get adaptor for persistence provider '" + pu.getPersistenceProviderClassName() + "'");
         }

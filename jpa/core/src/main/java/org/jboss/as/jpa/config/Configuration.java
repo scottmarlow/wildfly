@@ -38,6 +38,8 @@ public class Configuration {
      */
     public static final String PROVIDER_MODULE_DEFAULT = "org.hibernate";
 
+    public static final String PROVIDER_MODULE_GENERIC = "org.jboss.as.jpa.gendapter";
+
     /**
      * default provider class
      */
