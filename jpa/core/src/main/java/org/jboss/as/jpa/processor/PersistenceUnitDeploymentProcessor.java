@@ -466,14 +466,24 @@ public class PersistenceUnitDeploymentProcessor implements DeploymentUnitProcess
                     if (serviceLoader != null) {
                         PersistenceProvider persistenceProvider = null;
                         for (PersistenceProvider provider : serviceLoader) {
-                            if (persistenceProvider != null) {
-                                throw new DeploymentUnitProcessingException(
-                                        "persistence provider module has more than one provider "
-                                                + persistenceProviderModule + "(class " + persistenceProviderClassName + ")");
+                            // persistence provider jar may contain multiple provider service implementations
+                            // use the one that matches
+                            if (persistenceProviderClassName.equals(provider.getClass().getName())) {
+                                persistenceProvider = provider;
                             }
-                            persistenceProvider = provider;
                         }
-
+                        if (persistenceProvider == null) {
+                            // could be invalid settings in persistence.xml, throw error that includes list of valid
+                            // persistence provider class names
+                            ArrayList<String> providerClasses = new ArrayList<String>();
+                            for (PersistenceProvider provider : serviceLoader) {
+                                providerClasses.add(provider.getClass().getName());
+                            }
+                            // name in persistence.xml didn't match class names in jar META-INF/services
+                            throw new DeploymentUnitProcessingException(pu.getPersistenceUnitName() + " used incorrect persistence provider class name.  Module = "
+                                    + persistenceProviderModule + "), persistenceProvider specified = " + persistenceProviderClassName + ", providers found = {"+
+                                providerClasses + " }" );
+                        }
                         PersistenceProviderResolverImpl.getInstance().addPersistenceProvider(persistenceProvider);
                     }
                 }
