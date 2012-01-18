@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2011, Red Hat, Inc., and individual contributors
+ * Copyright 2012, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -22,28 +22,15 @@
 
 package org.jboss.as.test.clustering.unmanaged.ejb3.stateful.bean;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.ejb.EJB;
-import javax.interceptor.Interceptors;
-
 import org.jboss.ejb3.annotation.Clustered;
 
 /**
- * @author Paul Ferraro
+ * Second stateful session bean that is injected into StatefulBean to reproduce AS7-3229.
+ *
+ * @author Scott Marlow
  */
 @Clustered
-@javax.ejb.Stateful(name = "StatefulBean")
-@Interceptors(StatefulInterceptor.class)
-@Intercepted
-public class StatefulBean implements Stateful {
+@javax.ejb.Stateful
+public class SecondBean {
 
-    @EJB
-    SecondBean secondBean;
-
-    private AtomicInteger count = new AtomicInteger(0);
-    
-    public int increment() {
-        return this.count.incrementAndGet();
-    }
 }

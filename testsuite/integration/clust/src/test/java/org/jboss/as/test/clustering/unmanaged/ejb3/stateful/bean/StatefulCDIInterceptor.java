@@ -18,7 +18,12 @@ public class StatefulCDIInterceptor implements Serializable {
 
     @AroundInvoke
     public Object invoke(final InvocationContext context) throws Exception {
-        return ((Integer)context.proceed() ) + count.addAndGet(10000);
+        Object result = context.proceed();
+
+        if (result instanceof Integer) {
+            return ((Integer)result ) + count.addAndGet(10000);
+        }
+        return result;
     }
 
 }
