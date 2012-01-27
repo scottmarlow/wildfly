@@ -30,12 +30,7 @@ import java.util.Map;
  *
  * @author Scott Marlow
  */
-public class Configuration {
-    /**
-     * name of the AS module that contains the persistence provider
-     */
-    public static final String PROVIDER_MODULE = "jboss.as.jpa.providerModule";
-
+public class Configuration implements org.jboss.as.jpa.spi.Configuration {
     /**
      * Hibernate 4 persistence provider
      */

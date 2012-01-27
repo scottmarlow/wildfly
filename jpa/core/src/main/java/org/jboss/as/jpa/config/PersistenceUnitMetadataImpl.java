@@ -401,4 +401,21 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
     public void setSharedCacheMode(SharedCacheMode sharedCacheMode) {
         this.sharedCacheMode = sharedCacheMode;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        PersistenceUnitMetadataImpl that = (PersistenceUnitMetadataImpl) o;
+
+        if (!scopedName.equals(that.scopedName)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return scopedName.hashCode();
+    }
 }

@@ -30,6 +30,7 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.spi.PersistenceProvider;
 import javax.sql.DataSource;
 
+import org.jboss.as.jpa.JpaMessages;
 import org.jboss.as.jpa.classloader.TempClassLoaderFactoryImpl;
 import org.jboss.as.jpa.spi.PersistenceProviderAdaptor;
 import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
@@ -66,6 +67,7 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
     private final ClassLoader classLoader;
 
     private volatile EntityManagerFactory entityManagerFactory;
+    private volatile int startCount;
 
     public PersistenceUnitServiceImpl(final ClassLoader classLoader, final PersistenceUnitMetadata pu, final PersistenceProviderAdaptor persistenceProviderAdaptor, final PersistenceProvider persistenceProvider) {
         this.pu = pu;
@@ -77,6 +79,13 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
     @Override
     public void start(StartContext context) throws StartException {
         try {
+            if (startCount++ > 0) {
+                // if we are restarting and the persistence provider EntityManagerFactory won't work with a restart, throw error
+                if (!persistenceProviderAdaptor.entityManagerFactoryCanBeRestarted(pu)) {
+                    throw JpaMessages.MESSAGES.couldNotCreateRestartPersistenceUnitService(pu.getScopedPersistenceUnitName());
+                }
+            }
+
             JPA_LOGGER.startingService("Persistence Unit", pu.getScopedPersistenceUnitName());
             pu.setTempClassLoaderFactory(new TempClassLoaderFactoryImpl(classLoader));
             pu.setJtaDataSource(jtaDataSource.getOptionalValue());
@@ -165,8 +174,6 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                 persistenceProviderAdaptor.afterCreateContainerEntityManagerFactory(pu);
             } finally {
                 pu.setAnnotationIndex(null);    // close reference to Annotation Index (only needed during call to createContainerEntityManagerFactory)
-                //This is needed if the datasource is restarted
-                //pu.setTempClassLoaderFactory(null);    // close reference to temp classloader factory (only needed during call to createEntityManagerFactory)
             }
         }
     }

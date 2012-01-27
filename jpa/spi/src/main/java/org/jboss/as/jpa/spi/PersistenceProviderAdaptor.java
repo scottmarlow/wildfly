@@ -81,5 +81,17 @@ public interface PersistenceProviderAdaptor {
      * Called when we are done with the persistence unit metadata
      */
     void cleanup(PersistenceUnitMetadata pu);
+
+    /**
+     * determins if the datasource that a persistence unit definition depends on, is restarted, can the
+     * EntityManagerFactory that references the datasource, also can be restarted.
+     *
+     * @param pu
+     * @return true if the persistence provider will work correctly after recreating the EntityManagerFactory
+     * for an application that has already used the EntityManagerFactory before it was closed.
+     * This assumes that all application references to the EntityManagerFactory (via a persistence unit or
+     * persistence context will be released before the restart).
+     */
+    boolean entityManagerFactoryCanBeRestarted(PersistenceUnitMetadata pu);
 }
 

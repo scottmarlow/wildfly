@@ -160,5 +160,20 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
     public void cleanup(PersistenceUnitMetadata pu) {
         HibernateAnnotationScanner.cleanup(pu);
     }
+
+    @Override
+    public boolean entityManagerFactoryCanBeRestarted(PersistenceUnitMetadata pu) {
+        // return false if hibernate.ejb.use_class_enhancer is used (application classes can be enhanced).
+        boolean result = !(pu.getProperties().containsKey("hibernate.ejb.use_class_enhancer"));
+        Object value;
+
+        // let the application override.
+        if((value = pu.getProperties().get(org.jboss.as.jpa.spi.Configuration.EMF_CAN_BE_RESTARTED)) != null) {
+            result = Boolean.parseBoolean((String)value);
+        }
+
+        return result;
+    }
+
 }
 

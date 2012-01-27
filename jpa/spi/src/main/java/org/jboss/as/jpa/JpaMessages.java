@@ -31,6 +31,7 @@ import org.jboss.logging.Message;
 import org.jboss.logging.MessageBundle;
 import org.jboss.logging.Messages;
 import org.jboss.modules.ModuleIdentifier;
+import org.jboss.msc.service.StartException;
 import org.jboss.vfs.VirtualFile;
 
 import javax.ejb.EJBException;
@@ -580,5 +581,14 @@ public interface JpaMessages {
      */
     @Message(id = 11471, value = "Could not create instance of persistence provider class %s")
     RuntimeException couldNotCreateInstanceProvider(@Cause Throwable cause, String providerClassName);
+
+    /**
+     * Create an exception indicating that the persistence unit service couldn't be restarted.
+     * @param scopedPuName
+     * @return
+     */
+    @Message(id = 11472, value = "Could not restart persistence unit service %s")
+    StartException couldNotCreateRestartPersistenceUnitService(String scopedPuName);
+
 
 }

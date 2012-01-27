@@ -77,6 +77,11 @@ public class PersistenceProviderAdaptorLoader {
         @Override
         public void cleanup(PersistenceUnitMetadata pu) {
         }
+
+        @Override
+        public boolean entityManagerFactoryCanBeRestarted(PersistenceUnitMetadata pu) {
+            return false;
+        }
     };
 
     /**

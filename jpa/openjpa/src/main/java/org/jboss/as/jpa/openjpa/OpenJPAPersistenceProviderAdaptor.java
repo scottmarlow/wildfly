@@ -24,6 +24,7 @@ package org.jboss.as.jpa.openjpa;
 
 import java.util.Map;
 
+import org.jboss.as.jpa.spi.Configuration;
 import org.jboss.as.jpa.spi.JtaManager;
 import org.jboss.as.jpa.spi.ManagementAdaptor;
 import org.jboss.as.jpa.spi.PersistenceProviderAdaptor;
@@ -83,6 +84,19 @@ public class OpenJPAPersistenceProviderAdaptor implements PersistenceProviderAda
     @Override
     public void cleanup(PersistenceUnitMetadata pu) {
         JBossPersistenceMetaDataFactory.cleanup(pu);
+    }
+
+    @Override
+    public boolean entityManagerFactoryCanBeRestarted(PersistenceUnitMetadata pu) {
+        // I think that OpenJPA uses a javax.persistence.spi.ClassTransformer, which probably wouldn't work
+        // twice against the same application classloader.
+        boolean result = false;
+        Object value;
+        if((value = pu.getProperties().get(Configuration.EMF_CAN_BE_RESTARTED)) != null) {
+            result = Boolean.parseBoolean((String)value);
+        }
+
+        return result;
     }
 
 }
