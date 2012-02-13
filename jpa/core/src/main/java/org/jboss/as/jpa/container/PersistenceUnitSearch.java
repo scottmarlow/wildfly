@@ -27,6 +27,7 @@ import static org.jboss.as.jpa.JpaMessages.MESSAGES;
 
 import java.util.List;
 
+import org.jboss.as.jpa.PersistenceUnitSearchException;
 import org.jboss.as.jpa.config.PersistenceUnitMetadataHolder;
 import org.jboss.as.jpa.config.PersistenceUnitsInApplication;
 import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
@@ -47,6 +48,16 @@ public class PersistenceUnitSearch {
     // cache the trace enabled flag
     private static final boolean traceEnabled = ROOT_LOGGER.isTraceEnabled();
 
+    /**
+     * Lookup the specified persistence unit name in the application deployment.
+     *
+     * @param deploymentUnit
+     * @param persistenceUnitName is the persistence unit name to find.  Can be null, meaning to return the one persistence unit definition in the application.
+     * @return found persistence unit definition
+     * @throws PersistenceUnitSearchException if the specified persistence unit name could not be found (which should be a
+     * a coding/configuration error in the deployment).  Will also be thrown if persistenceUnitName is null and the
+     * application deployment has multiple persistence unit definitions.
+     */
     public static PersistenceUnitMetadata resolvePersistenceUnitSupplier(DeploymentUnit deploymentUnit, String persistenceUnitName) {
         if (traceEnabled) {
             ROOT_LOGGER.tracef("pu search for name '%s' inside of %s", persistenceUnitName, deploymentUnit.getName());
@@ -56,6 +67,17 @@ public class PersistenceUnitSearch {
             final String path = persistenceUnitName.substring(0, scopeSeparatorCharacter);
             final String name = persistenceUnitName.substring(scopeSeparatorCharacter + 1);
             PersistenceUnitMetadata pu = getPersistenceUnit(deploymentUnit, path, name);
+            if (pu == null) {
+                if (name != null) {
+                    throw MESSAGES.persistenceUnitNotFound(path, name, deploymentUnit);
+                }
+                else {
+                    // rather than saying "could not find persistence unit named 'null'
+                    // give a more descriptive error
+                    throw MESSAGES.deploymentDoesNotHaveAPersistenceUnitDefinition(deploymentUnit);
+                }
+
+            }
             if (traceEnabled) {
                 ROOT_LOGGER.tracef("pu search found %s", pu.getScopedPersistenceUnitName());
             }
@@ -186,9 +208,7 @@ public class PersistenceUnitSearch {
                 }
             }
         }
-
-
-        throw MESSAGES.persistenceUnitNotFound(absolutePath, puName, current);
+        return null;
     }
 }
 

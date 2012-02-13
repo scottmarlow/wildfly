@@ -31,7 +31,6 @@ import javax.persistence.TransactionRequiredException;
 
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
-import org.jboss.invocation.InterceptorContext;
 import org.jboss.jandex.MethodInfo;
 import org.jboss.logging.Cause;
 import org.jboss.logging.Message;
@@ -275,7 +274,7 @@ public interface JpaMessages {
      * @param deploymentUnit the deployment unit.
      * @return the message.
      */
-    @Message(id = 11440, value = "Can't find a persistence unit named %s in %s")
+    @Message(id = 11440, value = "Cannot find a persistence unit named %s in %s")
     String persistenceUnitNotFound(String puName, DeploymentUnit deploymentUnit);
 
     /**
@@ -286,10 +285,10 @@ public interface JpaMessages {
      * @param path           the path.
      * @param puName         the persistence unit name.
      * @param deploymentUnit the deployment unit.
-     * @return an {@link IllegalArgumentException} for the error.
+     * @return an {@link PersistenceUnitSearchException} for the error.
      */
-    @Message(id = 11441, value = "Can't find a persistence unit named %s#%s at %s")
-    IllegalArgumentException persistenceUnitNotFound(String path, String puName, DeploymentUnit deploymentUnit);
+    @Message(id = 11441, value = "Cannot find a persistence unit named %s#%s at %s")
+    PersistenceUnitSearchException persistenceUnitNotFound(String path, String puName, DeploymentUnit deploymentUnit);
 
     /**
      * Creates an exception indicating the parameter, likely a collection, is empty.
@@ -406,32 +405,20 @@ public interface JpaMessages {
     RuntimeException multipleAdapters(String adapterModule);
 
     /**
-     * Creates an exception indicating more than one thread is invoking the stateful session bean at the same time.
+     * Creates an exception indicating the deployment unit doesn't have any persistence unit definitions.
      *
-     * @param sessionBean the stateful session bean.
-     * @return a {@link RuntimeException} for the error.
+     * @param deploymentUnit the deployment unit.
+     * @return an {@link PersistenceUnitSearchException} for the error.
      */
-    @Message(id = 11457, value = "More than one thread is invoking stateful session bean '%s' at the same time")
-    RuntimeException multipleThreadsInvokingSfsb(Object sessionBean);
+    @Message(id = 11457, value = "Application deployment (%s) does not contain a persistence.xml " +
+            "or the persistence.xml is not in a valid location")
+    PersistenceUnitSearchException deploymentDoesNotHaveAPersistenceUnitDefinition(DeploymentUnit deploymentUnit);
 
-    /**
-     * Creates an exception indicating more than one thread is using the entity manager instance at the same time.
-     *
-     * @param entityManager the entity manager.
-     * @return a {@link RuntimeException} for the error.
-     */
-    @Message(id = 11458, value = "More than one thread is using EntityManager instance '%s' at the same time")
-    RuntimeException multipleThreadsUsingEntityManager(EntityManager entityManager);
 
-    /**
-     * Creates an exception indicating the {@code name} was not set in the {@link org.jboss.invocation.InterceptorContext}.
-     *
-     * @param name    the name of the field not set.
-     * @param context the context.
-     * @return an {@link IllegalArgumentException} for the error.
-     */
-    @Message(id = 11459, value = "%s not set in InterceptorContext: %s")
-    IllegalArgumentException notSetInInterceptorContext(String name, InterceptorContext context);
+
+    /* free message slot id = 11458 */
+
+    /* free message slot id = 11459 */
 
     /**
      * Creates an exception indicating the method is not yet implemented.
@@ -470,14 +457,7 @@ public interface JpaMessages {
     @Message(id = 11463, value = "Previous object for class %s is %s instead of null")
     String objectAlreadyDefined(Class<?> cls, Object previous);
 
-    /**
-     * Creates an exception indicating the parameter must be a ExtendedEntityManager
-     *
-     * @param gotClass
-     * @return a {@link RuntimeException} for the error.
-     */
-    @Message(id = 11465, value = "Internal error, expected parameter of type ExtendedEntityManager but instead got %s")
-    RuntimeException parameterMustBeExtendedEntityManager(String gotClass);
+    /* free message slot id = 11465 */
 
     /**
      * Creates an exception indicating the persistence provider could not be found.
@@ -526,11 +506,11 @@ public interface JpaMessages {
      * @param deploymentUnit the deployment unit.
      * @param puCount is number of persistence units defined in application
      *
-     * @return an {@link IllegalArgumentException} for the error.
+     * @return an {@link PersistenceUnitSearchException} for the error.
      */
     @Message(id = 11470, value = "Persistence unitName was not specified and there are %d persistence unit definitions in application %s."+
         "  Either change the application to have only one persistence unit definition or specify the unitName for each reference to a persistence unit.")
-    IllegalArgumentException noPUnitNameSpecifiedAndMultiplePersistenceUnits(int puCount, DeploymentUnit deploymentUnit);
+    PersistenceUnitSearchException noPUnitNameSpecifiedAndMultiplePersistenceUnits(int puCount, DeploymentUnit deploymentUnit);
 
     /**
      * Creates an exception indicating the persistence provider could not be instantiated ,
@@ -552,7 +532,6 @@ public interface JpaMessages {
     @Message(id = 11472, value = "internal error, the number of stateful session beans (%d) associated " +
         "with an extended persistence context (%s) cannot be a negative number.")
     RuntimeException referenceCountedEntityManagerNegativeCount(int referenceCount, String scopedPuName);
-
 
 
     /**
