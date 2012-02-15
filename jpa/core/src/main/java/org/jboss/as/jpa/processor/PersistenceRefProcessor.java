@@ -22,6 +22,8 @@
 
 package org.jboss.as.jpa.processor;
 
+import static org.jboss.as.jpa.JpaMessages.MESSAGES;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -56,8 +58,6 @@ import org.jboss.metadata.javaee.spec.PropertiesMetaData;
 import org.jboss.metadata.javaee.spec.PropertyMetaData;
 import org.jboss.metadata.javaee.spec.RemoteEnvironment;
 import org.jboss.msc.service.ServiceName;
-
-import static org.jboss.as.jpa.JpaMessages.MESSAGES;
 
 /**
  * Deployment processor responsible for processing persistence unit / context references from deployment descriptors.
@@ -215,11 +215,7 @@ public class PersistenceRefProcessor extends AbstractDeploymentDescriptorBinding
     private PersistenceUnitMetadata getPersistenceUnit(final DeploymentUnit deploymentUnit, final String puName)
         throws DeploymentUnitProcessingException {
 
-        PersistenceUnitMetadata pu = PersistenceUnitSearch.resolvePersistenceUnitSupplier(deploymentUnit, puName);
-        if (null == pu) {
-            throw new DeploymentUnitProcessingException(MESSAGES.persistenceUnitNotFound(puName, deploymentUnit));
-        }
-        return pu;
+        return PersistenceUnitSearch.resolvePersistenceUnitSupplier(deploymentUnit, puName);
     }
 
     private ServiceName getPuServiceName(String scopedPuName)

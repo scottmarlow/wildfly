@@ -278,17 +278,16 @@ public interface JpaMessages {
     String persistenceUnitNotFound(String puName, DeploymentUnit deploymentUnit);
 
     /**
-     * Creates an exception indicating that the persistence unit, represented by the {@code path} and {@code puName}
+     * Creates an exception indicating that the persistence unit, represented by the {@code puName}
      * parameters, could not be found at the current deployment unit, represented by the {@code deploymentUnit}
      * parameter.
      *
-     * @param path           the path.
      * @param puName         the persistence unit name.
      * @param deploymentUnit the deployment unit.
      * @return an {@link PersistenceUnitSearchException} for the error.
      */
-    @Message(id = 11441, value = "Cannot find a persistence unit named %s#%s at %s")
-    PersistenceUnitSearchException persistenceUnitNotFound(String path, String puName, DeploymentUnit deploymentUnit);
+    @Message(id = 11441, value = "Cannot find a persistence unit named %s at %s")
+    PersistenceUnitSearchException persistenceUnitNotFoundException(String puName, DeploymentUnit deploymentUnit);
 
     /**
      * Creates an exception indicating the parameter, likely a collection, is empty.
@@ -412,7 +411,7 @@ public interface JpaMessages {
      */
     @Message(id = 11457, value = "Application deployment (%s) does not contain a persistence.xml " +
             "or the persistence.xml is not in a valid location")
-    PersistenceUnitSearchException deploymentDoesNotHaveAPersistenceUnitDefinition(DeploymentUnit deploymentUnit);
+    PersistenceUnitSearchException deploymentDoesNotHaveAPersistenceUnitDefinitionException(DeploymentUnit deploymentUnit);
 
 
 
@@ -510,7 +509,7 @@ public interface JpaMessages {
      */
     @Message(id = 11470, value = "Persistence unitName was not specified and there are %d persistence unit definitions in application %s."+
         "  Either change the application to have only one persistence unit definition or specify the unitName for each reference to a persistence unit.")
-    PersistenceUnitSearchException noPUnitNameSpecifiedAndMultiplePersistenceUnits(int puCount, DeploymentUnit deploymentUnit);
+    PersistenceUnitSearchException noPUnitNameSpecifiedAndMultiplePersistenceUnitsException(int puCount, DeploymentUnit deploymentUnit);
 
     /**
      * Creates an exception indicating the persistence provider could not be instantiated ,

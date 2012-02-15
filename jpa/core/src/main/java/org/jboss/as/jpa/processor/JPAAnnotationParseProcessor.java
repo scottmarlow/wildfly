@@ -44,6 +44,7 @@ import org.jboss.as.ee.component.InjectionTarget;
 import org.jboss.as.ee.component.LookupInjectionSource;
 import org.jboss.as.ee.component.MethodInjectionTarget;
 import org.jboss.as.ee.component.ResourceInjectionConfiguration;
+import org.jboss.as.jpa.PersistenceUnitSearchException;
 import org.jboss.as.jpa.container.PersistenceUnitSearch;
 import org.jboss.as.jpa.injectors.PersistenceContextInjectionSource;
 import org.jboss.as.jpa.injectors.PersistenceUnitInjectionSource;
@@ -281,10 +282,11 @@ public class JPAAnnotationParseProcessor implements DeploymentUnitProcessor {
         if (puName != null) {
             searchName = puName.asString();
         }
-        PersistenceUnitMetadata pu = PersistenceUnitSearch.resolvePersistenceUnitSupplier(deploymentUnit, searchName);
-        if (null == pu) {
+        PersistenceUnitMetadata pu = null;
+        try {
+            pu = PersistenceUnitSearch.resolvePersistenceUnitSupplier(deploymentUnit, searchName);
+        } catch( PersistenceUnitSearchException e) {
             classDescription.setInvalid(MESSAGES.persistenceUnitNotFound(searchName, deploymentUnit));
-            return null;
         }
         return pu;
     }

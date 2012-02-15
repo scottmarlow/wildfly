@@ -62,45 +62,41 @@ public class PersistenceUnitSearch {
         if (traceEnabled) {
             ROOT_LOGGER.tracef("pu search for name '%s' inside of %s", persistenceUnitName, deploymentUnit.getName());
         }
+        PersistenceUnitMetadata pu;
         int scopeSeparatorCharacter = (persistenceUnitName == null ? -1 : persistenceUnitName.indexOf('#'));
         if (scopeSeparatorCharacter != -1) {
             final String path = persistenceUnitName.substring(0, scopeSeparatorCharacter);
             final String name = persistenceUnitName.substring(scopeSeparatorCharacter + 1);
-            PersistenceUnitMetadata pu = getPersistenceUnit(deploymentUnit, path, name);
-            if (pu == null) {
-                if (name != null) {
-                    throw MESSAGES.persistenceUnitNotFound(path, name, deploymentUnit);
-                }
-                else {
-                    // rather than saying "could not find persistence unit named 'null'
-                    // give a more descriptive error
-                    throw MESSAGES.deploymentDoesNotHaveAPersistenceUnitDefinition(deploymentUnit);
-                }
-
-            }
-            if (traceEnabled) {
-                ROOT_LOGGER.tracef("pu search found %s", pu.getScopedPersistenceUnitName());
-            }
-            return pu;
+            pu = getPersistenceUnit(deploymentUnit, path, name);
         } else {
             if ( persistenceUnitName == null) {
                 PersistenceUnitsInApplication persistenceUnitsInApplication = DeploymentUtils.getTopDeploymentUnit(deploymentUnit).getAttachment(PersistenceUnitsInApplication.PERSISTENCE_UNITS_IN_APPLICATION);
 
                 if (persistenceUnitsInApplication.getCount() > 1) {
                     // AS7-2275 no unitName and there is more than one persistence unit;
-                    throw MESSAGES.noPUnitNameSpecifiedAndMultiplePersistenceUnits(persistenceUnitsInApplication.getCount(),DeploymentUtils.getTopDeploymentUnit(deploymentUnit));
+                    throw MESSAGES.noPUnitNameSpecifiedAndMultiplePersistenceUnitsException(persistenceUnitsInApplication.getCount(), DeploymentUtils.getTopDeploymentUnit(deploymentUnit));
                 }
                 ROOT_LOGGER.tracef("pu searching with empty unit name, application %s has %d persistence unit definitions",
                     DeploymentUtils.getTopDeploymentUnit(deploymentUnit).getName(), persistenceUnitsInApplication.getCount());
             }
-            PersistenceUnitMetadata name = findPersistenceUnitSupplier(deploymentUnit, persistenceUnitName);
-            if (traceEnabled) {
-                if (name != null) {
-                    ROOT_LOGGER.tracef("pu search found %s", name.getScopedPersistenceUnitName());
-                }
-            }
-            return name;
+            pu = findPersistenceUnitSupplier(deploymentUnit, persistenceUnitName);
         }
+
+        if (pu == null) {
+            if (persistenceUnitName != null) {
+                throw MESSAGES.persistenceUnitNotFoundException(persistenceUnitName, deploymentUnit);
+            }
+            else {
+                // rather than saying "could not find persistence unit named 'null'
+                // give a more descriptive error
+                throw MESSAGES.deploymentDoesNotHaveAPersistenceUnitDefinitionException(deploymentUnit);
+            }
+
+        }
+        if (traceEnabled) {
+            ROOT_LOGGER.tracef("pu search found %s", pu.getScopedPersistenceUnitName());
+        }
+        return pu;
     }
 
     private static PersistenceUnitMetadata findPersistenceUnitSupplier(DeploymentUnit deploymentUnit, String persistenceUnitName) {

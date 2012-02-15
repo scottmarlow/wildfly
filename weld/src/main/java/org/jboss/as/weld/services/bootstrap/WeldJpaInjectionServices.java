@@ -33,7 +33,6 @@ import javax.persistence.PersistenceUnit;
 import org.jboss.as.jpa.container.PersistenceUnitSearch;
 import org.jboss.as.jpa.container.TransactionScopedEntityManager;
 import org.jboss.as.jpa.service.PersistenceUnitServiceImpl;
-import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.weld.WeldMessages;
 import org.jboss.msc.service.ServiceController;
@@ -90,11 +89,6 @@ public class WeldJpaInjectionServices implements JpaInjectionServices {
     }
 
     private String getScopedPUName(final DeploymentUnit deploymentUnit, final String persistenceUnitName) {
-        PersistenceUnitMetadata scopedPu;
-        scopedPu = PersistenceUnitSearch.resolvePersistenceUnitSupplier(deploymentUnit, persistenceUnitName);
-        if (null == scopedPu) {
-            throw WeldMessages.MESSAGES.couldNotFindPersistenceUnit(persistenceUnitName, deploymentUnit.getName());
-        }
-        return scopedPu.getScopedPersistenceUnitName();
+        return PersistenceUnitSearch.resolvePersistenceUnitSupplier(deploymentUnit, persistenceUnitName).getScopedPersistenceUnitName();
     }
 }
