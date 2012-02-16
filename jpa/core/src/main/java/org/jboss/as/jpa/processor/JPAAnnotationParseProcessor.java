@@ -286,7 +286,7 @@ public class JPAAnnotationParseProcessor implements DeploymentUnitProcessor {
         try {
             pu = PersistenceUnitSearch.resolvePersistenceUnitSupplier(deploymentUnit, searchName);
         } catch( PersistenceUnitSearchException e) {
-            classDescription.setInvalid(MESSAGES.persistenceUnitNotFound(searchName, deploymentUnit));
+            classDescription.setInvalid(MESSAGES.persistenceUnitNotFound(searchName, classDescription.getClassName(), deploymentUnit));
         }
         return pu;
     }

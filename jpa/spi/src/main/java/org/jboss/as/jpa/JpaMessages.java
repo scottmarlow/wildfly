@@ -271,11 +271,12 @@ public interface JpaMessages {
      * the current deployment unit, represented by the {@code deploymentUnit} parameter.
      *
      * @param puName         the persistence unit name.
+     * @param className the class that is referencing the persistence unit
      * @param deploymentUnit the deployment unit.
      * @return the message.
      */
-    @Message(id = 11440, value = "Cannot find a persistence unit named %s in %s")
-    String persistenceUnitNotFound(String puName, DeploymentUnit deploymentUnit);
+    @Message(id = 11440, value = "Cannot find a persistence unit named %s (class = %s, deployment=%s)")
+    String persistenceUnitNotFound(String puName, String className, DeploymentUnit deploymentUnit);
 
     /**
      * Creates an exception indicating that the persistence unit, represented by the {@code puName}
