@@ -21,8 +21,11 @@
  */
 package org.jboss.as.ee.datasource;
 
+import static org.jboss.as.ee.EeLogger.ROOT_LOGGER;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.sql.Connection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -46,6 +49,8 @@ public class DataSourceTransactionProxyHandler implements InvocationHandler {
 
     private final TransactionManager transactionManager;
     private final TransactionSynchronizationRegistry synchronizationRegistry;
+    private static final boolean isTraceLoggingEnabled = ROOT_LOGGER.isTraceEnabled();
+    private static final String CONNECTION_KEY = "enlisted connection";
 
     private final Object delegate;
 
@@ -63,15 +68,47 @@ public class DataSourceTransactionProxyHandler implements InvocationHandler {
             final XADataSource xa = (XADataSource) delegate;
             final XAConnection xaConn = xa.getXAConnection();
             final Object transactionKey = synchronizationRegistry.getTransactionKey();
+            boolean activeJTATransaction  = transactionManager.getTransaction() != null && transactionActive(transactionManager.getTransaction().getStatus());
+
+            Connection connection=null;
+            // enlist XAResource into activate jta transaction
             if (!registeredTransactions.contains(transactionKey)) {
-                if (transactionManager.getTransaction() != null && transactionActive(transactionManager.getTransaction().getStatus())) {
+                if (activeJTATransaction) {
                     transactionManager.getTransaction().enlistResource(xaConn.getXAResource());
+                    connection = xaConn.getConnection();
+                    synchronizationRegistry.putResource(CONNECTION_KEY, connection);
                     synchronizationRegistry.registerInterposedSynchronization(new Sync(transactionKey));
                     registeredTransactions.add(transactionKey);
                 }
             }
-            return xaConn.getConnection();
+            if (connection == null) {
+                // get existing connection from active jta transaction
+                if (activeJTATransaction) {
+                    connection = (Connection)synchronizationRegistry.getResource(CONNECTION_KEY);
+                }
+                // if no active jta transaction, get new connection
+                if (connection == null) {
+                    connection = xaConn.getConnection();
+                }
+            }
+
+            // ensure autocommit is off if jta transaction is active
+            if (activeJTATransaction && connection.getAutoCommit() == true) {
+                if (isTraceLoggingEnabled) {
+                    ROOT_LOGGER.tracef("DataSourceTransactionProxyHandler got a new connection that has autocommit enabled, will disable autocommit since we are in a jta transaction");
+                }
+                connection.setAutoCommit(false);
+            }
+
+            if (isTraceLoggingEnabled) {
+                ROOT_LOGGER.tracef("DataSourceTransactionProxyHandler handling getConnection(), enlisted the connection '%s' into active transaction '%s', connection autocommit mode= '%b'", connection, transactionKey, connection.getAutoCommit());
+            }
+            return connection;
         } else {
+            if (isTraceLoggingEnabled) {
+                ROOT_LOGGER.tracef("DataSourceTransactionProxyHandler letting wrapped delegate handle call to method '%s'", method.getName() );
+            }
+
             final Object ret = method.invoke(delegate, args);
             return ret;
         }
