@@ -130,6 +130,7 @@
         <version.org.codehaus.plexus>2.0.4</version.org.codehaus.plexus>
         <version.org.codehaus.woodstox.stax2-api>3.1.1</version.org.codehaus.woodstox.stax2-api>
         <version.org.codehaus.woodstox.woodstox-core-asl>4.1.1</version.org.codehaus.woodstox.woodstox-core-asl>
+        <version.org.ehcacheVersion>1.2.Final</version.org.ehcacheVersion>
         <version.org.hibernate>4.1.2.Final</version.org.hibernate>
         <version.org.hibernate.commons.annotations>4.0.1.Final</version.org.hibernate.commons.annotations>
         <version.org.hibernate.javax.persistence.hibernate-jpa-2.0-api>1.0.1.Final</version.org.hibernate.javax.persistence.hibernate-jpa-2.0-api>
@@ -3048,6 +3049,12 @@
                 </exclusions>
             </dependency>
 
+	    <!--dependency>
+	    <groupId>net.sf.ehcache</groupId>
+	    <artifactId>ehcache-core</artifactId>
+	    <version>${version.org.ehcacheVersion}</version>
+	    </dependency-->
+
             <dependency>
                 <groupId>org.hibernate</groupId>
                 <artifactId>hibernate-core</artifactId>
@@ -3077,6 +3084,13 @@
               <artifactId>hibernate-infinispan</artifactId>
               <version>${version.org.hibernate}</version>
             </dependency>
+
+	    <dependency>
+              <groupId>org.hibernate</groupId>
+              <artifactId>hibernate-ehcache</artifactId>
+              <version>${version.org.hibernate}</version>
+            </dependency>
+
 
             <dependency>
               <groupId>org.hibernate</groupId>

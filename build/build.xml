@@ -623,6 +623,7 @@
             <maven-resource group="org.hibernate.common" artifact="hibernate-commons-annotations" />
             <maven-resource group="org.hibernate" artifact="hibernate-entitymanager" />
             <maven-resource group="org.hibernate" artifact="hibernate-infinispan"/>
+            <maven-resource group="org.hibernate" artifact="hibernate-ehcache"/>
         </module-def>
 
         <module-def name="org.hibernate.envers">
