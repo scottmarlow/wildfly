@@ -273,12 +273,16 @@ public abstract class ClusteredWebFailoverAbstractCase {
         // Assert.fail("Show me the logs please!");
     }
 
-    private HttpResponse tryGet(final DefaultHttpClient client, final String url1) throws IOException {
+    private HttpResponse tryGet(final DefaultHttpClient client, final String url1) throws IOException, InterruptedException {
         final long startTime;
         HttpResponse response = client.execute(new HttpGet(url1));
         startTime = System.currentTimeMillis();
+
         while(response.getStatusLine().getStatusCode() != HttpServletResponse.SC_OK && startTime + GRACE_TIME_TO_MEMBERSHIP_CHANGE > System.currentTimeMillis()) {
             response = client.execute(new HttpGet(url1));
+            if (response.getStatusLine().getStatusCode() != HttpServletResponse.SC_OK) {
+                Thread.sleep(100);  // give up a little cpu if we are looping again
+            }
         }
         return response;
     }
