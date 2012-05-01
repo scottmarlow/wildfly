@@ -459,12 +459,16 @@ public class JSFFailoverTestCase {
     }
 
 
-    private HttpResponse tryGet(final DefaultHttpClient client, final HttpUriRequest r) throws IOException {
+    private HttpResponse tryGet(final DefaultHttpClient client, final HttpUriRequest r) throws IOException, InterruptedException {
         final long startTime;
         HttpResponse response = client.execute(r);
         startTime = System.currentTimeMillis();
         while(response.getStatusLine().getStatusCode() != HttpServletResponse.SC_OK && startTime + GRACE_TIME_TO_MEMBERSHIP_CHANGE > System.currentTimeMillis()) {
             response = client.execute(r);
+            if (response.getStatusLine().getStatusCode() != HttpServletResponse.SC_OK) {
+                Thread.sleep(20);  // give up a little cpu if we are looping again
+            }
+
         }
         return response;
     }

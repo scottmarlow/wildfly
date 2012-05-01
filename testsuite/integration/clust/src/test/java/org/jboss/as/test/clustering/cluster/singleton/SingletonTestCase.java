@@ -129,6 +129,9 @@ public class SingletonTestCase {
             long startTime = System.currentTimeMillis();
             while(response.getStatusLine().getStatusCode() != HttpServletResponse.SC_OK && startTime + GRACE_TIME_TO_MEMBERSHIP_CHANGE > System.currentTimeMillis()) {
                 response = client.execute(new HttpGet(url1));
+                if (response.getStatusLine().getStatusCode() != HttpServletResponse.SC_OK) {
+                    Thread.sleep(20);  // give up a little cpu if we are looping again
+                }
             }
             Assert.assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
             Assert.assertEquals(MyServiceContextListener.PREFERRED_NODE, response.getFirstHeader("node").getValue());
@@ -186,12 +189,16 @@ public class SingletonTestCase {
         }
     }
 
-    private HttpResponse tryGet(final DefaultHttpClient client, final String url1) throws IOException {
+    private HttpResponse tryGet(final DefaultHttpClient client, final String url1) throws IOException, InterruptedException {
         final long startTime;
         HttpResponse response = client.execute(new HttpGet(url1));
         startTime = System.currentTimeMillis();
         while(response.getStatusLine().getStatusCode() != HttpServletResponse.SC_OK && startTime + GRACE_TIME_TO_MEMBERSHIP_CHANGE > System.currentTimeMillis()) {
             response = client.execute(new HttpGet(url1));
+            if (response.getStatusLine().getStatusCode() != HttpServletResponse.SC_OK) {
+                Thread.sleep(20);  // give up a little cpu if we are looping again
+            }
+
         }
         return response;
     }

@@ -281,7 +281,7 @@ public abstract class ClusteredWebFailoverAbstractCase {
         while(response.getStatusLine().getStatusCode() != HttpServletResponse.SC_OK && startTime + GRACE_TIME_TO_MEMBERSHIP_CHANGE > System.currentTimeMillis()) {
             response = client.execute(new HttpGet(url1));
             if (response.getStatusLine().getStatusCode() != HttpServletResponse.SC_OK) {
-                Thread.sleep(100);  // give up a little cpu if we are looping again
+                Thread.sleep(20);  // give up a little cpu if we are looping again
             }
         }
         return response;

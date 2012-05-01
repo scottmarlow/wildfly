@@ -307,8 +307,8 @@ public class StatefulWithXPCFailoverTestCase {
             } finally {
                 response.getEntity().getContent().close();
             }
-            maxWait -= 100;
-            Thread.sleep(100);
+            maxWait -= 20;
+            Thread.sleep(20);
         }
         throw new AssertionError("assertExecuteUrlWithResult Timed out trying to execute url=" + url +", " + message);
 
@@ -326,8 +326,8 @@ public class StatefulWithXPCFailoverTestCase {
             } finally {
                 response.getEntity().getContent().close();
             }
-            maxWait -= 100;
-            Thread.sleep(100);
+            maxWait -= 20;
+            Thread.sleep(20);
         }
         throw new AssertionError("assertExecuteUrl Timed out trying to execute url=" + url);
     }

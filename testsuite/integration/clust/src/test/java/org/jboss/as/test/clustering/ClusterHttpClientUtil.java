@@ -45,7 +45,7 @@ public final class ClusterHttpClientUtil {
      * @return HTTP response
      * @throws IOException
      */
-    public static HttpResponse tryGet(final HttpClient client, final String url) throws IOException {
+    public static HttpResponse tryGet(final HttpClient client, final String url) throws IOException, InterruptedException {
         return tryGet(client, url, ClusteringTestConstants.GRACE_TIME_TO_REPLICATE);
     }
 
@@ -58,12 +58,16 @@ public final class ClusterHttpClientUtil {
      * @return
      * @throws IOException
      */
-    public static HttpResponse tryGet(final HttpClient client, final String url, final long graceTime) throws IOException {
+    public static HttpResponse tryGet(final HttpClient client, final String url, final long graceTime) throws IOException, InterruptedException {
         final long startTime;
         HttpResponse response = client.execute(new HttpGet(url));
         startTime = System.currentTimeMillis();
         while (response.getStatusLine().getStatusCode() != HttpServletResponse.SC_OK && startTime + graceTime > System.currentTimeMillis()) {
             response = client.execute(new HttpGet(url));
+            if (response.getStatusLine().getStatusCode() != HttpServletResponse.SC_OK) {
+                Thread.sleep(20);  // give up a little cpu if we are looping again
+            }
+
         }
         return response;
     }
@@ -76,7 +80,7 @@ public final class ClusterHttpClientUtil {
      * @return response body as string
      * @throws IOException
      */
-    public static String tryGetAndConsume(final HttpClient client, final String url) throws IOException {
+    public static String tryGetAndConsume(final HttpClient client, final String url) throws IOException, InterruptedException {
         // Get the response
         HttpResponse response = tryGet(client, url);
 
