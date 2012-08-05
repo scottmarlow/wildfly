@@ -163,7 +163,10 @@ public class JPADependencyProcessor implements DeploymentUnitProcessor {
                         pu.getProperties().remove(Configuration.ADAPTER_MODULE);
 
                         //for this special case we need to make a copy of the hibernate 3 adaptor inside the deployment
-                        addHibernate3AdaptorToDeployment(moduleLoader, deploymentUnit);
+                        final ModuleIdentifier adapterModuleIdentifier = HIBERNATE_3_PROVIDER;
+                        final String adapterClassName = HIBERNATE3_PROVIDER_ADAPTOR;
+
+                        addAdaptorToDeploymentAsResourceRoot(moduleLoader, deploymentUnit, adapterModuleIdentifier, adapterClassName);
                     } else if (providerModule.equals(Configuration.PROVIDER_MODULE_HIBERNATE3)) {
                         // if they are using hibernate 3, default the adapter module setting for them.
                         if (adapterModule == null) {
@@ -215,29 +218,32 @@ public class JPADependencyProcessor implements DeploymentUnitProcessor {
         return defaultProviderCount;
     }
 
-    private void addHibernate3AdaptorToDeployment(final ModuleLoader moduleLoader, final DeploymentUnit deploymentUnit) {
+    private void addAdaptorToDeploymentAsResourceRoot(final ModuleLoader moduleLoader,
+                                                      final DeploymentUnit deploymentUnit,
+                                                      final ModuleIdentifier adapterModuleIdentifier,
+                                                      final String adapterClassName) {
         final ModuleSpecification moduleSpecification = deploymentUnit.getAttachment(Attachments.MODULE_SPECIFICATION);
         try {
-            final Module module = moduleLoader.loadModule(HIBERNATE_3_PROVIDER);
+            final Module module = moduleLoader.loadModule(adapterModuleIdentifier);
             //use a trick to get to the root of the class loader
-            final URL url = module.getClassLoader().getResource(HIBERNATE3_PROVIDER_ADAPTOR.replace('.', '/') + ".class");
+            final URL url = module.getClassLoader().getResource(adapterClassName.replace('.', '/') + ".class");
 
             final URLConnection connection = url.openConnection();
             if (!(connection instanceof JarURLConnection)) {
-                throw MESSAGES.invalidUrlConnection("hibernate 3", connection);
+                throw MESSAGES.invalidUrlConnection(adapterModuleIdentifier.toString(), connection);
             }
 
             final JarFile jarFile = ((JarURLConnection) connection).getJarFile();
 
             moduleSpecification.addResourceLoader(ResourceLoaderSpec.createResourceLoaderSpec(ResourceLoaders.createJarResourceLoader("hibernate3integration", jarFile)));
 
-            // hack in the dependencies which are part of hibernate3integration
-            // TODO:  do this automatically (adding dependencies found in HIBERNATE_3_PROVIDER).
+            // hack in the known dependencies which might be need by the integration
+            // TODO:  do this automatically (adding dependencies found in adapterModule).
             addDependency(moduleSpecification, moduleLoader, deploymentUnit, JBOSS_AS_NAMING_ID, JBOSS_JANDEX_ID);
         } catch (ModuleLoadException e) {
-            throw MESSAGES.cannotLoadModule(e, HIBERNATE_3_PROVIDER, "hibernate 3");
+            throw MESSAGES.cannotLoadModule(e, adapterModuleIdentifier, adapterClassName);
         } catch (MalformedURLException e) {
-            throw MESSAGES.cannotAddIntegration(e, "hibernate 3");
+            throw MESSAGES.cannotAddIntegration(e, adapterModuleIdentifier.toString());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
