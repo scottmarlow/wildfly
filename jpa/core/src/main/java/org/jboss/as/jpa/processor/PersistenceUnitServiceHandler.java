@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import javax.persistence.SynchronizationType;
 import javax.persistence.ValidationMode;
 import javax.persistence.spi.PersistenceProvider;
 import javax.persistence.spi.PersistenceProviderResolverHolder;
@@ -52,6 +53,7 @@ import org.jboss.as.jpa.config.PersistenceProviderDeploymentHolder;
 import org.jboss.as.jpa.config.PersistenceUnitMetadataHolder;
 import org.jboss.as.jpa.container.TransactionScopedEntityManager;
 import org.jboss.as.jpa.interceptor.WebNonTxEmCloserAction;
+import org.jboss.as.jpa.management.ManagementAccess;
 import org.jboss.as.jpa.persistenceprovider.PersistenceProviderLoader;
 import org.jboss.as.jpa.service.JPAService;
 import org.jboss.as.jpa.service.PersistenceUnitServiceImpl;
@@ -384,7 +386,8 @@ public class PersistenceUnitServiceHandler {
                                             new TransactionScopedEntityManager(
                                                     pu.getScopedPersistenceUnitName(),
                                                     new HashMap(),
-                                                    value.getEntityManagerFactory()))));
+                                                    value.getEntityManagerFactory(),
+                                                    SynchronizationType.SYNCHRONIZED))));
                         }
 
                         @Override
@@ -729,9 +732,9 @@ public class PersistenceUnitServiceHandler {
                 adaptor.doesScopedPersistenceUnitNameIdentifyCacheRegionName(pu)) {
             final String providerLabel = managementAdaptor.getIdentificationLabel();
             final String scopedPersistenceUnitName = pu.getScopedPersistenceUnitName();
+            Resource providerResource = ManagementAccess.createManagementStatisticsResource(managementAdaptor, scopedPersistenceUnitName);
 
-
-            Resource providerResource = managementAdaptor.createPersistenceUnitResource(scopedPersistenceUnitName, providerLabel);
+            // Resource providerResource = managementAdaptor.createPersistenceUnitResource(scopedPersistenceUnitName, providerLabel);
             ModelNode perPuNode = providerResource.getModel();
             perPuNode.get(SCOPED_UNIT_NAME).set(pu.getScopedPersistenceUnitName());
             // TODO this is a temporary hack into internals until DeploymentUnit exposes a proper Resource-based API

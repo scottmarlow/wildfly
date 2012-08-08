@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2011, Red Hat, Inc., and individual contributors
+ * Copyright 2012, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -20,28 +20,12 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.jpa.spi;
-
-import javax.persistence.EntityManagerFactory;
+package org.jboss.as.test.integration.jpa.entitylistener;
 
 /**
- * Persistence unit service
+ * injected test bean
  *
  * @author Scott Marlow
  */
-public interface PersistenceUnitService {
-    /**
-     * get the entity manager factory that represents the persistence unit service.  This corresponds to a
-     * persistence unit definition in a persistence.xml
-     *
-     * @return EntityManagerFactory or {@code null} if this service has not been started or has been stopped
-     */
-    EntityManagerFactory getEntityManagerFactory();
-
-    /**
-     * Gets the scoped name of this persistence unit.
-     *
-     * @return the name
-     */
-    String getScopedPersistenceUnitName();
+public class CDIInjectedBean {
 }

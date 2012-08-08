@@ -29,6 +29,7 @@ import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.SynchronizationType;
 import javax.transaction.Status;
 import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
@@ -106,9 +107,11 @@ public class TransactionUtil {
      * @param emf
      * @param scopedPuName
      * @param properties
+     * @param synchronizationType
      * @return
      */
-    public static EntityManager getOrCreateTransactionScopedEntityManager(EntityManagerFactory emf, String scopedPuName, Map properties) {
+    public static EntityManager getOrCreateTransactionScopedEntityManager(
+            final EntityManagerFactory emf, final String scopedPuName, final Map properties, final SynchronizationType synchronizationType) {
         EntityManager entityManager = getEntityManagerInTransactionRegistry(scopedPuName);
         if (entityManager == null) {
             entityManager = EntityManagerUtil.createEntityManager(emf, properties);
