@@ -136,9 +136,9 @@
         <version.org.codehaus.plexus.plexus-utils>2.0.4</version.org.codehaus.plexus.plexus-utils>
         <version.org.codehaus.woodstox.stax2-api>3.1.1</version.org.codehaus.woodstox.stax2-api>
         <version.org.codehaus.woodstox.woodstox-core-asl>4.1.1</version.org.codehaus.woodstox.woodstox-core-asl>
-        <version.org.hibernate>4.1.6.Final</version.org.hibernate>
+        <version.org.hibernate>4.2.0-SNAPSHOT</version.org.hibernate>
         <version.org.hibernate.commons.annotations>4.0.1.Final</version.org.hibernate.commons.annotations>
-        <version.org.hibernate.javax.persistence.hibernate-jpa-2.0-api>1.0.1.Final</version.org.hibernate.javax.persistence.hibernate-jpa-2.0-api>
+        <version.org.hibernate.javax.persistence.hibernate-jpa-2.1-api>1.0.0.Draft-7plus</version.org.hibernate.javax.persistence.hibernate-jpa-2.1-api>
         <version.org.hibernate.validator>4.2.0.Final</version.org.hibernate.validator>
         <version.org.hibernate3>3.6.6.Final</version.org.hibernate3>
         <version.org.hibernate3.commons.annotations>3.2.0.Final</version.org.hibernate3.commons.annotations>
@@ -3305,7 +3305,7 @@
                     </exclusion>
                     <exclusion>
                         <groupId>org.hibernate.javax.persistence</groupId>
-                        <artifactId>hibernate-jpa-2.0-api</artifactId>
+                        <artifactId>hibernate-jpa-2.1-api</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.slf4j</groupId>
@@ -3351,7 +3351,7 @@
                     </exclusion>
                     <exclusion>
                         <groupId>org.hibernate.javax.persistence</groupId>
-                        <artifactId>hibernate-jpa-2.0-api</artifactId>
+                        <artifactId>hibernate-jpa-2.1-api</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.slf4j</groupId>
@@ -3368,8 +3368,8 @@
 
             <dependency>
                 <groupId>org.hibernate.javax.persistence</groupId>
-                <artifactId>hibernate-jpa-2.0-api</artifactId>
-                <version>${version.org.hibernate.javax.persistence.hibernate-jpa-2.0-api}</version>
+                <artifactId>hibernate-jpa-2.1-api</artifactId>
+                <version>${version.org.hibernate.javax.persistence.hibernate-jpa-2.1-api}</version>
             </dependency>
 
             <dependency>
@@ -4096,7 +4096,7 @@
                     </exclusion>
                     <exclusion>
                         <groupId>org.hibernate.javax.persistence</groupId>
-                        <artifactId>hibernate-jpa-2.0-api</artifactId>
+                        <artifactId>hibernate-jpa-2.1-api</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.jboss.logging</groupId>
@@ -4240,7 +4240,7 @@
                     </exclusion>
                     <exclusion>
                         <groupId>org.hibernate.javax.persistence</groupId>
-                        <artifactId>hibernate-jpa-2.0-api</artifactId>
+                        <artifactId>hibernate-jpa-2.1-api</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.jboss.logging</groupId>
@@ -4492,7 +4492,7 @@
                     </exclusion>
                     <exclusion>
                         <groupId>org.hibernate.javax.persistence</groupId>
-                        <artifactId>hibernate-jpa-2.0-api</artifactId>
+                        <artifactId>hibernate-jpa-2.1-api</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.jboss.logging</groupId>

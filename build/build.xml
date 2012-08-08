@@ -433,7 +433,7 @@
         </module-def>
 
         <module-def name="javax.persistence.api">
-            <maven-resource group="org.hibernate.javax.persistence" artifact="hibernate-jpa-2.0-api"/>
+            <maven-resource group="org.hibernate.javax.persistence" artifact="hibernate-jpa-2.1-api"/>
         </module-def>
 
         <module-def name="javax.resource.api">
