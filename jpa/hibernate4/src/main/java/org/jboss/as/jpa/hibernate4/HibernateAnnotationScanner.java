@@ -34,8 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.hibernate.ejb.packaging.NamedInputStream;
-import org.hibernate.ejb.packaging.Scanner;
+import org.hibernate.jpa.packaging.spi.NamedInputStream;
+import org.hibernate.jpa.packaging.spi.Scanner;
 import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.ClassInfo;
