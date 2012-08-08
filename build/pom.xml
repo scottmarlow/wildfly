@@ -705,7 +705,7 @@
 
                 <dependency>
                     <groupId>org.hibernate.javax.persistence</groupId>
-                    <artifactId>hibernate-jpa-2.0-api</artifactId>
+                    <artifactId>hibernate-jpa-2.1-api</artifactId>
                 </dependency>
 
                 <dependency>
@@ -1884,7 +1884,7 @@
                                         <include>org.hibernate:hibernate-envers</include>
                                         <include>org.hibernate:hibernate-infinispan</include>
                                         <include>org.hibernate:hibernate-validator</include>
-                                        <include>org.hibernate.javax.persistence:hibernate-jpa-2.0-api</include>
+                                        <include>org.hibernate.javax.persistence:hibernate-jpa-2.1-api</include>
                                         <include>org.hornetq:hornetq-core</include>
                                         <include>org.hornetq:hornetq-jms</include>
                                         <!-- Causes [ERROR] java.lang.ClassCastException: com.sun.tools.javadoc.ClassDocImpl cannot be cast to com.sun.javadoc.AnnotationTypeDoc

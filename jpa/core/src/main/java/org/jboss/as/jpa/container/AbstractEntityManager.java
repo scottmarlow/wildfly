@@ -33,9 +33,12 @@ import javax.persistence.EntityTransaction;
 import javax.persistence.FlushModeType;
 import javax.persistence.LockModeType;
 import javax.persistence.Query;
+import javax.persistence.StoredProcedureQuery;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaDelete;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.CriteriaUpdate;
 import javax.persistence.metamodel.Metamodel;
 
 /**
@@ -657,6 +660,106 @@ public abstract class AbstractEntityManager implements EntityManager {
             }
         }
     }
+
+    public Query createQuery(CriteriaUpdate criteriaUpdate) {
+        long start = 0;
+        if (isTraceEnabled)
+            start = System.currentTimeMillis();
+        try {
+            return getEntityManager().createQuery(criteriaUpdate);
+
+        } finally {
+            if (isTraceEnabled) {
+                long elapsed = System.currentTimeMillis() - start;
+                ROOT_LOGGER.tracef("createQuery(CriteriaUpdate) took %dms", elapsed);
+            }
+        }
+    }
+
+    public Query createQuery(CriteriaDelete criteriaDelete) {
+        long start = 0;
+        if (isTraceEnabled)
+            start = System.currentTimeMillis();
+        try {
+            return getEntityManager().createQuery(criteriaDelete);
+        } finally {
+            if (isTraceEnabled) {
+                long elapsed = System.currentTimeMillis() - start;
+                ROOT_LOGGER.tracef("createQuery(criteriaDelete) took %dms", elapsed);
+            }
+        }
+    }
+
+    public StoredProcedureQuery createNamedStoredProcedureQuery(String name) {
+        long start = 0;
+        if (isTraceEnabled)
+            start = System.currentTimeMillis();
+        try {
+            return getEntityManager().createNamedStoredProcedureQuery(name);
+        } finally {
+            if (isTraceEnabled) {
+                long elapsed = System.currentTimeMillis() - start;
+                ROOT_LOGGER.tracef("createNamedStoredProcedureQuery(%s) took %dms", name, elapsed);
+            }
+        }
+    }
+
+    public StoredProcedureQuery createStoredProcedureQuery(String procedureName) {
+        long start = 0;
+        if (isTraceEnabled)
+            start = System.currentTimeMillis();
+        try {
+            return getEntityManager().createStoredProcedureQuery(procedureName);
+        } finally {
+            if (isTraceEnabled) {
+                long elapsed = System.currentTimeMillis() - start;
+                ROOT_LOGGER.tracef("createStoredProcedureQuery(%s) took %dms", procedureName, elapsed);
+            }
+        }
+    }
+
+    public StoredProcedureQuery createStoredProcedureQuery(String procedureName, Class... resultClasses) {
+        long start = 0;
+        if (isTraceEnabled)
+            start = System.currentTimeMillis();
+        try {
+            return getEntityManager().createStoredProcedureQuery(procedureName, resultClasses);
+        } finally {
+            if (isTraceEnabled) {
+                long elapsed = System.currentTimeMillis() - start;
+                ROOT_LOGGER.tracef("createStoredProcedureQuery(%s, resultClasses) took %dms", procedureName, elapsed);
+            }
+        }
+    }
+
+    public StoredProcedureQuery createStoredProcedureQuery(String procedureName, String... resultSetMappings) {
+        long start = 0;
+        if (isTraceEnabled)
+            start = System.currentTimeMillis();
+        try {
+            return getEntityManager().createStoredProcedureQuery(procedureName, resultSetMappings);
+        } finally {
+            if (isTraceEnabled) {
+                long elapsed = System.currentTimeMillis() - start;
+                ROOT_LOGGER.tracef("createStoredProcedureQuery(%s, resultSetMappings) took %dms", procedureName, elapsed);
+            }
+        }
+    }
+
+    public boolean isJoinedToTransaction() {
+        long start = 0;
+        if (isTraceEnabled)
+            start = System.currentTimeMillis();
+        try {
+            return getEntityManager().isJoinedToTransaction();
+        } finally {
+            if (isTraceEnabled) {
+                long elapsed = System.currentTimeMillis() - start;
+                ROOT_LOGGER.tracef("isJoinedToTransaction() took %dms", elapsed);
+            }
+        }
+    }
+
 
     // used by TransactionScopedEntityManager to auto detach loaded entities
     // after each non-jta invocation
