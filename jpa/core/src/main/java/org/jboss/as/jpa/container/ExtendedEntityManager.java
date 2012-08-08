@@ -28,6 +28,7 @@ import static org.jboss.as.jpa.JpaMessages.MESSAGES;
 import java.io.Serializable;
 
 import javax.persistence.EntityManager;
+import javax.persistence.SynchronizationType;
 
 import org.jboss.as.jpa.JpaMessages;
 import org.jboss.as.jpa.transaction.TransactionUtil;
@@ -64,12 +65,14 @@ public class ExtendedEntityManager extends AbstractEntityManager implements Seri
      * By default transient fields are not serialized but can be manually (de)serialized in readObject/writeObject.
      * Just make sure you think about whether the newly added field should be serialized.
      */
-    private static final long serialVersionUID = 432438L;
+    private static final long serialVersionUID = 432439L;
 
     /**
      * EntityManager obtained from the persistence provider that represents the XPC.
      */
     private EntityManager underlyingEntityManager;
+
+    private SynchronizationType synchronizationType;
 
     /**
      * fully application scoped persistence unit name
@@ -239,4 +242,8 @@ public class ExtendedEntityManager extends AbstractEntityManager implements Seri
         return ID != null ? ID.hashCode() : 0;
     }
 
+    @Override
+    protected SynchronizationType getSynchronizationType() {
+        return synchronizationType;
+    }
 }

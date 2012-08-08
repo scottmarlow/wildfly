@@ -25,6 +25,8 @@ package org.jboss.as.jpa.service;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.spi.PersistenceProvider;
 import javax.sql.DataSource;
@@ -96,6 +98,7 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                     pu.setJtaDataSource(jtaDataSource.getOptionalValue());
                     pu.setNonJtaDataSource(nonJtaDataSource.getOptionalValue());
                     WritableServiceBasedNamingStore.pushOwner(deploymentUnitServiceName);
+                    beanManagerLookup();
                     entityManagerFactory = createContainerEntityManagerFactory();
                     persistenceUnitRegistry.add(getScopedPersistenceUnitName(), getValue());
                     context.complete();
@@ -208,4 +211,22 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
             }
         }
     }
+
+    /**
+     * If the containing archive is a bean archive, the container must pass the BeanManager instance
+     * in the map with the key "javax.persistence.bean.manager".
+     *
+     * TODO: replace JNDI lookup with direct API for faster deployment.
+     */
+    private void beanManagerLookup() {
+        try {
+            InitialContext initialContext = new InitialContext();
+            Object beanManager = initialContext.lookup("java:comp/BeanManager");
+            properties.getValue().put("javax.persistence.bean.manager", beanManager);
+            initialContext.close();
+        } catch (NamingException ignore) {
+
+        }
+    }
+
 }

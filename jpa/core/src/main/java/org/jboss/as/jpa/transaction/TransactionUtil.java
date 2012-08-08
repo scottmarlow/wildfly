@@ -106,9 +106,11 @@ public class TransactionUtil {
      * @param emf
      * @param scopedPuName
      * @param properties
+     * @param synchronizationType
      * @return
      */
-    public static EntityManager getOrCreateTransactionScopedEntityManager(EntityManagerFactory emf, String scopedPuName, Map properties) {
+    public static EntityManager getOrCreateTransactionScopedEntityManager(
+            final EntityManagerFactory emf, final String scopedPuName, final Map properties, final SynchronizationType synchronizationType) {
         EntityManager entityManager = getEntityManagerInTransactionRegistry(scopedPuName);
         if (entityManager == null) {
             entityManager = EntityManagerUtil.createEntityManager(emf, properties);

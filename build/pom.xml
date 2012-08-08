@@ -239,6 +239,11 @@
                     <groupId>ch.qos.cal10n</groupId>
                     <artifactId>cal10n-api</artifactId>
                 </dependency>
+                
+                <dependency>
+                    <groupId>com.fasterxml</groupId>
+                    <artifactId>classmate</artifactId>
+                </dependency>
 
                 <dependency>
                     <groupId>com.h2database</groupId>
@@ -723,7 +728,7 @@
 
                 <dependency>
                     <groupId>org.hibernate.javax.persistence</groupId>
-                    <artifactId>hibernate-jpa-2.0-api</artifactId>
+                    <artifactId>hibernate-jpa-2.1-api</artifactId>
                 </dependency>
 
                 <dependency>
@@ -1186,8 +1191,8 @@
                 </dependency>
 
                 <dependency>
-                    <groupId>org.jboss.as</groupId>
-                    <artifactId>jboss-as-jpa-hibernate3</artifactId>
+                    <groupId>org.jipijapa</groupId>
+                    <artifactId>hibernate3</artifactId>
                     <exclusions>
                         <exclusion>
                             <groupId>org.hibernate</groupId>
@@ -1197,18 +1202,18 @@
                 </dependency>
 
                 <dependency>
-                    <groupId>org.jboss.as</groupId>
-                    <artifactId>jboss-as-jpa-hibernate4</artifactId>
+                    <groupId>org.jipijapa</groupId>
+                    <artifactId>hibernate4-3</artifactId>
                 </dependency>
 
                 <dependency>
-                    <groupId>org.jboss.as</groupId>
-                    <artifactId>jboss-as-jpa-openjpa</artifactId>
+                    <groupId>org.jipijapa</groupId>
+                    <artifactId>openjpa</artifactId>
                 </dependency>
 
                 <dependency>
-                    <groupId>org.jboss.as</groupId>
-                    <artifactId>jboss-as-jpa-spi</artifactId>
+                    <groupId>org.jipijapa</groupId>
+                    <artifactId>spi</artifactId>
                 </dependency>
 
                 <dependency>
@@ -1986,13 +1991,15 @@
                                         <include>org.hibernate:hibernate-envers</include>
                                         <include>org.hibernate:hibernate-infinispan</include>
                                         <include>org.hibernate:hibernate-validator</include>
-                                        <include>org.hibernate.javax.persistence:hibernate-jpa-2.0-api</include>
+                                        <include>org.hibernate.javax.persistence:hibernate-jpa-2.1-api</include>
                                         <include>org.hornetq:hornetq-commons</include>
                                         <include>org.hornetq:hornetq-core-client</include>
                                         <include>org.hornetq:hornetq-jms-client</include>
                                         <include>org.hornetq:hornetq-jms-server</include>
                                         <include>org.hornetq:hornetq-journal</include>
                                         <include>org.hornetq:hornetq-server</include>
+
+                                        <!-- Causes [ERROR] java.lang.ClassCastException: com.sun.tools.javadoc.ClassDocImpl cannot be cast to com.sun.javadoc.AnnotationTypeDoc
                                         <include>org.infinispan:infinispan-core</include>
                                         <!--     <include># org.jboss.as:jboss-as-controller-client</include> -->
                                         <include>org.jboss.ejb3:jboss-ejb3-ext-api</include>

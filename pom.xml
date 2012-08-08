@@ -79,6 +79,7 @@
         <version.antlr>2.7.7</version.antlr>
         <version.asm>3.3.1</version.asm>
         <version.ch.qos.cal10n>0.7.3</version.ch.qos.cal10n>
+        <version.com.fasterxml.classmate>0.5.4</version.com.fasterxml.classmate>
         <version.com.github.relaxng>2011.1</version.com.github.relaxng>
         <version.com.google.guava>13.0.1</version.com.google.guava>
         <version.com.h2database>1.3.168</version.com.h2database>
@@ -142,10 +143,11 @@
         <version.org.codehaus.woodstox.stax2-api>3.1.1</version.org.codehaus.woodstox.stax2-api>
         <version.org.codehaus.woodstox.woodstox-core-asl>4.1.1</version.org.codehaus.woodstox.woodstox-core-asl>
         <version.org.eclipse.jdt.core.compiler.ecj>3.7.2</version.org.eclipse.jdt.core.compiler.ecj>
-        <version.org.hibernate>4.2.0.Final</version.org.hibernate>
+        <version.org.hibernate>4.3.0-SNAPSHOT</version.org.hibernate>
         <version.org.hibernate.commons.annotations>4.0.1.Final</version.org.hibernate.commons.annotations>
         <version.org.hibernate.javax.persistence.hibernate-jpa-2.0-api>1.0.1.Final</version.org.hibernate.javax.persistence.hibernate-jpa-2.0-api>
         <version.org.hibernate.validator>4.3.1.Final</version.org.hibernate.validator>
+        <version.org.hibernate.javax.persistence.hibernate-jpa-2.1-api>1.0.0.Draft-10</version.org.hibernate.javax.persistence.hibernate-jpa-2.1-api>
         <version.org.hibernate3>3.6.6.Final</version.org.hibernate3>
         <version.org.hibernate3.commons.annotations>3.2.0.Final</version.org.hibernate3.commons.annotations>
         <version.org.hornetq>2.3.0.CR1</version.org.hornetq>
@@ -167,7 +169,7 @@
         <version.org.jboss.iiop-client>1.0.0.Final</version.org.jboss.iiop-client>
         <version.org.jboss.invocation>1.2.0.Beta1</version.org.jboss.invocation>
         <version.org.jboss.ironjacamar>1.0.15.Final</version.org.jboss.ironjacamar>
-        <version.org.jboss.jandex>1.0.3.Final</version.org.jboss.jandex>
+        <version.org.jboss.jandex>1.1.0.Alpha1</version.org.jboss.jandex>
         <version.org.jboss.jboss-dmr>1.1.6.Final</version.org.jboss.jboss-dmr>
         <version.org.jboss.jboss-transaction-spi>7.0.0.Final</version.org.jboss.jboss-transaction-spi>
         <version.org.jboss.jbossts.jbossjts>5.0.0.M2</version.org.jboss.jbossts.jbossjts>
@@ -244,6 +246,7 @@
         <version.org.jboss.xnio.xnio-api>${version.org.jboss.xnio}</version.org.jboss.xnio.xnio-api>
         <version.org.jboss.xnio.xnio-nio>${version.org.jboss.xnio}</version.org.jboss.xnio.xnio-nio>
         <version.org.jgroups>3.2.7.Final</version.org.jgroups>
+        <version.org.jipijapa>1.0.0.Alpha1-SNAPSHOT</version.org.jipijapa>
         <version.org.kohsuke.rngom>201103.jboss-1</version.org.kohsuke.rngom>
         <version.org.mockito>1.9.5</version.org.mockito>
         <version.org.opensaml.opensaml>2.5.1-1</version.org.opensaml.opensaml>
@@ -406,7 +409,7 @@
                                         <excludes>
                                             <exclude>args4j:args4j</exclude>
                                             <exclude>biz.aQute:bnd</exclude>
-                                            <exclude>com.fasterxml:classmate</exclude>
+                                           <!-- <exclude>com.fasterxml:classmate</exclude> -->
                                             <exclude>com.google.gwt.inject:gin</exclude>
                                             <exclude>com.google.inject:guice</exclude>
                                             <exclude>com.gwtplatform:gwtp-all</exclude>
@@ -1400,6 +1403,12 @@
                 <groupId>ch.qos.cal10n</groupId>
                 <artifactId>cal10n-api</artifactId>
                 <version>${version.ch.qos.cal10n}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml</groupId>
+                <artifactId>classmate</artifactId>
+                <version>${version.com.fasterxml.classmate}</version>
             </dependency>
 
             <dependency>
@@ -3515,7 +3524,7 @@
                     </exclusion>
                     <exclusion>
                         <groupId>org.hibernate.javax.persistence</groupId>
-                        <artifactId>hibernate-jpa-2.0-api</artifactId>
+                        <artifactId>hibernate-jpa-2.1-api</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.slf4j</groupId>
@@ -3561,7 +3570,7 @@
                     </exclusion>
                     <exclusion>
                         <groupId>org.hibernate.javax.persistence</groupId>
-                        <artifactId>hibernate-jpa-2.0-api</artifactId>
+                        <artifactId>hibernate-jpa-2.1-api</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.slf4j</groupId>
@@ -3578,8 +3587,8 @@
 
             <dependency>
                 <groupId>org.hibernate.javax.persistence</groupId>
-                <artifactId>hibernate-jpa-2.0-api</artifactId>
-                <version>${version.org.hibernate.javax.persistence.hibernate-jpa-2.0-api}</version>
+                <artifactId>hibernate-jpa-2.1-api</artifactId>
+                <version>${version.org.hibernate.javax.persistence.hibernate-jpa-2.1-api}</version>
             </dependency>
 
             <dependency>
@@ -4143,9 +4152,9 @@
             </dependency>
 
             <dependency>
-                <groupId>org.jboss.as</groupId>
-                <artifactId>jboss-as-jpa-spi</artifactId>
-                <version>${project.version}</version>
+                <groupId>org.jipijapa</groupId>
+                <artifactId>spi</artifactId>
+                <version>${version.org.jipijapa}</version>
             </dependency>
 
             <dependency>
@@ -4155,9 +4164,9 @@
             </dependency>
 
             <dependency>
-                <groupId>org.jboss.as</groupId>
-                <artifactId>jboss-as-jpa-hibernate3</artifactId>
-                <version>${project.version}</version>
+                <groupId>org.jipijapa</groupId>
+                <artifactId>hibernate3</artifactId>
+                <version>${version.org.jipijapa}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.hibernate</groupId>
@@ -4175,9 +4184,9 @@
             </dependency>
 
             <dependency>
-                <groupId>org.jboss.as</groupId>
-                <artifactId>jboss-as-jpa-hibernate4</artifactId>
-                <version>${project.version}</version>
+                <groupId>org.jipijapa</groupId>
+                <artifactId>hibernate4-3</artifactId>
+                <version>${version.org.jipijapa}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.hibernate</groupId>
@@ -4194,9 +4203,9 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>org.jboss.as</groupId>
-                <artifactId>jboss-as-jpa-openjpa</artifactId>
-                <version>${project.version}</version>
+                <groupId>org.jipijapa</groupId>
+                <artifactId>openjpa</artifactId>
+                <version>${version.org.jipijapa}</version>
             </dependency>
 
             <dependency>
