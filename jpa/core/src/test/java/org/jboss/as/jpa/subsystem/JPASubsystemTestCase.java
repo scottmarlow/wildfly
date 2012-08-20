@@ -34,7 +34,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRI
 import java.io.IOException;
 
 import junit.framework.Assert;
-
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.transform.OperationTransformer;
@@ -42,11 +41,13 @@ import org.jboss.as.subsystem.test.AbstractSubsystemBaseTest;
 import org.jboss.as.subsystem.test.KernelServices;
 import org.jboss.as.subsystem.test.KernelServicesBuilder;
 import org.jboss.dmr.ModelNode;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * @author <a href="kabir.khan@jboss.com">Kabir Khan</a>
  */
+@Ignore
 public class JPASubsystemTestCase extends AbstractSubsystemBaseTest {
 
     public JPASubsystemTestCase() {
