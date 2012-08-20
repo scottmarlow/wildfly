@@ -25,6 +25,7 @@ package org.jboss.as.jpa.service;
 import javax.transaction.TransactionManager;
 import javax.transaction.TransactionSynchronizationRegistry;
 
+import org.jboss.as.jpa.config.ExtendedPersistenceInheritance;
 import org.jboss.as.jpa.transaction.TransactionUtil;
 import org.jboss.as.jpa.util.JPAServiceNames;
 import org.jboss.as.txn.service.TransactionManagerService;
@@ -51,14 +52,54 @@ public class JPAService implements Service<Void> {
     public static final ServiceName SERVICE_NAME = JPAServiceNames.getJPAServiceName();
 
     private static volatile String defaultDataSourceName = null;
+    private static volatile String defaultProviderModule = null;
+    private static volatile ExtendedPersistenceInheritance defaultExtendedPersistenceInheritance = null;
+    private static volatile boolean defaultVFS = true;
 
     public static String getDefaultDataSourceName() {
         return defaultDataSourceName;
     }
 
-    public static ServiceController<?> addService(final ServiceTarget target, final String defaultDataSourceName, final ServiceListener<Object>... listeners) {
+    public void setDefaultDataSourceName(String dataSourceName) {
+        defaultDataSourceName = dataSourceName;
+    }
+
+    public static String getDefaultProviderModule() {
+        return defaultProviderModule;
+    }
+
+    public static void setDefaultProviderModule(String defaultProviderModule) {
+        JPAService.defaultProviderModule = defaultProviderModule;
+    }
+
+    public static ExtendedPersistenceInheritance getDefaultExtendedPersistenceInheritance() {
+        return defaultExtendedPersistenceInheritance;
+    }
+
+    public static void setDefaultExtendedPersistenceInheritance(ExtendedPersistenceInheritance defaultExtendedPersistenceInheritance) {
+        JPAService.defaultExtendedPersistenceInheritance = defaultExtendedPersistenceInheritance;
+    }
+
+    public static boolean isDefaultVFS() {
+        return defaultVFS;
+    }
+
+    public static void setDefaultVFS(boolean defaultVFS) {
+        JPAService.defaultVFS = defaultVFS;
+    }
+
+    public static ServiceController<?> addService(
+            final ServiceTarget target,
+            final String defaultDataSourceName,
+            final String defaultProviderModule,
+            final ExtendedPersistenceInheritance defaultExtendedPersistenceInheritance,
+            final boolean defaultVFS,
+            final ServiceListener<Object>... listeners) {
         JPAService jpaService = new JPAService();
         JPAService.defaultDataSourceName = defaultDataSourceName;
+        JPAService.defaultProviderModule = defaultProviderModule;
+        JPAService.defaultExtendedPersistenceInheritance = defaultExtendedPersistenceInheritance;
+        JPAService.defaultVFS = defaultVFS;
 
         // set the transaction manager to be accessible via TransactionUtil
         final Injector<TransactionManager> transactionManagerInjector =
@@ -106,10 +147,6 @@ public class JPAService implements Service<Void> {
     @Override
     public Void getValue() throws IllegalStateException, IllegalArgumentException {
         return null;
-    }
-
-    public void setDefaultDataSourceName(String dataSourceName) {
-        defaultDataSourceName = dataSourceName;
     }
 
 }

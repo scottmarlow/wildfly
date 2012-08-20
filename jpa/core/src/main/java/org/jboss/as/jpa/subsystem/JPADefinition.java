@@ -32,6 +32,9 @@ import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.operations.validation.StringLengthValidator;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.jpa.config.Configuration;
+import org.jboss.as.jpa.config.ExtendedPersistenceInheritance;
+import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 
 /**
@@ -58,8 +61,37 @@ public class JPADefinition extends SimpleResourceDefinition {
                     .setDefaultValue(null)
                     .build();
 
+    protected static final SimpleAttributeDefinition DEFAULT_PROVIDERMODULE =
+            new SimpleAttributeDefinitionBuilder(CommonAttributes.DEFAULT_PROVIDERMODULE, ModelType.STRING, true)
+                    .setAllowExpression(true)
+                    .setXmlName(CommonAttributes.DEFAULT_PROVIDERMODULE)
+                    .setValidator(new StringLengthValidator(0, Integer.MAX_VALUE, true, true))
+                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setDefaultValue(new ModelNode().set(Configuration.PROVIDER_MODULE_DEFAULT))
+                    .build();
+
+    protected static final SimpleAttributeDefinition DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE =
+            new SimpleAttributeDefinitionBuilder(CommonAttributes.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE, ModelType.STRING, true)
+                    .setAllowExpression(true)
+                    .setXmlName(CommonAttributes.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE)
+                    .setValidator(new StringLengthValidator(0, Integer.MAX_VALUE, true, true))
+                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setDefaultValue(new ModelNode().set(ExtendedPersistenceInheritance.DEEP.toString()))
+                    .build();
+
+    protected static final SimpleAttributeDefinition DEFAULT_VFS =
+            new SimpleAttributeDefinitionBuilder(CommonAttributes.DEFAULT_VFS, ModelType.BOOLEAN, true)
+                    .setAllowExpression(true)
+                    .setXmlName(CommonAttributes.DEFAULT_VFS)
+                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setDefaultValue(new ModelNode().set(true))
+                    .build();
+
     @Override
     public void registerAttributes(ManagementResourceRegistration registration) {
         registration.registerReadWriteAttribute(DEFAULT_DATASOURCE, null, new ReloadRequiredWriteAttributeHandler(DEFAULT_DATASOURCE));
+        registration.registerReadWriteAttribute(DEFAULT_PROVIDERMODULE, null, new ReloadRequiredWriteAttributeHandler(DEFAULT_PROVIDERMODULE));
+        registration.registerReadWriteAttribute(DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE, null, new ReloadRequiredWriteAttributeHandler(DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE));
+        registration.registerReadWriteAttribute(DEFAULT_VFS, null, new ReloadRequiredWriteAttributeHandler(DEFAULT_VFS));
     }
 }

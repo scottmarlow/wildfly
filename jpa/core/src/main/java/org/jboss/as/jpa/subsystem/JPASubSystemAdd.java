@@ -27,8 +27,10 @@ import org.jboss.as.controller.AbstractBoottimeAddStepHandler;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.ServiceVerificationHandler;
+import org.jboss.as.controller.operations.validation.ModelTypeValidator;
 import org.jboss.as.controller.operations.validation.ParametersValidator;
 import org.jboss.as.controller.operations.validation.StringLengthValidator;
+import org.jboss.as.jpa.config.ExtendedPersistenceInheritance;
 import org.jboss.as.jpa.config.JPADeploymentSettings;
 import org.jboss.as.jpa.persistenceprovider.PersistenceProviderResolverImpl;
 import org.jboss.as.jpa.processor.JPAAnnotationProcessor;
@@ -48,6 +50,7 @@ import org.jboss.as.server.DeploymentProcessorTarget;
 import org.jboss.as.server.deployment.Phase;
 import org.jboss.as.server.deployment.jbossallxml.JBossAllXmlParserRegisteringProcessor;
 import org.jboss.dmr.ModelNode;
+import org.jboss.dmr.ModelType;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceTarget;
 
@@ -61,18 +64,35 @@ import org.jboss.msc.service.ServiceTarget;
 
 class JPASubSystemAdd extends AbstractBoottimeAddStepHandler {
 
-    public static JPASubSystemAdd INSTANCE = new JPASubSystemAdd();
+    public static final JPASubSystemAdd INSTANCE = new JPASubSystemAdd();
 
-    private ParametersValidator modelValidator = new ParametersValidator();
-    private ParametersValidator runtimeValidator = new ParametersValidator();
+    private final ParametersValidator modelValidator = new ParametersValidator();
+    private final ParametersValidator runtimeValidator = new ParametersValidator();
 
     private JPASubSystemAdd() {
         modelValidator.registerValidator(CommonAttributes.DEFAULT_DATASOURCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, true));
+        modelValidator.registerValidator(CommonAttributes.DEFAULT_PROVIDERMODULE, new StringLengthValidator(0, Integer.MAX_VALUE, true, true));
+        modelValidator.registerValidator(CommonAttributes.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, true));
+        modelValidator.registerValidator(CommonAttributes.DEFAULT_VFS, new ModelTypeValidator(ModelType.BOOLEAN));
         runtimeValidator.registerValidator(CommonAttributes.DEFAULT_DATASOURCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, false));
+        runtimeValidator.registerValidator(CommonAttributes.DEFAULT_PROVIDERMODULE, new StringLengthValidator(0, Integer.MAX_VALUE, true, false));
+        runtimeValidator.registerValidator(CommonAttributes.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, false));
+        runtimeValidator.registerValidator(CommonAttributes.DEFAULT_VFS, new ModelTypeValidator(ModelType.BOOLEAN));
     }
 
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
-        JPADefinition.DEFAULT_DATASOURCE.validateAndSet(operation, model);
+        if (operation.hasDefined(CommonAttributes.DEFAULT_DATASOURCE)) {
+            JPADefinition.DEFAULT_DATASOURCE.validateAndSet(operation, model);
+        }
+        if (operation.hasDefined(CommonAttributes.DEFAULT_PROVIDERMODULE)) {
+            JPADefinition.DEFAULT_PROVIDERMODULE.validateAndSet(operation, model);
+        }
+        if (operation.hasDefined(CommonAttributes.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE)) {
+            JPADefinition.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE.validateAndSet(operation, model);
+        }
+        if (operation.hasDefined(CommonAttributes.DEFAULT_VFS)) {
+            JPADefinition.DEFAULT_VFS.validateAndSet(operation, model);
+        }
     }
 
     protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model, ServiceVerificationHandler verificationHandler, List<ServiceController<?>> newControllers) throws
@@ -115,8 +135,27 @@ class JPASubSystemAdd extends AbstractBoottimeAddStepHandler {
 
         final ModelNode defaultDSNode = operation.require(CommonAttributes.DEFAULT_DATASOURCE);
         final String dataSourceName = defaultDSNode.resolve().asString();
+        String defaultProviderModule = null;
+        if (operation.hasDefined(CommonAttributes.DEFAULT_PROVIDERMODULE)) {
+            final ModelNode defaultProviderModuleNode = operation.get(CommonAttributes.DEFAULT_PROVIDERMODULE);
+            defaultProviderModule = defaultProviderModuleNode.resolve().asString();
+        }
+        ExtendedPersistenceInheritance defaultExtendedPersistenceInheritance = ExtendedPersistenceInheritance.DEEP;
+        if (operation.hasDefined(CommonAttributes.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE)) {
+            final ModelNode defaultExtendedPersistenceInheritanceNode = operation.get(CommonAttributes.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE);
+            defaultExtendedPersistenceInheritance =
+                ExtendedPersistenceInheritance.valueOf(defaultExtendedPersistenceInheritanceNode.resolve().asString());
+        }
+
+        boolean defaultVFS = true;
+        if (operation.hasDefined(CommonAttributes.DEFAULT_VFS)) {
+            final ModelNode defaultVFSNODE = operation.get(CommonAttributes.DEFAULT_VFS);
+            defaultVFS = defaultVFSNODE.resolve().asBoolean();
+        }
+
         final ServiceTarget target = context.getServiceTarget();
-        newControllers.add(JPAService.addService(target, dataSourceName, verificationHandler));
+        newControllers.add(JPAService.addService(target, dataSourceName, defaultProviderModule, defaultExtendedPersistenceInheritance, defaultVFS, verificationHandler));
         newControllers.add(JPAUserTransactionListenerService.addService(target, verificationHandler));
+
     }
 }
