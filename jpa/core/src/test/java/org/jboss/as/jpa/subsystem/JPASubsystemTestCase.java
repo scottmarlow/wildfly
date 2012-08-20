@@ -27,6 +27,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SYSTEM_PROPERTIES;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VALUE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRITE_ATTRIBUTE_OPERATION;
 
@@ -53,10 +54,14 @@ public class JPASubsystemTestCase extends AbstractSubsystemBaseTest {
 
     @Override
     protected String getSubsystemXml() throws IOException {
-        return
-            "<subsystem xmlns=\"urn:jboss:domain:jpa:1.0\">" +
-                "    <jpa default-datasource=\"\"/>" +
-                "</subsystem>";
+//        return
+//            "<subsystem xmlns=\"urn:jboss:domain:jpa:1.1\">" +
+//                "    <jpa default-datasource=\"\" default-providerModule=\"org.hibernate\" default-extended-persistence-inheritance=\"DEEP\" default-vfs=\"true\" />" +
+//                "</subsystem>";
+        return "<subsystem xmlns=\"urn:jboss:domain:jpa:1.0\">" +
+            "    <jpa default-datasource=\"\" />" +
+            "</subsystem>";
+
     }
 
     @Test
@@ -64,7 +69,7 @@ public class JPASubsystemTestCase extends AbstractSubsystemBaseTest {
         System.setProperty("org.jboss.as.jpa.testBadExpr", "hello");
 
         try {
-            ModelVersion oldVersion = ModelVersion.create(1, 1, 0);
+            ModelVersion oldVersion = ModelVersion.create(1, 0, 0);
             KernelServicesBuilder builder = createKernelServicesBuilder(null)
                     .setSubsystemXml(getSubsystemXml());
             builder.createLegacyKernelServicesBuilder(null, oldVersion)
@@ -81,11 +86,12 @@ public class JPASubsystemTestCase extends AbstractSubsystemBaseTest {
             operation.get(OP_ADDR).add(SUBSYSTEM, JPAExtension.SUBSYSTEM_NAME);
             operation.get(NAME).set(JPADefinition.DEFAULT_DATASOURCE.getName());
             operation.get(VALUE).set("${org.jboss.as.jpa.testBadExpr}");
-
+            operation.get(NAME).set(JPADefinition.DEFAULT_PROVIDERMODULE.getName());
+            operation.get(NAME).set(JPADefinition.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE.getName());
+            operation.get(NAME).set(JPADefinition.DEFAULT_VFS.getName());
             final ModelNode mainResult = mainServices.executeOperation(operation);
             System.out.println(mainResult);
             Assert.assertTrue(SUCCESS.equals(mainResult.get(OUTCOME).asString()));
-
             try {
                 mainServices.transformOperation(oldVersion, operation);
                 // legacyServices.executeOperation(operation); would actually work - however it does not understand the expr
