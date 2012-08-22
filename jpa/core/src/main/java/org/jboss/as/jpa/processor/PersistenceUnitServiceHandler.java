@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import javax.enterprise.inject.spi.BeanManager;
 import javax.persistence.ValidationMode;
 import javax.persistence.spi.PersistenceProvider;
 import javax.persistence.spi.PersistenceProviderResolverHolder;
@@ -386,6 +387,8 @@ public class PersistenceUnitServiceHandler {
                     }).install();
             }
 
+            addBeanManagerService(builder, service, deploymentUnit);
+
             builder.setInitialMode(ServiceController.Mode.ACTIVE)
                 .addInjection(service.getPropertiesInjector(), properties);
 
@@ -400,6 +403,11 @@ public class PersistenceUnitServiceHandler {
         } catch (ServiceRegistryException e) {
             throw MESSAGES.failedToAddPersistenceUnit(e, pu.getPersistenceUnitName());
         }
+    }
+
+    private static void addBeanManagerService(ServiceBuilder<PersistenceUnitServiceImpl> builder, PersistenceUnitServiceImpl service, DeploymentUnit deploymentUnit) {
+        builder.addDependency(ServiceBuilder.DependencyType.OPTIONAL, deploymentUnit.getServiceName().append(ServiceName.of("beanmanager")),
+                new CastingInjector<BeanManager>(service.getBeanManagerInjector(), BeanManager.class));
     }
 
     /**

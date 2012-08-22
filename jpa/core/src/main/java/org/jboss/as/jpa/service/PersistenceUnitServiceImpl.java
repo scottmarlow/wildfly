@@ -25,6 +25,7 @@ package org.jboss.as.jpa.service;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import javax.enterprise.inject.spi.BeanManager;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.persistence.EntityManagerFactory;
@@ -61,6 +62,7 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
     private final InjectedValue<DataSource> jtaDataSource = new InjectedValue<DataSource>();
     private final InjectedValue<DataSource> nonJtaDataSource = new InjectedValue<DataSource>();
     private final InjectedValue<ExecutorService> executorInjector = new InjectedValue<ExecutorService>();
+    private final InjectedValue<BeanManager> beanManager = new InjectedValue<BeanManager>();
 
     private final PersistenceProviderAdaptor persistenceProviderAdaptor;
     private final PersistenceProvider persistenceProvider;
@@ -95,7 +97,7 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                     pu.setJtaDataSource(jtaDataSource.getOptionalValue());
                     pu.setNonJtaDataSource(nonJtaDataSource.getOptionalValue());
                     WritableServiceBasedNamingStore.pushOwner(context.getController().getServiceContainer().subTarget());
-                    beanManagerLookup();
+                    HandleBeanManager();
                     entityManagerFactory = createContainerEntityManagerFactory();
                     persistenceUnitRegistry.add(getScopedPersistenceUnitName(), getValue());
                     context.complete();
@@ -174,6 +176,10 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
         return nonJtaDataSource;
     }
 
+    public Injector<BeanManager> getBeanManagerInjector() {
+        return beanManager;
+    }
+
     /**
      * Returns the Persistence Unit service name used for creation or lookup.
      * The service name contains the unique fully scoped persistence unit name
@@ -212,17 +218,10 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
     /**
      * If the containing archive is a bean archive, the container must pass the BeanManager instance
      * in the map with the key "javax.persistence.bean.manager".
-     *
-     * TODO: replace JNDI lookup with direct API for faster deployment.
      */
-    private void beanManagerLookup() {
-        try {
-            InitialContext initialContext = new InitialContext();
-            Object beanManager = initialContext.lookup("java:comp/BeanManager");
+    private void HandleBeanManager() {
+        if (beanManager != null) {
             properties.getValue().put("javax.persistence.bean.manager", beanManager);
-            initialContext.close();
-        } catch (NamingException ignore) {
-
         }
     }
 
