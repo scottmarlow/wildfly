@@ -54,10 +54,14 @@ public class JPASubsystemTestCase extends AbstractSubsystemBaseTest {
 
     @Override
     protected String getSubsystemXml() throws IOException {
-        return
-            "<subsystem xmlns=\"urn:jboss:domain:jpa:1.1\">" +
-                "    <jpa default-datasource=\"\" default-providerModule=\"org.hibernate\" default-extended-persistence-inheritance=\"DEEP\" default-vfs=\"true\" />" +
-                "</subsystem>";
+//        return
+//            "<subsystem xmlns=\"urn:jboss:domain:jpa:1.1\">" +
+//                "    <jpa default-datasource=\"\" default-providerModule=\"org.hibernate\" default-extended-persistence-inheritance=\"DEEP\" default-vfs=\"true\" />" +
+//                "</subsystem>";
+        return "<subsystem xmlns=\"urn:jboss:domain:jpa:1.0\">" +
+            "    <jpa default-datasource=\"\" />" +
+            "</subsystem>";
+
     }
 
     @Test
@@ -65,7 +69,7 @@ public class JPASubsystemTestCase extends AbstractSubsystemBaseTest {
         System.setProperty("org.jboss.as.jpa.testBadExpr", "hello");
 
         try {
-            ModelVersion oldVersion = ModelVersion.create(1, 1, 0);
+            ModelVersion oldVersion = ModelVersion.create(1, 0, 0);
             KernelServicesBuilder builder = createKernelServicesBuilder(null)
                     .setSubsystemXml(getSubsystemXml());
             builder.createLegacyKernelServicesBuilder(null, oldVersion)

@@ -70,29 +70,21 @@ class JPASubSystemAdd extends AbstractBoottimeAddStepHandler {
     private final ParametersValidator runtimeValidator = new ParametersValidator();
 
     private JPASubSystemAdd() {
-        modelValidator.registerValidator(CommonAttributes.DEFAULT_DATASOURCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, true));
-        modelValidator.registerValidator(CommonAttributes.DEFAULT_PROVIDERMODULE, new StringLengthValidator(0, Integer.MAX_VALUE, true, true));
-        modelValidator.registerValidator(CommonAttributes.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, true));
-        modelValidator.registerValidator(CommonAttributes.DEFAULT_VFS, new ModelTypeValidator(ModelType.BOOLEAN));
-        runtimeValidator.registerValidator(CommonAttributes.DEFAULT_DATASOURCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, false));
-        runtimeValidator.registerValidator(CommonAttributes.DEFAULT_PROVIDERMODULE, new StringLengthValidator(0, Integer.MAX_VALUE, true, false));
-        runtimeValidator.registerValidator(CommonAttributes.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, false));
-        runtimeValidator.registerValidator(CommonAttributes.DEFAULT_VFS, new ModelTypeValidator(ModelType.BOOLEAN));
+//        modelValidator.registerValidator(CommonAttributes.DEFAULT_DATASOURCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, true));
+//        modelValidator.registerValidator(CommonAttributes.DEFAULT_PROVIDERMODULE, new StringLengthValidator(0, Integer.MAX_VALUE, true, true));
+//        modelValidator.registerValidator(CommonAttributes.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, true));
+//        modelValidator.registerValidator(CommonAttributes.DEFAULT_VFS, new ModelTypeValidator(ModelType.BOOLEAN));
+//        runtimeValidator.registerValidator(CommonAttributes.DEFAULT_DATASOURCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, false));
+//        runtimeValidator.registerValidator(CommonAttributes.DEFAULT_PROVIDERMODULE, new StringLengthValidator(0, Integer.MAX_VALUE, true, false));
+//        runtimeValidator.registerValidator(CommonAttributes.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, false));
+//        runtimeValidator.registerValidator(CommonAttributes.DEFAULT_VFS, new ModelTypeValidator(ModelType.BOOLEAN));
     }
 
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
-        if (operation.hasDefined(CommonAttributes.DEFAULT_DATASOURCE)) {
-            JPADefinition.DEFAULT_DATASOURCE.validateAndSet(operation, model);
-        }
-        if (operation.hasDefined(CommonAttributes.DEFAULT_PROVIDERMODULE)) {
-            JPADefinition.DEFAULT_PROVIDERMODULE.validateAndSet(operation, model);
-        }
-        if (operation.hasDefined(CommonAttributes.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE)) {
-            JPADefinition.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE.validateAndSet(operation, model);
-        }
-        if (operation.hasDefined(CommonAttributes.DEFAULT_VFS)) {
-            JPADefinition.DEFAULT_VFS.validateAndSet(operation, model);
-        }
+        JPADefinition.DEFAULT_DATASOURCE.validateAndSet(operation, model);
+        JPADefinition.DEFAULT_PROVIDERMODULE.validateAndSet(operation, model);
+        JPADefinition.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE.validateAndSet(operation, model);
+        JPADefinition.DEFAULT_VFS.validateAndSet(operation, model);
     }
 
     protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model, ServiceVerificationHandler verificationHandler, List<ServiceController<?>> newControllers) throws
