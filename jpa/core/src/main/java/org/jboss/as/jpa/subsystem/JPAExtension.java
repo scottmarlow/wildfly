@@ -31,14 +31,12 @@ import static org.jboss.as.jpa.JpaLogger.JPA_LOGGER;
 
 import java.util.Collections;
 import java.util.List;
-
 import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 
 import org.jboss.as.controller.Extension;
 import org.jboss.as.controller.ExtensionContext;
 import org.jboss.as.controller.ModelVersion;
-import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.SubsystemRegistration;
 import org.jboss.as.controller.descriptions.StandardResourceDescriptionResolver;
 import org.jboss.as.controller.operations.common.GenericSubsystemDescribeHandler;
@@ -47,9 +45,7 @@ import org.jboss.as.controller.parsing.ParseUtils;
 import org.jboss.as.controller.persistence.SubsystemMarshallingContext;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.OperationEntry;
-import org.jboss.as.controller.transform.AbstractOperationTransformer;
 import org.jboss.as.controller.transform.RejectExpressionValuesTransformer;
-import org.jboss.as.controller.transform.TransformationContext;
 import org.jboss.as.controller.transform.TransformersSubRegistration;
 import org.jboss.as.jpa.config.Configuration;
 import org.jboss.as.jpa.config.ExtendedPersistenceInheritance;
@@ -159,17 +155,14 @@ public class JPAExtension implements Extension {
 
     private void initializeTransformers_1_1_0(SubsystemRegistration subsystemRegistration) {
 
-        ModelVersion oldVersion = ModelVersion.create(1, 0, 0);
+        ModelVersion oldVersion = ModelVersion.create(1, 1, 0);
         RejectExpressionValuesTransformer rejectNewerExpressions =
                 new RejectExpressionValuesTransformer(
-                        JPADefinition.DEFAULT_DATASOURCE,
-                        JPADefinition.DEFAULT_PROVIDERMODULE,
-                        JPADefinition.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE,
-                        JPADefinition.DEFAULT_VFS);
+                        JPADefinition.DEFAULT_DATASOURCE);
         //TransformersSubRegistration reg = subsystemRegistration.registerModelTransformers(oldVersion, rejectNewerExpressions);
 
         // Register the model transformers
-        TransformersSubRegistration reg = subsystemRegistration.registerModelTransformers(oldVersion, new JPASubsystemTransformer_1_2());
+        TransformersSubRegistration reg = subsystemRegistration.registerModelTransformers(oldVersion, new JPASubsystemTransformer_1_1());
         reg.registerOperationTransformer(ADD, rejectNewerExpressions);
         reg.registerOperationTransformer(WRITE_ATTRIBUTE_OPERATION, rejectNewerExpressions.getWriteAttributeTransformer());
     }

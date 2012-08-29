@@ -22,24 +22,21 @@
 
 package org.jboss.as.jpa.subsystem;
 
-import org.jboss.as.clustering.infinispan.subsystem.ModelKeys;
 import org.jboss.as.controller.transform.AbstractSubsystemTransformer;
 import org.jboss.as.controller.transform.TransformationContext;
 import org.jboss.dmr.ModelNode;
-import org.jboss.dmr.Property;
 
 /**
  * @author <a href="mailto:tomaz.cerar@redhat.com">Tomaz Cerar</a>
  */
-public class JPASubsystemTransformer_1_2 extends AbstractSubsystemTransformer {
+public class JPASubsystemTransformer_1_1 extends AbstractSubsystemTransformer {
 
-    public JPASubsystemTransformer_1_2() {
+    public JPASubsystemTransformer_1_1() {
         super(CommonAttributes.JPA);
     }
 
     @Override
     public ModelNode transformModel(TransformationContext context, ModelNode model) {
-        remove(model, CommonAttributes.DEFAULT_DATASOURCE);
         remove(model, CommonAttributes.DEFAULT_PROVIDERMODULE);
         remove(model, CommonAttributes.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE);
         remove(model, CommonAttributes.DEFAULT_VFS);
