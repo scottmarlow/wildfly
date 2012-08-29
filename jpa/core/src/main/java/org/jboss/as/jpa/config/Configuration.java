@@ -25,6 +25,7 @@ package org.jboss.as.jpa.config;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jboss.as.jpa.service.JPAService;
 import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
 
 /**
@@ -217,4 +218,11 @@ public class Configuration {
         return providerClassToAdapterModuleName.get(providerClassName);
     }
 
+    public static String getDefaultProviderModuleName() {
+        String defaultProviderModule = JPAService.getDefaultProviderModule();
+        if (defaultProviderModule == null || defaultProviderModule.isEmpty()) {
+            defaultProviderModule = PROVIDER_MODULE_DEFAULT;
+        }
+        return defaultProviderModule;
+    }
 }
