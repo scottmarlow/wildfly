@@ -40,7 +40,6 @@ import org.jboss.as.jpa.container.EntityManagerUnwrappedTargetInvocationHandler;
 import org.jboss.as.jpa.container.ExtendedEntityManager;
 import org.jboss.as.jpa.container.ExtendedPersistenceDeepInheritance;
 import org.jboss.as.jpa.container.ExtendedPersistenceShallowInheritance;
-import org.jboss.as.jpa.container.SFSBCallStack;
 import org.jboss.as.jpa.container.TransactionScopedEntityManager;
 import org.jboss.as.jpa.processor.JpaAttachments;
 import org.jboss.as.jpa.service.JPAService;
