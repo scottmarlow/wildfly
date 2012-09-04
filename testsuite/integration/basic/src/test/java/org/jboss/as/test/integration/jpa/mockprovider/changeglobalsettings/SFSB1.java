@@ -33,7 +33,7 @@ import javax.persistence.spi.PersistenceUnitInfo;
  *
  * @author Scott Marlow
  */
-@Stateful
+@Stateful(name = "SFSB1")
 public class SFSB1 implements StatefulInterface1 {
     @PersistenceUnit
     EntityManagerFactory emf;

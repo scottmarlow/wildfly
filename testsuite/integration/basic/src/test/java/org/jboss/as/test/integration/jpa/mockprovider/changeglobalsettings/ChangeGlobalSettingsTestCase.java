@@ -42,7 +42,6 @@ import javax.persistence.spi.PersistenceUnitInfo;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.arquillian.api.ServerSetup;
 import org.jboss.as.arquillian.api.ServerSetupTask;
 import org.jboss.as.arquillian.container.ManagementClient;
@@ -54,7 +53,6 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
-import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -134,40 +132,21 @@ public class ChangeGlobalSettingsTestCase {
 
     };
 
-    private static final String ARCHIVE_NAME = "jpa_ChangeGlobalSettings";
     private static final String MODULE_NAME = "ejbjar";
     private static final String APP_NAME = "";
     private static final String DISTINCT_NAME = "";
 
-    @Deployment
+    @Deployment(testable = false)
     public static Archive<?> deploy() {
-        JavaArchive persistenceProvider = ShrinkWrap.create(JavaArchive.class, "testpersistenceprovider.jar");
-        persistenceProvider.addClasses(
-                    TestEntityManagerFactory.class,
-                    TestPersistenceProvider.class
-                );
+        final JavaArchive jar = ShrinkWrap.create(JavaArchive.class, MODULE_NAME + ".jar");
+        jar.addPackage(SFSB1.class.getPackage());
 
         // META-INF/services/javax.persistence.spi.PersistenceProvider
-        persistenceProvider.addAsResource(new StringAsset("org.jboss.as.test.integration.jpa.mockprovider.changeglobalsettings.TestPersistenceProvider"),
+        jar.addAsResource(new StringAsset("org.jboss.as.test.integration.jpa.mockprovider.changeglobalsettings.TestPersistenceProvider"),
                 "META-INF/services/javax.persistence.spi.PersistenceProvider");
 
-        EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, ARCHIVE_NAME + ".ear");
-
-        JavaArchive ejbjar = ShrinkWrap.create(JavaArchive.class, MODULE_NAME + ".jar");
-        ejbjar.addAsManifestResource(emptyEjbJar(), "ejb-jar.xml");
-        ejbjar.addClasses(ChangeGlobalSettingsTestCase.class,
-                SFSB1.class,
-                StatefulInterface1.class
-        );
-        ejbjar.addAsManifestResource(ChangeGlobalSettingsTestCase.class.getPackage(), "persistence.xml", "persistence.xml");
-
-        ear.addAsModule(ejbjar);        // add ejbjar to root of ear
-
-        JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "lib.jar");
-        lib.addClasses(Employee.class, ChangeGlobalSettingsTestCase.class);
-        ear.addAsLibraries(lib, persistenceProvider);
-        return ear;
-
+        jar.addAsManifestResource(ChangeGlobalSettingsTestCase.class.getPackage(), "persistence.xml", "persistence.xml");
+        return jar;
     }
 
     private static StringAsset emptyEjbJar() {
@@ -193,10 +172,10 @@ public class ChangeGlobalSettingsTestCase {
     @Test
     public void test_persistenceUnitInfoURLS() throws Exception {
         try {
-            //         final RemoteEcho remoteEcho = (RemoteEcho) context.lookup("ejb:" + APP_NAME + "/" + MODULE_NAME + "/" + DISTINCT_NAME
-            //                + "/" + EchoBean.class.getSimpleName() + "!" + RemoteEcho.class.getName());
-            StatefulInterface1 slsb = (StatefulInterface1) context.lookup("ejb:" + APP_NAME + "/" + MODULE_NAME + "/" + DISTINCT_NAME +
-                "/" + SFSB1.class.getSimpleName() + "!" + StatefulInterface1.class.getName());
+            StatefulInterface1 slsb = (StatefulInterface1)
+                    context.lookup("ejb:/ejbjar//SFSB1!org.jboss.as.test.integration.jpa.mockprovider.changeglobalsettings.StatefulInterface1?stateful");
+                    //"ejb:" + APP_NAME + "/" + MODULE_NAME + "/" + DISTINCT_NAME +
+                //"/" + SFSB1.class.getSimpleName() + "!" + StatefulInterface1.class.getName());
             PersistenceUnitInfo persistenceUnitInfo = slsb.getLastPersistenceUnitInfo();
             assertNotNull("TestPersistenceProvider.getLastPersistenceUnitInfo() returns expected (non-null) PersistenceUnitInfo",persistenceUnitInfo);
             assertTrue("testing that PersistenceUnitInfo.getPersistenceUnitRootUrl() url is file based, failed because getPersistenceUnitRootUrl is " +
