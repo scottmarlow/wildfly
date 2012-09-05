@@ -106,10 +106,10 @@ public class JPAService implements Service<Void> {
             final boolean defaultVFS,
             final ServiceListener<Object>... listeners) {
         JPAService jpaService = new JPAService();
-        JPAService.defaultDataSourceName = defaultDataSourceName;
-        JPAService.defaultProviderModule = defaultProviderModule;
-        JPAService.defaultExtendedPersistenceInheritance = defaultExtendedPersistenceInheritance;
-        JPAService.defaultVFS = defaultVFS;
+        setDefaultDataSourceName(defaultDataSourceName);
+        setDefaultProviderModule(defaultProviderModule);
+        setDefaultExtendedPersistenceInheritance(defaultExtendedPersistenceInheritance);
+        setDefaultVFS(defaultVFS);
 
         // set the transaction manager to be accessible via TransactionUtil
         final Injector<TransactionManager> transactionManagerInjector =
