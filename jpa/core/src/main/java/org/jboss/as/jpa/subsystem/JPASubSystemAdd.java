@@ -63,18 +63,9 @@ class JPASubSystemAdd extends AbstractBoottimeAddStepHandler {
 
     public static final JPASubSystemAdd INSTANCE = new JPASubSystemAdd();
 
-    private final ParametersValidator modelValidator = new ParametersValidator();
     private final ParametersValidator runtimeValidator = new ParametersValidator();
 
     private JPASubSystemAdd() {
-//        modelValidator.registerValidator(CommonAttributes.DEFAULT_DATASOURCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, true));
-//        modelValidator.registerValidator(CommonAttributes.DEFAULT_PROVIDERMODULE, new StringLengthValidator(0, Integer.MAX_VALUE, true, true));
-//        modelValidator.registerValidator(CommonAttributes.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, true));
-//        modelValidator.registerValidator(CommonAttributes.DEFAULT_VFS, new ModelTypeValidator(ModelType.BOOLEAN));
-//        runtimeValidator.registerValidator(CommonAttributes.DEFAULT_DATASOURCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, false));
-//        runtimeValidator.registerValidator(CommonAttributes.DEFAULT_PROVIDERMODULE, new StringLengthValidator(0, Integer.MAX_VALUE, true, false));
-//        runtimeValidator.registerValidator(CommonAttributes.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE, new StringLengthValidator(0, Integer.MAX_VALUE, true, false));
-//        runtimeValidator.registerValidator(CommonAttributes.DEFAULT_VFS, new ModelTypeValidator(ModelType.BOOLEAN));
     }
 
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {

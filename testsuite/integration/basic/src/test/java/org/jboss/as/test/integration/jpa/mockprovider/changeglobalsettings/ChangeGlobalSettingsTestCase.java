@@ -31,6 +31,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRI
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
@@ -176,11 +177,11 @@ public class ChangeGlobalSettingsTestCase {
                     context.lookup("ejb:/ejbjar//SFSB1!org.jboss.as.test.integration.jpa.mockprovider.changeglobalsettings.StatefulInterface1?stateful");
                     //"ejb:" + APP_NAME + "/" + MODULE_NAME + "/" + DISTINCT_NAME +
                 //"/" + SFSB1.class.getSimpleName() + "!" + StatefulInterface1.class.getName());
-            PersistenceUnitInfo persistenceUnitInfo = slsb.getLastPersistenceUnitInfo();
-            assertNotNull("TestPersistenceProvider.getLastPersistenceUnitInfo() returns expected (non-null) PersistenceUnitInfo",persistenceUnitInfo);
-            assertTrue("testing that PersistenceUnitInfo.getPersistenceUnitRootUrl() url is file based, failed because getPersistenceUnitRootUrl is " +
-                    persistenceUnitInfo.getPersistenceUnitRootUrl().getProtocol(),
-                    "file".equals(TestPersistenceProvider.getLastPersistenceUnitInfo().getPersistenceUnitRootUrl().getProtocol()));
+            String persistenceUnitRootUrlProtocol = slsb.getPersistenceUnitRootUrlProtocol();
+            assertNotNull("TestPersistenceProvider.getPersistenceUnitRootUrlProtocol() returns expected (non-null) persistenceUnitRootUrlProtocol ", persistenceUnitRootUrlProtocol);
+            assertTrue("testing that persistenceUnitRootUrl URL is file based, failed because persistenceUnitRootUrlProtocol is " +
+                    persistenceUnitRootUrlProtocol,
+                    "file".equals(persistenceUnitRootUrlProtocol));
         } finally {
             TestPersistenceProvider.clearLastPersistenceUnitInfo();
         }

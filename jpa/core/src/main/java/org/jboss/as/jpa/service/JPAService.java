@@ -22,6 +22,8 @@
 
 package org.jboss.as.jpa.service;
 
+import static org.jboss.as.jpa.JpaLogger.ROOT_LOGGER;
+
 import javax.transaction.TransactionManager;
 import javax.transaction.TransactionSynchronizationRegistry;
 
@@ -57,34 +59,42 @@ public class JPAService implements Service<Void> {
     private static volatile boolean defaultVFS = true;
 
     public static String getDefaultDataSourceName() {
+        ROOT_LOGGER.tracef("JPAService.getDefaultDataSourceName() == %s", JPAService.defaultDataSourceName);
         return defaultDataSourceName;
     }
 
     public static void setDefaultDataSourceName(String dataSourceName) {
+        ROOT_LOGGER.tracef("JPAService.setDefaultDataSourceName(%s), previous value = %s", dataSourceName, JPAService.defaultDataSourceName);
         defaultDataSourceName = dataSourceName;
     }
 
     public static String getDefaultProviderModule() {
+        ROOT_LOGGER.tracef("JPAService.getDefaultProviderModule() == %s", defaultProviderModule);
         return defaultProviderModule;
     }
 
     public static void setDefaultProviderModule(String defaultProviderModule) {
+        ROOT_LOGGER.tracef("JPAService.setDefaultProviderModule(%s), previous value = %s", defaultProviderModule, JPAService.defaultProviderModule);
         JPAService.defaultProviderModule = defaultProviderModule;
     }
 
     public static ExtendedPersistenceInheritance getDefaultExtendedPersistenceInheritance() {
+        ROOT_LOGGER.tracef("JPAService.getDefaultExtendedPersistenceInheritance() == %s", defaultExtendedPersistenceInheritance.toString());
         return defaultExtendedPersistenceInheritance;
     }
 
     public static void setDefaultExtendedPersistenceInheritance(ExtendedPersistenceInheritance defaultExtendedPersistenceInheritance) {
+        ROOT_LOGGER.tracef("JPAService.setDefaultExtendedPersistenceInheritance(%s), previous value = %s", defaultExtendedPersistenceInheritance.toString(), JPAService.defaultExtendedPersistenceInheritance.toString());
         JPAService.defaultExtendedPersistenceInheritance = defaultExtendedPersistenceInheritance;
     }
 
     public static boolean isDefaultVFS() {
+        ROOT_LOGGER.tracef("JPAService.isDefaultVFS() == %b", defaultVFS);
         return defaultVFS;
     }
 
     public static void setDefaultVFS(boolean defaultVFS) {
+        ROOT_LOGGER.tracef("JPAService.setDefaultVFS(%b), previous value == %b", defaultVFS, JPAService.defaultVFS);
         JPAService.defaultVFS = defaultVFS;
     }
 

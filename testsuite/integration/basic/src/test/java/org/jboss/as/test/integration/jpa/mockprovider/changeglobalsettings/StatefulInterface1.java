@@ -22,6 +22,9 @@
 
 package org.jboss.as.test.integration.jpa.mockprovider.changeglobalsettings;
 
+import java.net.URL;
+
+import javax.ejb.Remote;
 import javax.persistence.spi.PersistenceUnitInfo;
 
 /**
@@ -29,6 +32,7 @@ import javax.persistence.spi.PersistenceUnitInfo;
  *
  * @author Scott Marlow
  */
+@Remote
 public interface StatefulInterface1 {
-    PersistenceUnitInfo getLastPersistenceUnitInfo();
+    String getPersistenceUnitRootUrlProtocol();
 }

@@ -22,6 +22,8 @@
 
 package org.jboss.as.test.integration.jpa.mockprovider.changeglobalsettings;
 
+import java.net.URL;
+
 import javax.ejb.Stateful;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.LockModeType;
@@ -50,7 +52,8 @@ public class SFSB1 implements StatefulInterface1 {
         return emf.createEntityManager().find(Employee.class, id, LockModeType.NONE);
     }
 
-    public PersistenceUnitInfo getLastPersistenceUnitInfo() {
-        return TestPersistenceProvider.getLastPersistenceUnitInfo();
+    @Override
+    public String getPersistenceUnitRootUrlProtocol() {
+        return TestPersistenceProvider.getLastPersistenceUnitInfo().getPersistenceUnitRootUrl().getProtocol();
     }
 }
