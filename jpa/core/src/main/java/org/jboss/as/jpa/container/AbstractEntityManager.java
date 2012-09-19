@@ -34,6 +34,7 @@ import javax.persistence.FlushModeType;
 import javax.persistence.LockModeType;
 import javax.persistence.Query;
 import javax.persistence.StoredProcedureQuery;
+import javax.persistence.SynchronizationType;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaDelete;
@@ -65,7 +66,7 @@ public abstract class AbstractEntityManager implements EntityManager {
      */
     protected abstract boolean isInTx();
 
-
+    protected abstract SynchronizationType getSynchronizationType();
 
     public <T> T unwrap(Class<T> cls) {
         return getEntityManager().unwrap(cls);
@@ -817,6 +818,5 @@ public abstract class AbstractEntityManager implements EntityManager {
                 return "none";
         }
     }
-
 
 }

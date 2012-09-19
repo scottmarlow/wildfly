@@ -30,6 +30,7 @@ import java.util.Map;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceContextType;
+import javax.persistence.SynchronizationType;
 
 import org.jboss.as.ee.component.BindingConfiguration;
 import org.jboss.as.ee.component.ComponentDescription;
@@ -180,7 +181,12 @@ public class PersistenceRefProcessor extends AbstractDeploymentDescriptorBinding
                             }
                         }
                         PersistenceContextType type = puRef.getPersistenceContextType() == null ? PersistenceContextType.TRANSACTION : puRef.getPersistenceContextType();
-                        InjectionSource pcBindingSource = this.getPersistenceContextBindingSource(deploymentUnit, persistenceUnitName, type, map);
+                        // create a EE 7 branch of
+                        SynchronizationType synchronizationType =  SynchronizationType.SYNCHRONIZED;
+//                                (puRef.()== null || SynchronizationType.SYNCHRONIZED.name().equals(stType.asString()))?
+//                                        SynchronizationType.SYNCHRONIZED: SynchronizationType.UNSYNCHRONIZED;
+
+                        InjectionSource pcBindingSource = this.getPersistenceContextBindingSource(deploymentUnit, persistenceUnitName, type, synchronizationType, map);
                         bindingConfiguration = new BindingConfiguration(name, pcBindingSource);
                     }
                     bindingConfigurations.add(bindingConfiguration);
@@ -205,12 +211,17 @@ public class PersistenceRefProcessor extends AbstractDeploymentDescriptorBinding
         return new PersistenceUnitInjectionSource(puServiceName, deploymentUnit, EntityManagerFactory.class.getName(), pu);
     }
 
-    private InjectionSource getPersistenceContextBindingSource(final DeploymentUnit deploymentUnit, final String unitName, PersistenceContextType type, Map properties) throws
+    private InjectionSource getPersistenceContextBindingSource(
+            final DeploymentUnit deploymentUnit,
+            final String unitName,
+            PersistenceContextType type,
+            SynchronizationType synchronizationType,
+            Map properties) throws
         DeploymentUnitProcessingException {
         PersistenceUnitMetadata pu = getPersistenceUnit(deploymentUnit, unitName);
         String scopedPuName = pu.getScopedPersistenceUnitName();
         ServiceName puServiceName = getPuServiceName(scopedPuName);
-        return new PersistenceContextInjectionSource(type, properties, puServiceName, deploymentUnit, scopedPuName, EntityManager.class.getName(), pu);
+        return new PersistenceContextInjectionSource(type, synchronizationType, properties, puServiceName, deploymentUnit, scopedPuName, EntityManager.class.getName(), pu);
     }
 
     private PersistenceUnitMetadata getPersistenceUnit(final DeploymentUnit deploymentUnit, final String puName)
