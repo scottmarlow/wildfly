@@ -32,6 +32,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Query;
 import javax.persistence.StoredProcedureQuery;
+import javax.persistence.SynchronizationType;
 import javax.persistence.criteria.CriteriaDelete;
 import javax.persistence.criteria.CriteriaUpdate;
 
@@ -55,16 +56,19 @@ import static org.jboss.as.jpa.JpaMessages.MESSAGES;
  */
 public class TransactionScopedEntityManager extends AbstractEntityManager implements Serializable {
 
-    private static final long serialVersionUID = 455498111L;
+    private static final long serialVersionUID = 455498112L;
 
     private final String puScopedName;          // Scoped name of the persistent unit
     private final Map properties;
     private transient EntityManagerFactory emf;
+    private final SynchronizationType synchronizationType;
 
-    public TransactionScopedEntityManager(String puScopedName, Map properties, EntityManagerFactory emf) {
+
+    public TransactionScopedEntityManager(String puScopedName, Map properties, EntityManagerFactory emf, SynchronizationType synchronizationType) {
         this.puScopedName = puScopedName;
         this.properties = properties;
         this.emf = emf;
+        this.synchronizationType = synchronizationType;
     }
 
     @Override
@@ -122,4 +126,10 @@ public class TransactionScopedEntityManager extends AbstractEntityManager implem
             }
         });
     }
+
+    @Override
+    protected SynchronizationType getSynchronizationType() {
+        return synchronizationType;
+    }
+
 }
