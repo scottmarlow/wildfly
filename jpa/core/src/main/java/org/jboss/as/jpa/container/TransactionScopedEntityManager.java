@@ -79,7 +79,7 @@ public class TransactionScopedEntityManager extends AbstractEntityManager implem
         isInTx = TransactionUtil.isInTx();
 
         if (isInTx) {
-            result = TransactionUtil.getOrCreateTransactionScopedEntityManager(emf, puScopedName, properties);
+            result = TransactionUtil.getOrCreateTransactionScopedEntityManager(emf, puScopedName, properties, synchronizationType);
         } else {
             result = NonTxEmCloser.get(puScopedName);
             if (result == null) {
