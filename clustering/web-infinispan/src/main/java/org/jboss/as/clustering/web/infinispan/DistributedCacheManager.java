@@ -438,6 +438,10 @@ public class DistributedCacheManager<T extends OutgoingDistributableSessionData>
 
     @Override
     public String createSessionId() {
+System.out.println("createSessionId() about to call this.affinity.getKeyForAddress().  KeyAffinityService details:  is started. " +
+                "  ch manager address = " + this.cache.getCacheManager().getAddress() +
+                " affinity.isStarted() = " + affinity.isStarted() +
+                " affinity.getKeyForAddress = " + affinity.getKeyForAddress(cache.getCacheManager().getAddress()));
         return this.affinity.getKeyForAddress(this.cache.getCacheManager().getAddress());
     }
 

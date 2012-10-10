@@ -529,14 +529,18 @@ public class DistributableSessionManager<O extends OutgoingDistributableSessionD
 
     @Override
     public Session createSession(String sessionId, Random random) {
+        log.tracef("createSession(session %s, Random...): ",sessionId);
         Session session = null;
         try {
             // [JBAS-7123] Make sure we're either in the call stack where LockingValve has
             // a lock, or that we acquire one ourselves
             boolean inLockingValve = SessionReplicationContext.isLocallyActive();
+            log.tracef("createSession(session %s, Random...) have lock or about to try to lock ",sessionId);
             if (inLockingValve || this.valveLock.tryLock(0, TimeUnit.SECONDS)) {
+                log.tracef("createSession(session %s, Random...) have lock now ",sessionId);
                 try {
                     session = createSessionInternal(sessionId, random);
+                    log.tracef("createSession(session %s, Random...)  createSessionInternal returned %s",sessionId, session);
                 } finally {
                     if (!inLockingValve) {
                         this.valveLock.unlock();
@@ -548,7 +552,7 @@ public class DistributableSessionManager<O extends OutgoingDistributableSessionD
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-
+        log.tracef("createSession(session %s, Random...)  createSessionInternal returning %s",sessionId, session);
         return session;
     }
 
@@ -559,13 +563,15 @@ public class DistributableSessionManager<O extends OutgoingDistributableSessionD
         // We check here for maxActive instead of in add(). add() gets called
         // when we load an already existing session from the distributed cache
         // (e.g. in a failover) and we don't want to fail in that situation.
+        log.tracef("1. createSessionInternal(session %s, Random...)",sessionId );
 
         if (maxActiveAllowed != -1 && calcActiveSessions() >= maxActiveAllowed) {
             log.tracef("createSession(): active sessions = %d and max allowed sessions = %d", calcActiveSessions(), maxActiveAllowed);
-
+            log.tracef("2. createSessionInternal(session %s, Random...)",sessionId);
             processExpires();
-
+            log.tracef("3. createSessionInternal(session %s, Random...)",sessionId );
             if (calcActiveSessions() >= maxActiveAllowed) {
+                log.tracef("4. createSessionInternal(session %s, Random...)",sessionId );
                 // Exceeds limit. We need to reject it.
                 rejectedCounter.incrementAndGet();
                 // Catalina api does not specify what happens
@@ -576,25 +582,30 @@ public class DistributableSessionManager<O extends OutgoingDistributableSessionD
         }
 
         ClusteredSession<O> session = createEmptyClusteredSession();
-
+        log.tracef("5. createSessionInternal(session %s) createEmptyClusteredSession returned ",session );
         if (session != null) {
             session.setNew(true);
             session.setCreationTime(System.currentTimeMillis());
             session.setMaxInactiveInterval(this.maxInactiveInterval);
             session.setValid(true);
-
+            log.tracef("6. createSessionInternal(session %s)",session );
             String clearInvalidated = null; // see below
 
             if (sessionId == null) {
+                log.tracef("7. createSessionInternal(session %s) about to generateSessionId",session );
                 sessionId = this.generateSessionId(random);
+                log.tracef("8. createSessionInternal(session %s) got generateSessionId %s",session , sessionId);
             } else {
+                log.tracef("9. createSessionInternal(session %s) sessionId is not null ",session );
                 clearInvalidated = sessionId;
+                log.tracef("10. createSessionInternal(session %s) set clearInvalidated to %s",session , sessionId);
             }
 
+            log.tracef("11. createSessionInternal(session %s) session.setId(sessionId) %s",session , sessionId);
             session.setId(sessionId); // Setting the id leads to a call to add()
-
+            log.tracef("12. createSessionInternal(session %s) session.setId(sessionId) done %s",session , sessionId);
             getDistributedCacheManager().sessionCreated(session.getRealId());
-
+            log.tracef("13 createSessionInternal(session %s) session.tellNew",session);
             session.tellNew(ClusteredSessionNotificationCause.CREATE);
 
             log.tracef("Created a ClusteredSession with id: %s", sessionId);
@@ -616,7 +627,11 @@ public class DistributableSessionManager<O extends OutgoingDistributableSessionD
 
     @Override
     protected String generateSessionId(Random random) {
-        return this.createSessionId(this.distributedCacheManager.createSessionId(), this.getJvmRoute());
+        log.tracef("generateSessionId() about to call createSessionId(this.distributedCacheManager.createSessionId(), this.getJvmRoute() %s)" , this.getJvmRoute());
+
+        String sid = this.distributedCacheManager.createSessionId();
+        log.tracef("generateSessionId() about to call createSessionId(this.distributedCacheManager.createSessionId() %s, this.getJvmRoute() %s)" , sid, this.getJvmRoute());
+        return this.createSessionId(sid, this.getJvmRoute());
     }
 
     @Override
