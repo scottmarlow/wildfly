@@ -47,7 +47,7 @@ import org.junit.Test;
 /**
  * @author <a href="kabir.khan@jboss.com">Kabir Khan</a>
  */
-@Ignore
+//@Ignore
 public class JPASubsystemTestCase extends AbstractSubsystemBaseTest {
 
     public JPASubsystemTestCase() {
