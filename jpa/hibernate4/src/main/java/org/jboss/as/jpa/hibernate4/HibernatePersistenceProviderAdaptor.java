@@ -54,7 +54,7 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
     @Override
     public void addProviderProperties(Map properties, PersistenceUnitMetadata pu) {
         putPropertyIfAbsent(pu, properties, Configuration.USE_NEW_ID_GENERATOR_MAPPINGS, "true");
-        putPropertyIfAbsent(pu, properties, org.hibernate.ejb.AvailableSettings.SCANNER, HibernateAnnotationScanner.class.getName());
+        putPropertyIfAbsent(pu, properties, org.hibernate.ejb.AvailableSettings.SCANNER, HibernateAnnotationScanner.class);
         properties.put(AvailableSettings.APP_CLASSLOADER, pu.getClassLoader());
         putPropertyIfAbsent(pu, properties, AvailableSettings.JTA_PLATFORM, appServerJtaPlatform);
         properties.remove(AvailableSettings.TRANSACTION_MANAGER_STRATEGY);  // remove legacy way of specifying TX manager (conflicts with JTA_PLATFORM)

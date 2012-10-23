@@ -80,6 +80,7 @@ public class SFSB {
             // prepare the configuration
             Configuration configuration = new Configuration().setProperty(AvailableSettings.USE_NEW_ID_GENERATOR_MAPPINGS,
                     "true");
+            configuration.getProperties().put(AvailableSettings.CACHE_REGION_FACTORY, org.jboss.as.jpa.hibernate4.infinispan.InfinispanRegionFactory.class);
             configuration.getProperties().put(AvailableSettings.JTA_PLATFORM, JBossAppServerJtaPlatform.class);
             configuration.setProperty(Environment.HBM2DDL_AUTO, "create-drop");
             configuration.setProperty(Environment.DATASOURCE, "java:jboss/datasources/ExampleDS");

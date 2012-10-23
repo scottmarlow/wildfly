@@ -57,7 +57,7 @@ public class HibernateSecondLevelCache {
         String regionFactory = properties.getProperty(AvailableSettings.CACHE_REGION_FACTORY);
         if (regionFactory == null) {
             regionFactory = DEFAULT_REGION_FACTORY;
-            properties.setProperty(AvailableSettings.CACHE_REGION_FACTORY, regionFactory);
+            properties.put(AvailableSettings.CACHE_REGION_FACTORY, SharedInfinispanRegionFactory.class);
         }
         if (regionFactory.equals(DEFAULT_REGION_FACTORY)) {
             // Set infinispan defaults
