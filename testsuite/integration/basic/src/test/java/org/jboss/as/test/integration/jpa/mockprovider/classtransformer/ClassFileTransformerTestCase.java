@@ -24,6 +24,13 @@ package org.jboss.as.test.integration.jpa.mockprovider.classtransformer;
 
 import static org.junit.Assert.assertTrue;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.JarURLConnection;
+import java.net.URL;
+import java.net.URLConnection;
+
 import javax.naming.InitialContext;
 import javax.naming.NameClassPair;
 import javax.naming.NamingEnumeration;
@@ -113,9 +120,35 @@ public class ClassFileTransformerTestCase {
             assertTrue("testing that PersistenceUnitInfo.getPersistenceUnitRootUrl() url is file based, failed because getPersistenceUnitRootUrl is " +
                     TestPersistenceProvider.getLastPersistenceUnitInfo().getPersistenceUnitRootUrl().getProtocol(),
                     "file".equals(TestPersistenceProvider.getLastPersistenceUnitInfo().getPersistenceUnitRootUrl().getProtocol()));
+            URL rootUrl = TestPersistenceProvider.getLastPersistenceUnitInfo().getPersistenceUnitRootUrl();
+            URLConnection urlConnection = rootUrl.openConnection();
+            // should be ejbjar.jar
+            assertTrue("getPersistenceUnitRootUrl() returns a JarURLConnection instance.  actually got=" + urlConnectionDetails(urlConnection), urlConnection instanceof JarURLConnection);
+
+
         } finally {
             TestPersistenceProvider.clearLastPersistenceUnitInfo();
         }
+    }
+
+    private String urlConnectionDetails(URLConnection urlConnection) {
+        String result = null;
+        try {
+            result = "URLConnection is an instance of " +
+                    urlConnection.getClass().getName()  +
+                    ".  getContent() = " + urlConnection.getContent();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+            result += "stream contexts=";
+            result += reader.readLine();
+            String line;
+            while((line=reader.readLine())!=null){
+                result+=line;
+            }
+        } catch (IOException e) {
+            return "couldn't get content, caught error " + e.getMessage();
+        }
+        return result;
+
     }
 
 }
