@@ -403,7 +403,9 @@ public class PersistenceUnitServiceHandler {
             builder.install();
 
             JPA_LOGGER.tracef("added PersistenceUnitService for '%s'.  PU is ready for injector action.", puServiceName);
-            addManagementConsole(deploymentUnit, pu, adaptor);
+            if(Configuration.needManagement(pu)) {
+                addManagementConsole(deploymentUnit, pu, adaptor);
+            }
 
         } catch (ServiceRegistryException e) {
             throw MESSAGES.failedToAddPersistenceUnit(e, pu.getPersistenceUnitName());

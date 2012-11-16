@@ -157,6 +157,8 @@ public class Configuration {
      */
     public static final String ADAPTER_CLASS = "jboss.as.jpa.adapterClass";
 
+    public static final String JPA_ENABLE_MANAGEMENT = "jboss.as.jpa.management";
+
     // key = provider class name, value = module name
     private static final Map<String, String> providerClassToModuleName = new HashMap<String, String>();
 
@@ -202,6 +204,20 @@ public class Configuration {
             || provider.equals(Configuration.PROVIDER_CLASS_HIBERNATE)) {
             String useHibernateClassEnhancer = pu.getProperties().getProperty("hibernate.ejb.use_class_enhancer");
             result = "true".equals(useHibernateClassEnhancer);
+        }
+        return result;
+    }
+
+    /**
+     * Determine if management operations/statistics are enabled for the specified persistence unit.
+     *
+     * @param pu is the persistence unit definition
+     * @return
+     */
+    public static boolean needManagement(PersistenceUnitMetadata pu) {
+        boolean result = true;
+        if (pu.getProperties().containsKey(Configuration.JPA_ENABLE_MANAGEMENT)) {
+            result = Boolean.parseBoolean(pu.getProperties().getProperty(Configuration.JPA_ENABLE_MANAGEMENT));
         }
         return result;
     }
