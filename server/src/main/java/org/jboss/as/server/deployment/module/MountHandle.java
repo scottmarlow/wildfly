@@ -63,4 +63,8 @@ public class MountHandle implements Closeable {
         }
         super.finalize();
     }
+
+    public Closeable getHandle() {
+        return handle;
+    }
 }

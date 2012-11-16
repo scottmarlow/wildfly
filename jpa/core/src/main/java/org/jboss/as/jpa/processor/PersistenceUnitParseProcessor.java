@@ -45,6 +45,8 @@ import org.jboss.vfs.VirtualFile;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamReader;
+
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -101,6 +103,22 @@ public class PersistenceUnitParseProcessor implements DeploymentUnitProcessor {
             // handle META-INF/persistence.xml
             final ResourceRoot deploymentRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
             VirtualFile persistence_xml = deploymentRoot.getRoot().getChild(META_INF_PERSISTENCE_XML);
+            if (deploymentRoot.getMountHandle() != null) {
+                org.jboss.vfs.spi.MountHandle mountHandle = ((org.jboss.vfs.spi.MountHandle) (deploymentRoot.getMountHandle().getHandle()));
+                File rootFile = mountHandle.getMountSource();
+                if (rootFile != null) {
+                    JPA_LOGGER.info("rootfile = " + rootFile);
+                }
+            } else {
+                try {
+                    File rootFile = deploymentRoot.getRoot().getPhysicalFile();
+                    if (rootFile != null) {
+                        JPA_LOGGER.info("rootfile = " + rootFile);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
             parse(persistence_xml, listPUHolders, deploymentUnit);
             PersistenceUnitMetadataHolder holder = normalize(listPUHolders);
             // save the persistent unit definitions
