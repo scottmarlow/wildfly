@@ -24,6 +24,7 @@ package org.jboss.as.jpa.spi;
 
 import javax.transaction.TransactionManager;
 import javax.transaction.TransactionSynchronizationRegistry;
+import javax.transaction.UserTransaction;
 
 /**
  * Provides access to TSR + TM
@@ -35,4 +36,6 @@ public interface JtaManager {
     TransactionSynchronizationRegistry getSynchronizationRegistry();
 
     TransactionManager locateTransactionManager();
+
+    UserTransaction getUserTransaction();
 }

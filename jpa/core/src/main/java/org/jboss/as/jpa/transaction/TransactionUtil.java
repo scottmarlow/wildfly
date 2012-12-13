@@ -34,6 +34,7 @@ import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 import javax.transaction.TransactionSynchronizationRegistry;
+import javax.transaction.UserTransaction;
 
 import org.jboss.as.jpa.container.EntityManagerUtil;
 import org.jboss.as.jpa.container.ExtendedEntityManager;
@@ -48,6 +49,7 @@ public class TransactionUtil {
 
     private static volatile TransactionSynchronizationRegistry transactionSynchronizationRegistry;
     private static volatile TransactionManager transactionManager;
+    private static volatile UserTransaction userTransaction;
 
     public static void setTransactionManager(TransactionManager tm) {
         if (transactionManager == null) {
@@ -63,6 +65,16 @@ public class TransactionUtil {
         if (TransactionUtil.transactionSynchronizationRegistry == null) {
             TransactionUtil.transactionSynchronizationRegistry = transactionSynchronizationRegistry;
         }
+    }
+
+    public static void setUserTransaction(UserTransaction userTransaction) {
+        if (TransactionUtil.userTransaction == null) {
+            TransactionUtil.userTransaction = userTransaction;
+        }
+    }
+
+    public static UserTransaction getUserTransaction() {
+        return userTransaction;
     }
 
     public static boolean isInTx() {

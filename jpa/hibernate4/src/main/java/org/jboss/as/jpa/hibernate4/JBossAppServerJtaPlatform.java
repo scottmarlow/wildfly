@@ -24,6 +24,7 @@ package org.jboss.as.jpa.hibernate4;
 
 import javax.transaction.TransactionManager;
 import javax.transaction.TransactionSynchronizationRegistry;
+import javax.transaction.UserTransaction;
 
 import org.hibernate.service.jta.platform.internal.JtaSynchronizationStrategy;
 import org.hibernate.service.jta.platform.internal.SynchronizationRegistryAccess;
@@ -63,4 +64,10 @@ public class JBossAppServerJtaPlatform extends org.hibernate.service.jta.platfor
     protected JtaSynchronizationStrategy getSynchronizationStrategy() {
         return synchronizationStrategy;
     }
+
+    @Override
+    protected UserTransaction locateUserTransaction() {
+        return jtaManager.getUserTransaction();
+    }
+
 }

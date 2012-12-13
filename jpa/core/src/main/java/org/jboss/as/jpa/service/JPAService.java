@@ -26,12 +26,14 @@ import static org.jboss.as.jpa.JpaLogger.ROOT_LOGGER;
 
 import javax.transaction.TransactionManager;
 import javax.transaction.TransactionSynchronizationRegistry;
+import javax.transaction.UserTransaction;
 
 import org.jboss.as.jpa.config.ExtendedPersistenceInheritance;
 import org.jboss.as.jpa.transaction.TransactionUtil;
 import org.jboss.as.jpa.util.JPAServiceNames;
 import org.jboss.as.txn.service.TransactionManagerService;
 import org.jboss.as.txn.service.TransactionSynchronizationRegistryService;
+import org.jboss.as.txn.service.UserTransactionService;
 import org.jboss.msc.inject.CastingInjector;
 import org.jboss.msc.inject.InjectionException;
 import org.jboss.msc.inject.Injector;
@@ -96,6 +98,19 @@ public class JPAService implements Service<Void> {
                     // injector.uninject();
                 }
             };
+
+        // set the user transaction to be accessible via TransactionUtil
+        final Injector<UserTransaction> userTransactionInjector =
+            new Injector<UserTransaction>() {
+                public void inject(final UserTransaction value) throws InjectionException {
+                    TransactionUtil.setUserTransaction(value);
+                }
+
+                public void uninject() {
+                    // injector.uninject();
+
+                }
+            };
         // set the transaction service registry to be accessible via TransactionUtil (after service is installed below)
         final Injector<TransactionSynchronizationRegistry> transactionRegistryInjector =
             new Injector<TransactionSynchronizationRegistry>() {
@@ -112,6 +127,7 @@ public class JPAService implements Service<Void> {
         return target.addService(SERVICE_NAME, jpaService)
             .addListener(listeners)
             .setInitialMode(ServiceController.Mode.ACTIVE)
+            .addDependency(UserTransactionService.SERVICE_NAME, new CastingInjector<UserTransaction>(userTransactionInjector, UserTransaction.class))
             .addDependency(TransactionManagerService.SERVICE_NAME, new CastingInjector<TransactionManager>(transactionManagerInjector, TransactionManager.class))
             .addDependency(TransactionSynchronizationRegistryService.SERVICE_NAME, new CastingInjector<TransactionSynchronizationRegistry>(transactionRegistryInjector, TransactionSynchronizationRegistry.class))
             .addDependency(JPAUserTransactionListenerService.SERVICE_NAME)

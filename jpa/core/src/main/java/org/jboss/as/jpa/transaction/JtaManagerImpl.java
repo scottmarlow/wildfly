@@ -24,6 +24,7 @@ package org.jboss.as.jpa.transaction;
 
 import javax.transaction.TransactionManager;
 import javax.transaction.TransactionSynchronizationRegistry;
+import javax.transaction.UserTransaction;
 
 import org.jboss.as.jpa.spi.JtaManager;
 
@@ -48,5 +49,10 @@ public class JtaManagerImpl implements JtaManager {
     @Override
     public TransactionManager locateTransactionManager() {
         return TransactionUtil.getTransactionManager();
+    }
+
+    @Override
+    public UserTransaction getUserTransaction() {
+        return TransactionUtil.getUserTransaction();
     }
 }
