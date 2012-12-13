@@ -237,4 +237,75 @@ final class LoggerConfigurationImpl extends AbstractBasicConfiguration<Logger, L
         });
         return true;
     }
+
+
+    @Override
+    ConfigAction<Void> getRemoveAction() {
+        final String name = getName();
+        final LoggerRemover currentLogger = new LoggerRemover(refs.get(name));
+        return new ConfigAction<Void>() {
+            public Void validate() throws IllegalArgumentException {
+                return null;
+            }
+
+            public void applyPreCreate(final Void param) {
+                refs.remove(name);
+            }
+
+            public void applyPostCreate(final Void param) {
+                currentLogger.apply();
+            }
+
+            @SuppressWarnings({ "unchecked" })
+            public void rollback() {
+                if (currentLogger.restore()) {
+                    configs.put(name, LoggerConfigurationImpl.this);
+                }
+                clearRemoved();
+            }
+        };
+    }
+
+    private static class LoggerRemover {
+        final Logger refLogger;
+        final Filter filter;
+        final Handler[] handlers;
+        final Level level;
+        final boolean useParentHandlers;
+
+        private LoggerRemover(final Logger refLogger) {
+            this.refLogger = refLogger;
+            if (refLogger == null) {
+                filter = null;
+                handlers = null;
+                level = null;
+                useParentHandlers = true;
+            } else {
+                filter = refLogger.getFilter();
+                handlers = refLogger.getHandlers();
+                level = refLogger.getLevel();
+                useParentHandlers = refLogger.getUseParentHandlers();
+            }
+        }
+
+        void apply() {
+            if (refLogger != null) {
+                refLogger.setFilter(null);
+                refLogger.clearHandlers();
+                refLogger.setLevel(null);
+                refLogger.setUseParentHandlers(true);
+            }
+        }
+
+        boolean restore() {
+            if (refLogger != null) {
+                refLogger.setFilter(filter);
+                if (handlers != null) refLogger.setHandlers(handlers);
+                refLogger.setLevel(level);
+                refLogger.setUseParentHandlers(useParentHandlers);
+                return true;
+            }
+            return false;
+        }
+    }
 }
