@@ -220,69 +220,62 @@ public class StatefulWithXPCFailoverTestCase {
 
         DefaultHttpClient client = new DefaultHttpClient();
 
-        String xpc1_create_url = baseURL1 + "count?command=createEmployee";
-        String xpc2_create_url = baseURL2 + "count?command=createEmployee";
-        String xpc1_flush_url = baseURL1 + "count?command=flush";
-        String xpc2_flush_url = baseURL2 + "count?command=flush";
-        String xpc1_clear_url = baseURL1 + "count?command=clear";
-        String xpc2_clear_url = baseURL2 + "count?command=clear";
-        String xpc1_echo_url = baseURL1 + "count?command=echo&message=";
-        String xpc2_echo_url = baseURL2 + "count?command=echo&message=";
-        String xpc1_get_url = baseURL1 + "count?command=getEmployee";
-        String xpc2_get_url = baseURL2 + "count?command=getEmployee";
-        String xpc1_getdestroy_url = baseURL2 + "count?command=destroy";
-        String xpc1_delete_url = baseURL1 + "count?command=deleteEmployee";
-        String xpc2_delete_url = baseURL2 + "count?command=deleteEmployee";
-        String xpc1_secondLevelCacheEntries_url = baseURL1 + "count?command=getEmployeesInSecondLevelCache";
-        String xpc2_secondLevelCacheEntries_url = baseURL2 + "count?command=getEmployeesInSecondLevelCache";
+        String pc1_create_url = baseURL1 + "count?command=createEmployeeTScopedBean";
+        String pc2_create_url = baseURL2 + "count?command=createEmployeeTScopedBean";
+        String pc1_clearcache_url = baseURL1 + "count?command=clearcache";
+        String pc2_clearcache_url = baseURL2 + "count?command=clearcache";
+        String pc1_echo_url = baseURL1 + "count?command=echo&message=";
+        String pc2_echo_url = baseURL2 + "count?command=echo&message=";
+        String pc1_get_url = baseURL1 + "count?command=getEmployeeTScopedBean";
+        String pc2_get_url = baseURL2 + "count?command=getEmployeeTScopedBean";
+        String pc1_delete_url = baseURL1 + "count?command=deleteEmployeeTScopedBean";
+        String pc1_secondLevelCacheEntries_url = baseURL1 + "count?command=getEmployeesInSecondLevelCache";
+        String pc2_secondLevelCacheEntries_url = baseURL2 + "count?command=getEmployeesInSecondLevelCache";
 
         try {
-            assertExecuteUrl(client, xpc1_echo_url + "StartingTestSecondLevelCache");  // echo message to server.log
-            assertExecuteUrl(client,xpc2_echo_url + "StartingTestSecondLevelCache"); // echo message to server.log
+            assertExecuteUrl(client, pc1_echo_url + "StartingTestSecondLevelCache");  // echo message to server.log
+            assertExecuteUrl(client,pc2_echo_url + "StartingTestSecondLevelCache"); // echo message to server.log
 
-            String employeeName = executeUrlWithAnswer(client, xpc1_create_url, "create entity in node1 in memory db");                           //
-            assertEquals(employeeName, "Tom Brady");
-            System.out.println(new Date() + "about to read entity on node1 (from xpc queue)");
+            String employeeName = executeUrlWithAnswer(client, pc1_create_url, "create entity in node1 in memory db (each node has its own database)");
+            assertEquals("Tom Brady", employeeName);
+            assertExecuteUrl(client, pc1_clearcache_url); // clear 2lc cache on node1
 
-            employeeName = executeUrlWithAnswer(client, xpc1_get_url, "on node1, node1 should be able to read entity on node1");
-            assertEquals(employeeName, "Tom Brady");
+            employeeName = executeUrlWithAnswer(client, pc2_create_url, "create entity in node2 in memory db (each node has its own database)");
+            assertEquals("Tom Brady", employeeName);
+            assertExecuteUrl(client, pc2_clearcache_url); // clear 2lc cache on node2
 
-            String employeesInCache = executeUrlWithAnswer(client,xpc1_secondLevelCacheEntries_url, "get number of elements in node1 second level cache (should be zero)");
-            assertEquals(employeesInCache, "0");    // we read the entity from the extended persistence context (hasn't been flushed yet)
+            employeeName = executeUrlWithAnswer(client, pc2_get_url, "node2 should be able to read entity from database");
+            assertEquals("Tom Brady", employeeName);
 
-            assertExecuteUrl(client, xpc1_flush_url); // flush changes to db
+            String employeesInCache = executeUrlWithAnswer(client,pc1_secondLevelCacheEntries_url, "get number of elements in node1 second level cache (should be one)");
+            if ("0".equals(employeesInCache)) {
+                assertExecuteUrl(client, pc1_echo_url + "node12lcIsEmptyWillReadEntityToPopulateIt");  // echo message to server.log
+                // if node 2 didn't put the read entity into node 1 2lc, read it one node 1 also
+                employeeName = executeUrlWithAnswer(client, pc1_get_url, "node1 should be able to read entity from database and populate its 2lc");
+                assertEquals(employeeName, "Tom Brady");
 
-            assertExecuteUrl(client, xpc1_clear_url); // clear xpc state so we have to reload
+                employeesInCache = executeUrlWithAnswer(client,pc1_secondLevelCacheEntries_url, "get number of elements in node1 second level cache (should be one)");
+                assertEquals("1", employeesInCache);
+            }
 
-            employeeName = executeUrlWithAnswer(client, xpc2_create_url, "create entity in node2 in memory db (each node has its own database)");
-            assertEquals(employeeName, "Tom Brady");
-            assertExecuteUrl(client, xpc2_flush_url); // flush changes to db on second node
-            assertExecuteUrl(client, xpc2_clear_url); // clear xpc state so we have to reload
-            employeeName = executeUrlWithAnswer(client, xpc2_get_url, "node2 should be able to read entity from 2lc");
-            assertEquals(employeeName, "Tom Brady");
+            // we should of read one Employee entity on both nodes, ensure the second level cache contains one entry on both nodes
+            employeesInCache = executeUrlWithAnswer(client,pc2_secondLevelCacheEntries_url, "get number of elements in node2 second level cache (should be one)");
+            assertEquals("1", employeesInCache);
 
-            // we should of read one Employee entity on node2, ensure the second level cache contains one entry
-            employeesInCache = executeUrlWithAnswer(client,xpc2_secondLevelCacheEntries_url, "get number of elements in node2 second level cache (should be zero)");
-            assertEquals(employeesInCache, "1");
 
-            assertExecuteUrl(client,xpc1_echo_url + "testSecondLevelCacheclearedXPC");
-            assertExecuteUrl(client,xpc2_echo_url + "testSecondLevelCacheclearedXPC");
+            assertExecuteUrl(client,pc1_echo_url + "BeforeEntityDelete");
+            assertExecuteUrl(client,pc2_echo_url + "BeforeEntityDelete");
 
-            assertExecuteUrl(client,xpc2_delete_url);   // deleting the entity on one node should remove it from both nodes second level cache
-            assertExecuteUrl(client,xpc1_echo_url + "testSecondLevelCachedeletedEnityOnNode2");
-            assertExecuteUrl(client,xpc1_echo_url + "2lcOnNode1ShouldHaveZeroElemementsLoaded");
+            assertExecuteUrl(client,pc1_delete_url);   // deleting the entity on one node should remove it from both nodes second level cache
+            assertExecuteUrl(client,pc2_echo_url + "afterEntityIsDeletedFromNode1Database");
+            assertExecuteUrl(client,pc1_echo_url + "afterEntityIsDeletedFromNode1Database");
 
-            employeesInCache = executeUrlWithAnswer(client,xpc1_secondLevelCacheEntries_url, "get number of elements in node1 second level cache (should be zero)");
-            assertEquals(employeesInCache, "0");
+            employeesInCache = executeUrlWithAnswer(client,pc1_secondLevelCacheEntries_url, "get number of elements in node1 second level cache (should be zero)");
+            assertEquals("0", employeesInCache);
 
-            employeesInCache = executeUrlWithAnswer(client,xpc2_secondLevelCacheEntries_url, "get number of elements in node2 second level cache (should be zero)");
-            assertEquals(employeesInCache, "0");
-
-            assertExecuteUrl(client, xpc1_delete_url);
-
-            String destroyed = executeUrlWithAnswer(client, xpc1_getdestroy_url, "destroy the bean on node1");
-            assertEquals(destroyed, "destroy");
-
+            assertExecuteUrl(client,pc2_echo_url + "cacheInvalidationShouldOfHappenedByNow");
+            employeesInCache = executeUrlWithAnswer(client,pc2_secondLevelCacheEntries_url, "get number of elements in node2 second level cache (should be zero)");
+            assertEquals("after node 1 deleted entity from database, node 2 still has the entity in the second level cache (cache invalidation failure)","0", employeesInCache);
         } finally {
             client.getConnectionManager().shutdown();
 

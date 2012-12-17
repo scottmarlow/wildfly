@@ -1,25 +1,3 @@
-/*
- * JBoss, Home of Professional Open Source.
- * Copyright 2011, Red Hat, Inc., and individual contributors
- * as indicated by the @author tags. See the copyright.txt file in the
- * distribution for a full listing of individual contributors.
- *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
- */
-
 package org.jboss.as.test.clustering.cluster.ejb3.xpc.bean;
 
 import javax.ejb.Remove;
@@ -34,26 +12,17 @@ import org.hibernate.Session;
 import org.hibernate.stat.SecondLevelCacheStatistics;
 import org.jboss.ejb3.annotation.Clustered;
 
-import java.util.HashMap;
-
 /**
- * @author Paul Ferraro
+ * StatefulTransactionScopedBean
+ *
  * @author Scott Marlow
  */
 @Clustered
-@javax.ejb.Stateful(name = "StatefulBean")
+@javax.ejb.Stateful(name = "StatefulTransactionScopedBean")
 
-public class StatefulBean implements Stateful {
-
-    @PersistenceContext(unitName = "mypc", type = PersistenceContextType.EXTENDED)
-    EntityManager em;
-
-    String version = "initial";
-    HashMap valueBag = new HashMap();
-
-//     @EJB
-//     SecondBean secondBean;
-
+public class StatefulTransactionScopedBean implements Stateful {
+    @PersistenceContext(unitName = "mypc", type = PersistenceContextType.TRANSACTION)
+        EntityManager em;
 
     /**
      * Create the employee but don't commit the change to the database, instead keep it in the
@@ -64,7 +33,7 @@ public class StatefulBean implements Stateful {
      * @param id
      */
     @Override
-    @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void createEmployee(String name, String address, int id) {
 
         Employee emp = new Employee();
@@ -73,8 +42,6 @@ public class StatefulBean implements Stateful {
         emp.setName(name);
         em.persist(emp);
         logStats("createEmployee");
-        version = "created";
-        valueBag.put("version","created");
     }
 
     @Override
@@ -88,7 +55,6 @@ public class StatefulBean implements Stateful {
     @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
     public Employee getSecondBeanEmployee(int id) {
         logStats("getSecondBeanEmployee");
-        //return secondBean.getEmployee(id);
         return em.find(Employee.class, id, LockModeType.NONE);
     }
 
@@ -96,8 +62,6 @@ public class StatefulBean implements Stateful {
     @Remove
     public void destroy() {
         logStats("destroy");
-        version = "destroyed";
-        valueBag.put("version",version);
     }
 
     @Override
@@ -106,33 +70,25 @@ public class StatefulBean implements Stateful {
             Employee employee = em.find(Employee.class, id, LockModeType.NONE);
             em.remove(employee);
             logStats("deleteEmployee");
-            version = "deletedEmployee";
-            valueBag.put("version",version);
         }
 
 
     @Override
-    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
     public void flush() {
         logStats("flush");
-        version = "flushed";
-        valueBag.put("version",version);
     }
 
     @Override
     public void clear() {
         em.clear();
         logStats("clear");
-        version = "cleared";
-        valueBag.put("version",version);
     }
 
     @Override
     public void clearCache() {
         em.getEntityManagerFactory().getCache().evictAll();
         logStats("clearCache");
-        version = "clearedCache";
-        valueBag.put("version",version);
     }
 
 
@@ -154,7 +110,7 @@ public class StatefulBean implements Stateful {
 
     @Override
     public String getVersion() {
-        return version;
+        return "none";
     }
 
     @Override
@@ -173,7 +129,7 @@ public class StatefulBean implements Stateful {
 
     private void logStats(String methodName) {
         Session session = em.unwrap(Session.class);
-        System.out.println(methodName + "(version="+version+", HashMap version="+valueBag.get("version")+") logging statistics for session = " + session);
+        System.out.println(methodName +") logging statistics for session = " + session);
         session.getSessionFactory().getStatistics().setStatisticsEnabled(true);
         session.getSessionFactory().getStatistics().logSummary();
         String entityRegionNames[] =  session.getSessionFactory().getStatistics().getSecondLevelCacheRegionNames();

@@ -59,6 +59,16 @@ public class StatefulServlet extends HttpServlet {
             }
         }
 
+        Stateful statefulTransactionScopedBean = (Stateful)session.getAttribute("StatefulTransactionScopedBean");
+        if (statefulTransactionScopedBean == null) {
+                    try {
+                        statefulTransactionScopedBean = new LocalEJBDirectory("stateful").lookupStateful(StatefulTransactionScopedBean.class, Stateful.class);
+                    } catch (NamingException e) {
+                        throw new ServletException(e);
+                    }
+                }
+
+
         String command = req.getParameter("command");
         System.out.println(StatefulServlet.class.getName() + ": command = " + command);
         String answer = null;
@@ -67,6 +77,10 @@ public class StatefulServlet extends HttpServlet {
             bean.createEmployee("Tom Brady","New England Patriots", 1);
             answer = bean.getEmployee(1).getName();
         }
+        else if("createEmployeeTScopedBean".equals(command)) {
+            statefulTransactionScopedBean.createEmployee("Tom Brady","New England Patriots", 1);
+            answer = statefulTransactionScopedBean.getEmployee(1).getName();
+        }
         else if("getEmployee".equals(command)) {
             Employee employee = bean.getEmployee(1);
             if (employee == null) {
@@ -74,8 +88,19 @@ public class StatefulServlet extends HttpServlet {
             }
             answer = employee.getName();
         }
+        else if("getEmployeeTScopedBean".equals(command)) {
+            Employee employee = statefulTransactionScopedBean.getEmployee(1);
+            if (employee == null) {
+                throw new ServletException("couldn't load Employee entity (with id=1) from database");
+            }
+            answer = employee.getName();
+        }
         else if("deleteEmployee".equals(command)) {
             bean.deleteEmployee(1);
+            answer = command;
+        }
+        else if("deleteEmployeeTScopedBean".equals(command)) {
+            statefulTransactionScopedBean.deleteEmployee(1);
             answer = command;
         }
         else if ("getEmployeesInSecondLevelCache".equals(command)) {
@@ -102,6 +127,9 @@ public class StatefulServlet extends HttpServlet {
         else if("clear".equals(command)) {
             bean.clear();
         }
+        else if("clearcache".equals(command)) {
+            bean.clearCache();
+        }
         else if("deleteEmployeeViaJDBC".equals(command)) {
             // delete all employees in db
             int deleted = bean.executeNativeSQL("delete from Employee where id=1");
@@ -118,6 +146,7 @@ public class StatefulServlet extends HttpServlet {
         }
         resp.getWriter().write("Success");
         session.setAttribute("bean", bean);
+        session.setAttribute("StatefulTransactionScopedBean", statefulTransactionScopedBean);
         System.out.println(StatefulServlet.class.getName() + ": command = " + command + " finished");
     }
 }

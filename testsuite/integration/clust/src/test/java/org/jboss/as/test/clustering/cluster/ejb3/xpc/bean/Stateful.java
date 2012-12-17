@@ -38,13 +38,10 @@ import javax.ejb.TransactionAttributeType;
  * @author Scott Marlow
  */
 public interface Stateful {
-    @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
     void createEmployee(String name, String address, int id);
 
-    @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
     Employee getEmployee(int id);
 
-    @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
     Employee getSecondBeanEmployee(int id);
 
     @Remove
@@ -53,6 +50,8 @@ public interface Stateful {
     void flush();
 
     void clear();
+
+    void clearCache();
 
     void deleteEmployee(int id);
 
