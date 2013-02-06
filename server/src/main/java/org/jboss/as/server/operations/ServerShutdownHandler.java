@@ -67,6 +67,7 @@ public class ServerShutdownHandler implements OperationStepHandler {
         context.addStep(new OperationStepHandler() {
             @Override
             public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+Thread.dumpStack();
                 processState.setStopping();
                 final Thread thread = new Thread(new Runnable() {
                     public void run() {

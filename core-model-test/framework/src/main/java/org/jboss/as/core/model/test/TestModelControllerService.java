@@ -164,6 +164,7 @@ class TestModelControllerService extends ModelTestModelControllerService {
 
     @Override
     public void stop(StopContext context) {
+Thread.dumpStack();
         super.stop(context);
         System.clearProperty("jboss.as.test.disable.runtime");
     }

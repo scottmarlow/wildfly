@@ -261,6 +261,7 @@ public final class ManagedDeployableContainer extends CommonDeployableContainer<
 
     @Override
     protected void stopInternal() throws LifecycleException {
+Thread.dumpStack();
         if (shutdownThread != null) {
             Runtime.getRuntime().removeShutdownHook(shutdownThread);
             shutdownThread = null;

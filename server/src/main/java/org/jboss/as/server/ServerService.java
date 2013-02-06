@@ -26,7 +26,10 @@ import java.io.File;
 import java.security.AccessController;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
@@ -334,10 +337,23 @@ public final class ServerService extends AbstractControllerService {
     }
 
     public void stop(final StopContext context) {
+// Thread.dumpStack();
         super.stop(context);
 
         configuration.getExtensionRegistry().clear();
         configuration.getServerEnvironment().resetProvidedProperties();
+try {
+    Map<Thread, StackTraceElement[]> allThreadsDumped =  Thread.getAllStackTraces();
+    Set<Map.Entry<Thread,StackTraceElement[]>> allthreads = allThreadsDumped.entrySet();
+    Iterator<Map.Entry<Thread, StackTraceElement[]>> iter = allthreads.iterator();
+    while(iter.hasNext()) {
+        Map.Entry<Thread,StackTraceElement[]> pair = iter.next();
+        System.out.println("org.jboss.as.server.ServerService THREAD DUMP: " + pair.getKey());
+        for(int looper = 0; looper < pair.getValue().length; looper++) {
+            System.out.println(pair.getValue()[looper]);
+        }
+    }
+} catch (Throwable ignore) {}
     }
 
     @Override

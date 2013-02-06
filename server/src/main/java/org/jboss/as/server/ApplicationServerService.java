@@ -177,6 +177,7 @@ final class ApplicationServerService implements Service<AsyncFuture<ServiceConta
 
     @Override
     public synchronized void stop(final StopContext context) {
+//Thread.dumpStack();
         processState.setStopping();
         CurrentServiceContainer.setServiceContainer(null);
         String prettyVersion = configuration.getServerEnvironment().getProductConfig().getPrettyVersionString();
