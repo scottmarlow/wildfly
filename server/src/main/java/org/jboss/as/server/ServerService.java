@@ -348,7 +348,7 @@ try {
     Iterator<Map.Entry<Thread, StackTraceElement[]>> iter = allthreads.iterator();
     while(iter.hasNext()) {
         Map.Entry<Thread,StackTraceElement[]> pair = iter.next();
-        System.out.println("org.jboss.as.server.ServerService THREAD DUMP: " + pair.getKey());
+        System.out.println("org.jboss.as.server.ServerService.stop() THREAD DUMP: " + pair.getKey());
         for(int looper = 0; looper < pair.getValue().length; looper++) {
             System.out.println(pair.getValue()[looper]);
         }
