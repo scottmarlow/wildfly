@@ -330,6 +330,7 @@ System.out.println("xxxxxxx org.jboss.as.server.ServerService static block reach
             // Die!
             ServerLogger.ROOT_LOGGER.unsuccessfulBoot();
 System.out.println("org.jboss.as.server.ServerService.boot calling System.exit(1)");
+System.out.flush();
             System.exit(1);
         }
     }
@@ -341,7 +342,9 @@ System.out.println("org.jboss.as.server.ServerService.boot calling System.exit(1
     }
 
     public void stop(final StopContext context) {
-// Thread.dumpStack();
+        System.out.println("org.jboss.as.server.ServerService.stop() entered xxxxxxxxxx");
+        System.out.flush();
+        Thread.dumpStack();
         super.stop(context);
 
         configuration.getExtensionRegistry().clear();
@@ -356,6 +359,7 @@ try {
         for(int looper = 0; looper < pair.getValue().length; looper++) {
             System.out.println(pair.getValue()[looper]);
         }
+        System.out.flush();
     }
 } catch (Throwable ignore) {}
     }
