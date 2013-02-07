@@ -333,6 +333,7 @@ final class ManagedProcess {
                         new Thread(new Runnable() {
                             public void run() {
                                 processController.shutdown();
+System.out.println("xxxxxxxxxxxxxxxxx org.jboss.as.process.ManagedProcess.run() calling System.exit(normal)");
                                 System.exit(ExitCodes.NORMAL);
                             }
                         }).start();
@@ -343,6 +344,7 @@ final class ManagedProcess {
                     new Thread(new Runnable() {
                         public void run() {
                             processController.shutdown();
+System.out.println("xxxxxxxxxxxxxxxxx org.jboss.as.process.ManagedProcess.run() calling System.exit(restart)");
                             System.exit(ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT);
                         }
                     }).start();

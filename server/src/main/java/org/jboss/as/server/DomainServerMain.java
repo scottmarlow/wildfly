@@ -149,6 +149,7 @@ public final class DomainServerMain {
         }
 
         // Once the input stream is cut off, shut down
+System.out.println("org.jboss.as.server.DomainServerMain.main calling System.exit(0)"); // don't expect to hit this in cluster testing
         System.exit(ExitCodes.NORMAL);
         throw new IllegalStateException(); // not reached
     }

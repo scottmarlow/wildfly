@@ -235,6 +235,7 @@ public final class ProcessControllerServerHandler implements ConnectionHandler {
                                 new Thread(new Runnable() {
                                     public void run() {
                                         processController.shutdown();
+System.out.println("org.jboss.as.process.ProcessControllerServerHandler.handleMessage shutdown thread calling System.exit(restart)");
                                         System.exit(exitCode);
                                     }
                                 }).start();

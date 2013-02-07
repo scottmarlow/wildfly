@@ -139,6 +139,9 @@ public final class ServerService extends AbstractControllerService {
     private final DelegatingResourceDefinition rootResourceDefinition;
 
     public static final String SERVER_NAME = "server";
+    static {
+System.out.println("xxxxxxx org.jboss.as.server.ServerService static block reached"); // prove that ServerService is referenced
+    }
 
     /**
      * Construct a new instance.
@@ -326,6 +329,7 @@ public final class ServerService extends AbstractControllerService {
         } else {
             // Die!
             ServerLogger.ROOT_LOGGER.unsuccessfulBoot();
+System.out.println("org.jboss.as.server.ServerService.boot calling System.exit(1)");
             System.exit(1);
         }
     }

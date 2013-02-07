@@ -51,6 +51,7 @@ public class SystemExiter {
 
     private static class DefaultExiter implements Exiter{
         public void exit(int status) {
+System.out.println("org.jboss.as.server.SystemExiter calling System.exit(" +status+")");
             System.exit(status);
         }
     }

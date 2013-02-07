@@ -431,12 +431,14 @@ public class DomainModelControllerService extends AbstractControllerService impl
                         } catch (Exception e) {
                             //We could not connect to the host
                             ROOT_LOGGER.cannotConnectToMaster(e);
+System.out.println("org.jboss.as.host.controller.DomainModelControllerService calling System.exit(abort) cannotconnecttomaster");
                             System.exit(ExitCodes.HOST_CONTROLLER_ABORT_EXIT_CODE);
                         }
                     } else if (currentRunningMode != RunningMode.ADMIN_ONLY) {
                             // Invalid configuration; no way to get the domain config
                             ROOT_LOGGER.noDomainControllerConfigurationProvided(currentRunningMode,
                                     CommandLineConstants.ADMIN_ONLY, RunningMode.ADMIN_ONLY);
+System.out.println("org.jboss.as.host.controller.DomainModelControllerService calling System.exit(abort) !admin only mode");
                             System.exit(ExitCodes.HOST_CONTROLLER_ABORT_EXIT_CODE);
                     }
 
@@ -519,6 +521,7 @@ public class DomainModelControllerService extends AbstractControllerService impl
             } else {
                 // Die!
                 ROOT_LOGGER.unsuccessfulBoot();
+System.out.println("org.jboss.as.host.controller.DomainModelControllerService calling System.exit(abort) unsuccessfulboot");
                 System.exit(ExitCodes.HOST_CONTROLLER_ABORT_EXIT_CODE);
             }
         }

@@ -71,6 +71,7 @@ Thread.dumpStack();
                 processState.setStopping();
                 final Thread thread = new Thread(new Runnable() {
                     public void run() {
+System.out.println("org.jboss.as.server.operations.ServerShutdownHandler Management Triggered Shutdown calling System.exit(restart)");
                         System.exit(restart ? ExitCodes.RESTART_PROCESS_FROM_STARTUP_SCRIPT : ExitCodes.NORMAL);
                     }
                 });
