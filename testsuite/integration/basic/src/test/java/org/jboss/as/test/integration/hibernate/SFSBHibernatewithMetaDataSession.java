@@ -83,7 +83,7 @@ public class SFSBHibernatewithMetaDataSession {
             // build the serviceregistry
             final BootstrapServiceRegistryBuilder bootstrapbuilder = new BootstrapServiceRegistryBuilder();
             builder = new ServiceRegistryBuilder(bootstrapbuilder.build()).applySettings(properties);
-            serviceRegistry = builder.buildServiceRegistry();
+            serviceRegistry = builder.build();
 
             // Create the SessionFactory from Configuration
             sessionFactory = configuration.configure("hibernate.cfg.xml").buildSessionFactory(serviceRegistry);

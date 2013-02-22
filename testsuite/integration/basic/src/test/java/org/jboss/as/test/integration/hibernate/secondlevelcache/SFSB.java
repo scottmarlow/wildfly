@@ -89,7 +89,7 @@ public class SFSB {
 
             // build the serviceregistry
             StandardServiceRegistryBuilder registry = new StandardServiceRegistryBuilder().applySettings(properties);
-            MetadataSources metadataSources = new MetadataSources( registry.buildServiceRegistry() );
+            MetadataSources metadataSources = new MetadataSources( registry.build() );
             sessionFactory = metadataSources.buildMetadata().buildSessionFactory();
 
             // Create the SessionFactory from Configuration
