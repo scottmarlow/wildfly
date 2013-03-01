@@ -25,8 +25,10 @@ package org.jboss.as.jpa.container;
 import static org.jboss.as.jpa.JpaLogger.ROOT_LOGGER;
 import static org.jboss.as.jpa.JpaMessages.MESSAGES;
 
+import java.util.List;
 import java.util.Map;
 
+import javax.persistence.EntityGraph;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
@@ -700,7 +702,7 @@ public abstract class AbstractEntityManager implements EntityManager {
         } finally {
             if (isTraceEnabled) {
                 long elapsed = System.currentTimeMillis() - start;
-                ROOT_LOGGER.tracef("createNamedStoredProcedureQuery(%s) took %dms", name, elapsed);
+                ROOT_LOGGER.tracef("createNamedStoredProcedureQuery %s took %dms", name, elapsed);
             }
         }
     }
@@ -714,7 +716,7 @@ public abstract class AbstractEntityManager implements EntityManager {
         } finally {
             if (isTraceEnabled) {
                 long elapsed = System.currentTimeMillis() - start;
-                ROOT_LOGGER.tracef("createStoredProcedureQuery(%s) took %dms", procedureName, elapsed);
+                ROOT_LOGGER.tracef("createStoredProcedureQuery %s took %dms", procedureName, elapsed);
             }
         }
     }
@@ -728,7 +730,7 @@ public abstract class AbstractEntityManager implements EntityManager {
         } finally {
             if (isTraceEnabled) {
                 long elapsed = System.currentTimeMillis() - start;
-                ROOT_LOGGER.tracef("createStoredProcedureQuery(%s, resultClasses) took %dms", procedureName, elapsed);
+                ROOT_LOGGER.tracef("createStoredProcedureQuery %s, resultClasses... took %dms", procedureName, elapsed);
             }
         }
     }
@@ -742,7 +744,64 @@ public abstract class AbstractEntityManager implements EntityManager {
         } finally {
             if (isTraceEnabled) {
                 long elapsed = System.currentTimeMillis() - start;
-                ROOT_LOGGER.tracef("createStoredProcedureQuery(%s, resultSetMappings) took %dms", procedureName, elapsed);
+                ROOT_LOGGER.tracef("createStoredProcedureQuery %s, resultSetMappings... took %dms", procedureName, elapsed);
+            }
+        }
+    }
+
+    public <T> EntityGraph<T> createEntityGraph(Class<T> tClass) {
+        long start = 0;
+        if (isTraceEnabled)
+            start = System.currentTimeMillis();
+        try {
+            return getEntityManager().createEntityGraph(tClass);
+        } finally {
+            if (isTraceEnabled) {
+                long elapsed = System.currentTimeMillis() - start;
+                ROOT_LOGGER.tracef("createEntityGraph %s took %dms", tClass.getName(), elapsed);
+            }
+        }
+
+    }
+
+    public EntityGraph<?> createEntityGraph(String s) {
+        long start = 0;
+        if (isTraceEnabled)
+            start = System.currentTimeMillis();
+        try {
+            return getEntityManager().createEntityGraph(s);
+        } finally {
+            if (isTraceEnabled) {
+                long elapsed = System.currentTimeMillis() - start;
+                ROOT_LOGGER.tracef("createEntityGraph %s took %dms", s, elapsed);
+            }
+        }
+    }
+
+    public <T> EntityGraph<T> getEntityGraph(String s) {
+        long start = 0;
+        if (isTraceEnabled)
+            start = System.currentTimeMillis();
+        try {
+            return getEntityManager().getEntityGraph(s);
+        } finally {
+            if (isTraceEnabled) {
+                long elapsed = System.currentTimeMillis() - start;
+                ROOT_LOGGER.tracef("getEntityGraph %s took %dms", s, elapsed);
+            }
+        }
+    }
+
+    public <T> List<EntityGraph<? super T>> getEntityGraphs(Class<T> tClass) {
+        long start = 0;
+        if (isTraceEnabled)
+            start = System.currentTimeMillis();
+        try {
+            return getEntityManager().getEntityGraphs(tClass);
+        } finally {
+            if (isTraceEnabled) {
+                long elapsed = System.currentTimeMillis() - start;
+                ROOT_LOGGER.tracef("getEntityGraphs %s took %dms", tClass.getName(), elapsed);
             }
         }
     }
