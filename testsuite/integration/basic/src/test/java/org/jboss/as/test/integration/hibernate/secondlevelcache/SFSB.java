@@ -40,7 +40,6 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
 import org.hibernate.engine.transaction.jta.platform.internal.JBossAppServerJtaPlatform;
 import org.hibernate.internal.util.config.ConfigurationHelper;
-import org.hibernate.metamodel.MetadataSources;
 import org.infinispan.manager.CacheContainer;
 
 /**
@@ -52,8 +51,6 @@ import org.infinispan.manager.CacheContainer;
 public class SFSB {
 
     private static SessionFactory sessionFactory;
-    // private static Configuration configuration;
-    private static Session session;
 
     /**
      * Lookup the Infinispan cache container to start it.
@@ -89,12 +86,7 @@ public class SFSB {
 
             // build the serviceregistry
             StandardServiceRegistryBuilder registry = new StandardServiceRegistryBuilder().applySettings(properties);
-            MetadataSources metadataSources = new MetadataSources( registry.build() );
-            sessionFactory = metadataSources.buildMetadata().buildSessionFactory();
-
-            // Create the SessionFactory from Configuration
-            // sessionFactory = configuration.buildSessionFactory(serviceRegistry);
-            session = sessionFactory.openSession();
+            sessionFactory = configuration.buildSessionFactory( registry.build());
 
         } catch (Throwable ex) { // Make sure you log the exception, as it might be swallowed
             System.err.println("Initial SessionFactory creation failed." + ex);
@@ -149,7 +141,6 @@ public class SFSB {
 
         }
         System.out.println("getStudent: done");
-        // session.close();
         return student;
     }
 
