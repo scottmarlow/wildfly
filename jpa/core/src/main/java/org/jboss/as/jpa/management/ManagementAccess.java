@@ -25,12 +25,15 @@ package org.jboss.as.jpa.management;
 import static org.jboss.as.jpa.JpaLogger.JPA_LOGGER;
 
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.jpa.config.Configuration;
 import org.jboss.as.jpa.processor.PersistenceProviderAdaptorLoader;
 import org.jboss.as.jpa.spi.ManagementAdaptor;
 import org.jboss.as.jpa.spi.PersistenceProviderAdaptor;
+import org.jboss.as.jpa.spi.PersistenceUnitServiceRegistry;
 import org.jboss.as.jpa.subsystem.PersistenceUnitRegistryImpl;
 import org.jboss.modules.ModuleLoadException;
+import org.jipijapa.spi.statistics.GroupDefinition;
 
 /**
  * ManagementAccess
@@ -56,6 +59,7 @@ import org.jboss.modules.ModuleLoadException;
 public class ManagementAccess {
 
     private static ManagementResourceRegistration jpaSubsystemDeployments;
+    private static PersistenceUnitServiceRegistry persistenceUnitRegistry;
 
     public static void setManagementResourceRegistration(ManagementResourceRegistration managementResourceRegistration) {
         jpaSubsystemDeployments = managementResourceRegistration;
@@ -74,6 +78,10 @@ public class ManagementAccess {
             JPA_LOGGER.errorPreloadingDefaultProviderAdaptor(e);
         }
 
+    }
+
+    public static Resource createPersistenceUnitResource(GroupDefinition adapterManagementDefinitions) {
+        return new ManagementStatisticsResource(adapterManagementDefinitions);
     }
 
 }
