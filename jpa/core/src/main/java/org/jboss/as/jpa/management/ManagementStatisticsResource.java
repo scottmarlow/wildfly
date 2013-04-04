@@ -28,7 +28,6 @@ import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
-import org.jipijapa.spi.statistics.GroupDefinition;
 
 /**
  * ManagementStatisticsResource
@@ -39,11 +38,11 @@ public class ManagementStatisticsResource implements Resource {
 
     private final ManagementStatisticsResource delegate;
 
-    public ManagementStatisticsResource(GroupDefinition adapterManagementDefinitions) {
-        delegate = generateResource(adapterManagementDefinitions);
+    public ManagementStatisticsResource() {
+        delegate = generateResource();
     }
 
-    private ManagementStatisticsResource generateResource(GroupDefinition adapterManagementDefinitions) {
+    private ManagementStatisticsResource generateResource() {
         return null;
     }
 

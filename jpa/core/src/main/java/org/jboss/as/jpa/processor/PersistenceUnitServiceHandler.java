@@ -51,6 +51,7 @@ import org.jboss.as.jpa.config.Configuration;
 import org.jboss.as.jpa.config.PersistenceProviderDeploymentHolder;
 import org.jboss.as.jpa.config.PersistenceUnitMetadataHolder;
 import org.jboss.as.jpa.interceptor.WebNonTxEmCloserAction;
+import org.jboss.as.jpa.management.ManagementAccess;
 import org.jboss.as.jpa.persistenceprovider.PersistenceProviderLoader;
 import org.jboss.as.jpa.service.JPAService;
 import org.jboss.as.jpa.service.PersistenceUnitServiceImpl;
@@ -689,7 +690,7 @@ public class PersistenceUnitServiceHandler {
                 adaptor.doesScopedPersistenceUnitNameIdentifyCacheRegionName(pu)) {
             final String providerLabel = managementAdaptor.getIdentificationLabel();
             final String scopedPersistenceUnitName = pu.getScopedPersistenceUnitName();
-
+            ManagementAccess.setupNewWay(managementAdaptor, entityManagerFactory);
 
             Resource providerResource = managementAdaptor.createPersistenceUnitResource(scopedPersistenceUnitName, providerLabel);
             ModelNode perPuNode = providerResource.getModel();
