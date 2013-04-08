@@ -690,9 +690,9 @@ public class PersistenceUnitServiceHandler {
                 adaptor.doesScopedPersistenceUnitNameIdentifyCacheRegionName(pu)) {
             final String providerLabel = managementAdaptor.getIdentificationLabel();
             final String scopedPersistenceUnitName = pu.getScopedPersistenceUnitName();
-            ManagementAccess.setupNewWay(managementAdaptor, entityManagerFactory);
+            Resource providerResource = ManagementAccess.setupNewWay(managementAdaptor, scopedPersistenceUnitName);
 
-            Resource providerResource = managementAdaptor.createPersistenceUnitResource(scopedPersistenceUnitName, providerLabel);
+            // Resource providerResource = managementAdaptor.createPersistenceUnitResource(scopedPersistenceUnitName, providerLabel);
             ModelNode perPuNode = providerResource.getModel();
             perPuNode.get(SCOPED_UNIT_NAME).set(pu.getScopedPersistenceUnitName());
             // TODO this is a temporary hack into internals until DeploymentUnit exposes a proper Resource-based API

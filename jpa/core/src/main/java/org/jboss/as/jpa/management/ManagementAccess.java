@@ -25,24 +25,16 @@ package org.jboss.as.jpa.management;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ATTRIBUTES;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DESCRIPTION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.TYPE;
-import static org.jboss.as.jpa.JpaLogger.JPA_LOGGER;
 
 import java.util.Locale;
-
-import javax.persistence.EntityManagerFactory;
 
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.descriptions.DescriptionProvider;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
-import org.jboss.as.jpa.config.Configuration;
-import org.jboss.as.jpa.processor.PersistenceProviderAdaptorLoader;
 import org.jboss.as.jpa.spi.ManagementAdaptor;
-import org.jboss.as.jpa.spi.PersistenceProviderAdaptor;
-import org.jboss.as.jpa.subsystem.PersistenceUnitRegistryImpl;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
-import org.jboss.modules.ModuleLoadException;
 import org.jipijapa.spi.statistics.Statistics;
 import org.jipijapa.spi.statistics.StatisticsPlugin;
 
@@ -76,27 +68,8 @@ public class ManagementAccess {
         // setup();
     }
 
-    public static void setup(EntityManagerFactory entityManagerFactory) {
-        try {
-            // load the default persistence provider adaptor
-            PersistenceProviderAdaptor provider = PersistenceProviderAdaptorLoader.loadPersistenceAdapterModule(Configuration.ADAPTER_MODULE_DEFAULT);
-            final ManagementAdaptor managementAdaptor = provider.getManagementAdaptor();
-            if (managementAdaptor != null) {
-                if( managementAdaptor.getStatisticsPlugin(entityManagerFactory) != null) {
-                    setupNewWay(managementAdaptor, entityManagerFactory);
-                }
-                else {
-                    managementAdaptor.register(jpaSubsystemDeployments, PersistenceUnitRegistryImpl.INSTANCE);
-                }
-            }
-        } catch (ModuleLoadException e) {
-            JPA_LOGGER.errorPreloadingDefaultProviderAdaptor(e);
-        }
-
-    }
-
-    public static void setupNewWay(final ManagementAdaptor managementAdaptor, EntityManagerFactory entityManagerFactory) {
-        final StatisticsPlugin statisticsPlugin = managementAdaptor.getStatisticsPlugin(entityManagerFactory);
+    public static Resource setupNewWay(final ManagementAdaptor managementAdaptor, final String scopedPersistenceUnitName) {
+        final StatisticsPlugin statisticsPlugin = managementAdaptor.getStatisticsPlugin();
         // setup top level statistics
         DescriptionProvider topLevelDescriptions = new DescriptionProvider() {
 
@@ -119,7 +92,7 @@ public class ManagementAccess {
         jpaHibernateRegistration.registerSubModel(new EntityResourceDefinition(persistenceUnitRegistry));
         jpaHibernateRegistration.registerSubModel(new CollectionResourceDefinition(persistenceUnitRegistry));
         */
-
+        return new ManagementStatisticsResource(managementAdaptor, scopedPersistenceUnitName);
     }
 
     private static ModelNode describeTopLevelAttributes(StatisticsPlugin statisticsPlugin, Locale locale) {
@@ -161,10 +134,6 @@ public class ManagementAccess {
         subsystem.get(CHILDREN, "collection", MODEL_DESCRIPTION); // placeholder
         */
         return subsystem;
-    }
-
-    private static Resource createPersistenceUnitResource() {
-        return new ManagementStatisticsResource();
     }
 
 

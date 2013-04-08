@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2011, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -22,107 +22,193 @@
 
 package org.jboss.as.jpa.management;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.registry.PlaceholderResource;
 import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.jpa.spi.ManagementAdaptor;
 import org.jboss.dmr.ModelNode;
+import org.jipijapa.spi.statistics.Statistics;
 
 /**
- * ManagementStatisticsResource
+ * Resource representing a JPA PersistenceUnit (from a persistence.xml) deployment.
  *
+ * @author Brian Stansberry (c) 2011 Red Hat Inc.
  * @author Scott Marlow
  */
-public class ManagementStatisticsResource implements Resource {
+public class ManagementStatisticsResource extends PlaceholderResource.PlaceholderResourceEntry {
 
-    private final ManagementStatisticsResource delegate;
+    private final String puName;
+    private final ModelNode model = new ModelNode();
+    private final ManagementAdaptor managementAdaptor;
 
-    public ManagementStatisticsResource() {
-        delegate = generateResource();
-    }
-
-    private ManagementStatisticsResource generateResource() {
-        return null;
+    public ManagementStatisticsResource(final ManagementAdaptor managementAdaptor, String puName) {
+        super(managementAdaptor.getIdentificationLabel(), puName);
+        this.puName = puName;
+        this.managementAdaptor = managementAdaptor;
     }
 
     @Override
     public ModelNode getModel() {
-        return delegate.getModel();
-    }
-
-    @Override
-    public void writeModel(ModelNode newModel) {
-        delegate.writeModel(newModel);
+        return model;
     }
 
     @Override
     public boolean isModelDefined() {
-        return delegate.isModelDefined();
+        return model.isDefined();
     }
 
     @Override
     public boolean hasChild(PathElement element) {
-        return delegate.hasChild(element);
+        Statistics statistics = getStatistics();
+        // if element key matches, check if element value also matches
+        if (statistics.getChildrenNames().contains(element.getKey())) {
+            Statistics childStatistics = statistics.getChildren(element.getKey());
+            return childStatistics != null && childStatistics.getNames().contains(element.getValue());
+            // final String scopedPUName = puService.getScopedPersistenceUnitName();
+            // final String unqualifiedRegionName = element.getValue();
+            // final String qualifiedRegionName = scopedPUName + "." + unqualifiedRegionName;
+            // result = stats.getSecondLevelCacheStatistics(qualifiedRegionName) != null;
+        } else {
+            return super.hasChild(element);
+        }
+        //if (ENTITYCACHE.equals(element.getKey())) {
+        //    return hasCacheRegion(element);
+        //} else if (ENTITY.equals(element.getKey())) {
+        //    return hasEntity(element);
+        //} else if (COLLECTION.equals(element.getKey())) {
+        //    return hasCollection(element);
+        //} else if (QUERYCACHE.equals(element.getKey())) {
+        //    return hasQuery(element);
+
     }
 
     @Override
     public Resource getChild(PathElement element) {
-        return delegate.getChild(element);
+
+        Statistics statistics = getStatistics();
+        if (statistics.getChildrenNames().contains(element.getKey())) {
+            Statistics childStatistics = statistics.getChildren(element.getKey());
+            return childStatistics != null && childStatistics.getNames().contains(element.getValue())
+                    ? PlaceholderResource.INSTANCE : null;
+        } else {
+            return super.getChild(element);
+        }
     }
 
     @Override
     public Resource requireChild(PathElement element) {
-        return delegate.requireChild(element);
+        Statistics statistics = getStatistics();
+        if (statistics.getChildrenNames().contains(element.getKey())) {
+            Statistics childStatistics = statistics.getChildren(element.getKey());
+            if (childStatistics != null && childStatistics.getNames().contains(element.getValue())) {
+                return PlaceholderResource.INSTANCE;
+            }
+            throw new NoSuchResourceException(element);
+        } else {
+            return super.requireChild(element);
+        }
     }
 
     @Override
     public boolean hasChildren(String childType) {
-        return delegate.hasChildren(childType);
+        Statistics statistics = getStatistics();
+        if (statistics.getChildrenNames().contains(childType)) {
+            Statistics childStatistics = statistics.getChildren(childType);
+            return childStatistics != null && childStatistics.getNames().size() > 0;
+        } else {
+            return super.hasChildren(childType);
+        }
     }
 
     @Override
     public Resource navigate(PathAddress address) {
-        return delegate.navigate(address);
+        Statistics statistics = getStatistics();
+        if (address.size() > 0 && statistics.getChildrenNames().contains(address.getElement(0).getKey())) {
+            if (address.size() > 1) {
+                throw new NoSuchResourceException(address.getElement(1));
+            }
+            return PlaceholderResource.INSTANCE;
+        } else {
+            return super.navigate(address);
+        }
     }
 
     @Override
     public Set<String> getChildTypes() {
-        return delegate.getChildTypes();
+        Set<String> result = new HashSet<String>(super.getChildTypes());
+        Statistics statistics = getStatistics();
+        result.addAll(statistics.getChildrenNames());
+        return result;
     }
 
     @Override
     public Set<String> getChildrenNames(String childType) {
-        return delegate.getChildrenNames(childType);
+        Statistics statistics = getStatistics();
+        if (statistics.getChildrenNames().contains(childType)) {
+            Statistics childStatistics = statistics.getChildren(childType);
+            return childStatistics.getNames();
+        } else {
+            return super.getChildrenNames(childType);
+        }
     }
 
     @Override
     public Set<ResourceEntry> getChildren(String childType) {
-        return delegate.getChildren(childType);
+
+        Statistics statistics = getStatistics();
+        if (statistics.getChildrenNames().contains(childType)) {
+            Set<ResourceEntry> result = new HashSet<ResourceEntry>();
+            Statistics childStatistics = statistics.getChildren(childType);
+            for (String name : childStatistics.getNames()) {
+                result.add(new PlaceholderResource.PlaceholderResourceEntry(childType, name));
+            }
+            return result;
+        } else {
+            return super.getChildren(childType);
+        }
+
     }
 
     @Override
     public void registerChild(PathElement address, Resource resource) {
-        delegate.registerChild(address, resource);
+        Statistics statistics = getStatistics();
+        if (statistics.getChildrenNames().contains(address.getKey())) {
+            throw new UnsupportedOperationException(String.format("Resources of type %s cannot be registered", address.getKey()));
+        } else {
+            super.registerChild(address, resource);
+        }
     }
 
     @Override
     public Resource removeChild(PathElement address) {
-        return delegate.removeChild(address);
+        Statistics statistics = getStatistics();
+        if (statistics.getChildrenNames().contains(address.getKey())) {
+            throw new UnsupportedOperationException(String.format("Resources of type %s cannot be removed", address.getKey()));
+        } else {
+            return super.removeChild(address);
+        }
     }
 
     @Override
     public boolean isRuntime() {
-        return delegate.isRuntime();
+        return false;
     }
 
     @Override
     public boolean isProxy() {
-        return delegate.isProxy();
+        return false;
     }
 
     @Override
-    public Resource clone() {
-        return delegate.clone();
+    public ManagementStatisticsResource clone() {
+        return new ManagementStatisticsResource(managementAdaptor, puName);
+    }
+
+    private Statistics getStatistics() {
+        return managementAdaptor.getStatisticsPlugin().getStatistics();
     }
 }
