@@ -690,7 +690,7 @@ public class PersistenceUnitServiceHandler {
                 adaptor.doesScopedPersistenceUnitNameIdentifyCacheRegionName(pu)) {
             final String providerLabel = managementAdaptor.getIdentificationLabel();
             final String scopedPersistenceUnitName = pu.getScopedPersistenceUnitName();
-            Resource providerResource = ManagementAccess.setupNewWay(managementAdaptor, scopedPersistenceUnitName);
+            Resource providerResource = ManagementAccess.createManagementStatisticsResource(managementAdaptor, scopedPersistenceUnitName);
 
             // Resource providerResource = managementAdaptor.createPersistenceUnitResource(scopedPersistenceUnitName, providerLabel);
             ModelNode perPuNode = providerResource.getModel();

@@ -77,45 +77,43 @@ public class ManagementAccess {
 
     public static void setManagementResourceRegistration(ManagementResourceRegistration managementResourceRegistration) {
         jpaSubsystemDeployments = managementResourceRegistration;
-        // setup();
     }
 
-    public static Resource setupNewWay(final ManagementAdaptor managementAdaptor, final String scopedPersistenceUnitName) {
+    public static Resource createManagementStatisticsResource(final ManagementAdaptor managementAdaptor, final String scopedPersistenceUnitName) {
         final StatisticsPlugin statisticsPlugin = managementAdaptor.getStatisticsPlugin();
+        final Statistics statistics = statisticsPlugin.getStatistics();
         // setup top level statistics (used to only do this once during startup, figure out if repeating this code is wrong
-        DescriptionProvider topLevelDescriptions = new DescriptionProvider() {
+        setupStatistics(statistics, jpaSubsystemDeployments,statisticsPlugin.TOPLEVEL_DESCRIPTION_RESOURCEBUNDLE_KEY, managementAdaptor.getIdentificationLabel());
+
+        return new ManagementStatisticsResource(managementAdaptor, scopedPersistenceUnitName);
+    }
+
+    private static void setupStatistics(final Statistics statistics, ManagementResourceRegistration managementResourceRegistration, final String descriptionKey, String identificationLabel) {
+        DescriptionProvider descriptions = new DescriptionProvider() {
 
             @Override
             public ModelNode getModelDescription(Locale locale) {
-                // get description/type for each top level Hibernate statistic
-                return describeTopLevel(statisticsPlugin, locale);
+                // get description/type for each Hibernate statistic
+                return describe(statistics, descriptionKey, locale);
             }
         };
 
         final ManagementResourceRegistration jpaHibernateRegistration =
-            jpaSubsystemDeployments.registerSubModel(PathElement.pathElement(managementAdaptor.getIdentificationLabel()), topLevelDescriptions);
+            managementResourceRegistration.registerSubModel(PathElement.pathElement(identificationLabel), descriptions);
 
-        registerStatistics(statisticsPlugin, jpaHibernateRegistration);
+        registerStatistics(statistics, jpaHibernateRegistration);
 
-        for( String sublevelChildName : statisticsPlugin.getStatistics().getChildrenNames()) {
-
+        for( final String sublevelChildName : statistics.getChildrenNames()) {
+            setupStatistics(statistics.getChildren(sublevelChildName), jpaHibernateRegistration, sublevelChildName, sublevelChildName);
         }
 
-        /*
-        for each sub-level
-        jpaHibernateRegistration.registerSubModel(new SecondLevelCacheResourceDefinition(persistenceUnitRegistry));
-        jpaHibernateRegistration.registerSubModel(new QueryResourceDefinition(persistenceUnitRegistry));
-        jpaHibernateRegistration.registerSubModel(new EntityResourceDefinition(persistenceUnitRegistry));
-        jpaHibernateRegistration.registerSubModel(new CollectionResourceDefinition(persistenceUnitRegistry));
-        */
-        return new ManagementStatisticsResource(managementAdaptor, scopedPersistenceUnitName);
+
     }
 
-    private static ModelNode describeTopLevel(StatisticsPlugin statisticsPlugin, Locale locale) {
+    private static ModelNode describe(Statistics statistics, String descriptionKey, Locale locale) {
 
-        Statistics statistics = statisticsPlugin.getStatistics();
         ModelNode subsystem = new ModelNode();
-        subsystem.get(DESCRIPTION).set(statistics.getDescription(statisticsPlugin.TOPLEVEL_DESCRIPTION_RESOURCEBUNDLE_KEY, locale));
+        subsystem.get(DESCRIPTION).set(statistics.getDescription(descriptionKey, locale));
 
         // add attribute descriptions
         for(String statisticName: statistics.getNames()) {
@@ -142,7 +140,7 @@ public class ManagementAccess {
         subsystem.get(OPERATIONS);
 
         // add children
-        for( String sublevelChildName : statisticsPlugin.getStatistics().getChildrenNames()) {
+        for( String sublevelChildName : statistics.getChildrenNames()) {
             subsystem.get(CHILDREN, sublevelChildName, DESCRIPTION).set(sublevelChildName);
             subsystem.get(CHILDREN, sublevelChildName, MODEL_DESCRIPTION); // placeholder
         }
@@ -150,9 +148,9 @@ public class ManagementAccess {
         return subsystem;
     }
 
-    private static ModelNode describeOperation(StatisticsPlugin statisticsPlugin, String statisticName, Locale locale) {
+    private static ModelNode describeOperation(final Statistics statistics, final String statisticName, final Locale locale) {
 
-           Statistics statistics = statisticsPlugin.getStatistics();
+
            ModelNode modelNode = new ModelNode();
 
            String description = statistics.getDescription(statisticName, locale);
@@ -160,8 +158,8 @@ public class ManagementAccess {
            return modelNode;
        }
 
-    private static void registerStatistics(final StatisticsPlugin statisticsPlugin, final ManagementResourceRegistration jpaHibernateRegistration) {
-        final Statistics statistics = statisticsPlugin.getStatistics();
+    private static void registerStatistics(final Statistics statistics, final ManagementResourceRegistration jpaHibernateRegistration) {
+
         for(final String statisticName: statistics.getNames()) {
             if (statistics.isAttribute(statisticName)) {
                 // handle writeable attributes
@@ -198,7 +196,7 @@ public class ManagementAccess {
                 DescriptionProvider descriptionProvider = new DescriptionProvider() {
                     @Override
                     public ModelNode getModelDescription(Locale locale) {
-                        return describeOperation(statisticsPlugin, statisticName, locale);
+                        return describeOperation(statistics, statisticName, locale);
                     }
                 };
 
@@ -215,12 +213,9 @@ public class ManagementAccess {
         }
     }
 
-
-
-
     private abstract static class AbstractMetricsHandler extends AbstractRuntimeOnlyHandler {
 
-        abstract void handle(final ModelNode response, final String name,  OperationContext context);
+        abstract void handle(final ModelNode response, final String name,  final OperationContext context);
 
         @Override
         protected void executeRuntimeStep(final OperationContext context, final ModelNode operation) throws
@@ -248,7 +243,7 @@ public class ManagementAccess {
         }
 
         @Override
-        public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+        public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
 
             if (context.isNormalServer()) {
                 context.addStep(new OperationStepHandler() {
