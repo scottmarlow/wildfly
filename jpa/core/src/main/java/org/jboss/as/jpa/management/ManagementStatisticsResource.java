@@ -68,22 +68,9 @@ public class ManagementStatisticsResource extends PlaceholderResource.Placeholde
         if (statistics.getChildrenNames().contains(element.getKey())) {
             Statistics childStatistics = statistics.getChildren(element.getKey());
             return childStatistics != null && childStatistics.getNames().contains(element.getValue());
-            // final String scopedPUName = puService.getScopedPersistenceUnitName();
-            // final String unqualifiedRegionName = element.getValue();
-            // final String qualifiedRegionName = scopedPUName + "." + unqualifiedRegionName;
-            // result = stats.getSecondLevelCacheStatistics(qualifiedRegionName) != null;
         } else {
             return super.hasChild(element);
         }
-        //if (ENTITYCACHE.equals(element.getKey())) {
-        //    return hasCacheRegion(element);
-        //} else if (ENTITY.equals(element.getKey())) {
-        //    return hasEntity(element);
-        //} else if (COLLECTION.equals(element.getKey())) {
-        //    return hasCollection(element);
-        //} else if (QUERYCACHE.equals(element.getKey())) {
-        //    return hasQuery(element);
-
     }
 
     @Override

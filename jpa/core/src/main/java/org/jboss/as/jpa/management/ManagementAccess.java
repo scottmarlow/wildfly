@@ -23,13 +23,25 @@
 package org.jboss.as.jpa.management;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ATTRIBUTES;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CHILDREN;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DESCRIPTION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MODEL_DESCRIPTION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OPERATIONS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.TYPE;
 
 import java.util.Locale;
 
+import org.jboss.as.controller.AbstractRuntimeOnlyHandler;
+import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.OperationStepHandler;
+import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.descriptions.DescriptionProvider;
+import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
+import org.jboss.as.controller.operations.validation.ParameterValidator;
+import org.jboss.as.controller.operations.validation.StringLengthValidator;
+import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.jpa.spi.ManagementAdaptor;
@@ -70,23 +82,27 @@ public class ManagementAccess {
 
     public static Resource setupNewWay(final ManagementAdaptor managementAdaptor, final String scopedPersistenceUnitName) {
         final StatisticsPlugin statisticsPlugin = managementAdaptor.getStatisticsPlugin();
-        // setup top level statistics
+        // setup top level statistics (used to only do this once during startup, figure out if repeating this code is wrong
         DescriptionProvider topLevelDescriptions = new DescriptionProvider() {
 
             @Override
             public ModelNode getModelDescription(Locale locale) {
                 // get description/type for each top level Hibernate statistic
-                return describeTopLevelAttributes(statisticsPlugin, locale);
+                return describeTopLevel(statisticsPlugin, locale);
             }
         };
 
         final ManagementResourceRegistration jpaHibernateRegistration =
             jpaSubsystemDeployments.registerSubModel(PathElement.pathElement(managementAdaptor.getIdentificationLabel()), topLevelDescriptions);
+
+        registerStatistics(statisticsPlugin, jpaHibernateRegistration);
+
+        for( String sublevelChildName : statisticsPlugin.getStatistics().getChildrenNames()) {
+
+        }
+
         /*
-        registerStatisticAttributes(jpaHibernateRegistration);
-
-        registerStatisticOperations(jpaHibernateRegistration);
-
+        for each sub-level
         jpaHibernateRegistration.registerSubModel(new SecondLevelCacheResourceDefinition(persistenceUnitRegistry));
         jpaHibernateRegistration.registerSubModel(new QueryResourceDefinition(persistenceUnitRegistry));
         jpaHibernateRegistration.registerSubModel(new EntityResourceDefinition(persistenceUnitRegistry));
@@ -95,46 +111,174 @@ public class ManagementAccess {
         return new ManagementStatisticsResource(managementAdaptor, scopedPersistenceUnitName);
     }
 
-    private static ModelNode describeTopLevelAttributes(StatisticsPlugin statisticsPlugin, Locale locale) {
+    private static ModelNode describeTopLevel(StatisticsPlugin statisticsPlugin, Locale locale) {
 
         Statistics statistics = statisticsPlugin.getStatistics();
         ModelNode subsystem = new ModelNode();
         subsystem.get(DESCRIPTION).set(statistics.getDescription(statisticsPlugin.TOPLEVEL_DESCRIPTION_RESOURCEBUNDLE_KEY, locale));
+
+        // add attribute descriptions
         for(String statisticName: statistics.getNames()) {
             String description = statistics.getDescription(statisticName, locale);
             if (statistics.isAttribute(statisticName)) {
                 subsystem.get(ATTRIBUTES, statisticName,DESCRIPTION).set(description);
                 Class type = statistics.getType(statisticName);
                 if(Integer.class.equals(type)) {
-                    subsystem.get(ATTRIBUTES, TYPE).set(ModelType.INT);
+                    subsystem.get(ATTRIBUTES,statisticName, TYPE).set(ModelType.INT);
+                }
+                else if(Long.class.equals(type)) {
+                    subsystem.get(ATTRIBUTES, statisticName, TYPE).set(ModelType.LONG);
                 }
                 else if(String.class.equals(type)) {
-                    subsystem.get(ATTRIBUTES, TYPE).set(ModelType.STRING);
+                    subsystem.get(ATTRIBUTES, statisticName, TYPE).set(ModelType.STRING);
                 }
                 else if(Boolean.class.equals(type)) {
-                    subsystem.get(ATTRIBUTES, TYPE).set(ModelType.BOOLEAN);
+                    subsystem.get(ATTRIBUTES, statisticName, TYPE).set(ModelType.BOOLEAN);
                 }
             }
-
         }
 
-        /*
-        subsystem.get(OPERATIONS);  // placeholder
+        // add placeholder for operations
+        subsystem.get(OPERATIONS);
 
-        subsystem.get(CHILDREN, "entity-cache", DESCRIPTION).set(bundle.getString(HibernateDescriptionConstants.SECOND_LEVEL_CACHE));
-        subsystem.get(CHILDREN, "entity-cache", MODEL_DESCRIPTION); // placeholder
+        // add children
+        for( String sublevelChildName : statisticsPlugin.getStatistics().getChildrenNames()) {
+            subsystem.get(CHILDREN, sublevelChildName, DESCRIPTION).set(sublevelChildName);
+            subsystem.get(CHILDREN, sublevelChildName, MODEL_DESCRIPTION); // placeholder
+        }
 
-        subsystem.get(CHILDREN, "query-cache", DESCRIPTION).set(bundle.getString(HibernateDescriptionConstants.QUERY_STATISTICS));
-        subsystem.get(CHILDREN, "query-cache", MODEL_DESCRIPTION); // placeholder
-
-        subsystem.get(CHILDREN, "entity", DESCRIPTION).set(bundle.getString(HibernateDescriptionConstants.ENTITY_STATISTICS));
-        subsystem.get(CHILDREN, "entity", MODEL_DESCRIPTION); // placeholder
-
-        subsystem.get(CHILDREN, "collection", DESCRIPTION).set(bundle.getString(HibernateDescriptionConstants.COLLECTION_STATISTICS));
-        subsystem.get(CHILDREN, "collection", MODEL_DESCRIPTION); // placeholder
-        */
         return subsystem;
     }
 
+    private static ModelNode describeOperation(StatisticsPlugin statisticsPlugin, String statisticName, Locale locale) {
+
+           Statistics statistics = statisticsPlugin.getStatistics();
+           ModelNode modelNode = new ModelNode();
+
+           String description = statistics.getDescription(statisticName, locale);
+           modelNode.get(ATTRIBUTES, statisticName, DESCRIPTION).set(description);
+           return modelNode;
+       }
+
+    private static void registerStatistics(final StatisticsPlugin statisticsPlugin, final ManagementResourceRegistration jpaHibernateRegistration) {
+        final Statistics statistics = statisticsPlugin.getStatistics();
+        for(final String statisticName: statistics.getNames()) {
+            if (statistics.isAttribute(statisticName)) {
+                // handle writeable attributes
+                if (statistics.isWriteable(statisticName)) {
+                    jpaHibernateRegistration.registerReadWriteAttribute(statisticName,
+                        new AbstractMetricsHandler() {
+                            @Override
+                            void handle(final ModelNode response, final String name, OperationContext context) {
+                                Object result = statistics.getValue(statisticName);
+                                if (result != null) {
+                                    response.set(result.toString());
+                                }
+                            }
+                        },
+                        new StatisticsEnabledWriteHandler(statistics, statisticName),
+                        AttributeAccess.Storage.RUNTIME
+                    );
+
+                }
+                else {
+                    // handle readonly attributes
+                    jpaHibernateRegistration.registerMetric(statisticName, new AbstractMetricsHandler() {
+                        @Override
+                        void handle(final ModelNode response, final String name, OperationContext context) {
+                            Object result = statistics.getValue(statisticName);
+                            if (result != null) {
+                                response.set(result.toString());
+                            }
+                        }
+                    });
+                }
+            } else if(statistics.isOperation(statisticName)) {
+
+                DescriptionProvider descriptionProvider = new DescriptionProvider() {
+                    @Override
+                    public ModelNode getModelDescription(Locale locale) {
+                        return describeOperation(statisticsPlugin, statisticName, locale);
+                    }
+                };
+
+                jpaHibernateRegistration.registerOperationHandler(statisticName, new AbstractMetricsHandler() {
+                    @Override
+                    void handle(final ModelNode response, final String name, OperationContext context) {
+                        Object result = statistics.getValue(statisticName);
+                        if (result != null) {
+                            response.set(result.toString());
+                        }
+                    }
+                }, descriptionProvider);
+            }
+        }
+    }
+
+
+
+
+    private abstract static class AbstractMetricsHandler extends AbstractRuntimeOnlyHandler {
+
+        abstract void handle(final ModelNode response, final String name,  OperationContext context);
+
+        @Override
+        protected void executeRuntimeStep(final OperationContext context, final ModelNode operation) throws
+                OperationFailedException {
+            final PathAddress address = PathAddress.pathAddress(operation.get(ModelDescriptionConstants.OP_ADDR));
+            // final String puResourceName = address.getLastElement().getValue();
+            handle(context.getResult(), address.getLastElement().getValue(), context);
+            context.stepCompleted();
+        }
+    }
+
+    /**
+     * Attribute write handler for the statistics enabled attribute.
+     *
+     */
+    public static class StatisticsEnabledWriteHandler implements OperationStepHandler {
+
+        private final ParameterValidator validator = new StringLengthValidator(0, Integer.MAX_VALUE, false, false);
+        private final Statistics statistics;
+        private final String statisticName;
+
+        public StatisticsEnabledWriteHandler(final Statistics statistics, final String statisticName) {
+            this.statistics = statistics;
+            this.statisticName = statisticName;
+        }
+
+        @Override
+        public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+
+            if (context.isNormalServer()) {
+                context.addStep(new OperationStepHandler() {
+                    @Override
+                    public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+
+                        boolean oldSetting = false;
+                        {
+                            final ModelNode value = operation.get(ModelDescriptionConstants.VALUE).resolve();
+                            validator.validateResolvedParameter(ModelDescriptionConstants.VALUE, value);
+                            final boolean setting = value.asBoolean();
+
+                            final PathAddress address = PathAddress.pathAddress(operation.get(ModelDescriptionConstants.OP_ADDR));
+                            oldSetting = (Boolean)statistics.getValue(statisticName);
+                            statistics.setValue(statisticName,setting);
+                        }
+                        final boolean rollBackValue = oldSetting;
+                        context.completeStep(new OperationContext.RollbackHandler() {
+                            @Override
+                            public void handleRollback(OperationContext context, ModelNode operation) {
+                                statistics.setValue(statisticName,rollBackValue);
+                            }
+                        });
+
+                    }
+                }, OperationContext.Stage.RUNTIME);
+            }
+
+            context.stepCompleted();
+        }
+    }
 
 }
