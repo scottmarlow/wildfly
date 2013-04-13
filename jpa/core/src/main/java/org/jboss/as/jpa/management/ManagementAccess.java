@@ -29,7 +29,9 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MOD
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OPERATIONS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.TYPE;
 
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import org.jboss.as.controller.AbstractRuntimeOnlyHandler;
 import org.jboss.as.controller.OperationContext;
@@ -73,19 +75,35 @@ import org.jipijapa.spi.statistics.StatisticsPlugin;
  */
 public class ManagementAccess {
 
-    private static ManagementResourceRegistration jpaSubsystemDeployments;
+    private static final Map<String,Resource> existingManagementStatisticsResource = new HashMap<String, Resource>();
+    private static volatile ManagementResourceRegistration jpaSubsystemDeployments;
 
     public static void setManagementResourceRegistration(ManagementResourceRegistration managementResourceRegistration) {
         jpaSubsystemDeployments = managementResourceRegistration;
     }
 
+    /**
+     * Create single instance of management statistics resource per managementAdaptor version.
+     * TODO: allow separate resource per managementAdaptor classloader as well for deployments that include their own
+     * adaptor.
+     *
+     * @param managementAdaptor
+     * @param scopedPersistenceUnitName
+     * @return
+     */
     public static Resource createManagementStatisticsResource(final ManagementAdaptor managementAdaptor, final String scopedPersistenceUnitName) {
-        final StatisticsPlugin statisticsPlugin = managementAdaptor.getStatisticsPlugin();
-        final Statistics statistics = statisticsPlugin.getStatistics();
-        // setup top level statistics (used to only do this once during startup, figure out if repeating this code is wrong
-        setupStatistics(statistics, jpaSubsystemDeployments,statisticsPlugin.TOPLEVEL_DESCRIPTION_RESOURCEBUNDLE_KEY, managementAdaptor.getIdentificationLabel());
-
-        return new ManagementStatisticsResource(managementAdaptor, scopedPersistenceUnitName);
+        synchronized (existingManagementStatisticsResource) {
+            Resource result = existingManagementStatisticsResource.get(managementAdaptor.getVersion());
+            if (result == null) {
+                final StatisticsPlugin statisticsPlugin = managementAdaptor.getStatisticsPlugin();
+                final Statistics statistics = statisticsPlugin.getStatistics();
+                // setup statistics
+                setupStatistics(statistics, jpaSubsystemDeployments,statisticsPlugin.TOPLEVEL_DESCRIPTION_RESOURCEBUNDLE_KEY, managementAdaptor.getIdentificationLabel());
+                result = new ManagementStatisticsResource(managementAdaptor, scopedPersistenceUnitName);
+                existingManagementStatisticsResource.put(managementAdaptor.getVersion(),result);
+            }
+            return result;
+        }
     }
 
     private static void setupStatistics(final Statistics statistics, ManagementResourceRegistration managementResourceRegistration, final String descriptionKey, String identificationLabel) {
