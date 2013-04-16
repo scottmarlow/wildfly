@@ -29,7 +29,6 @@ import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.registry.PlaceholderResource;
 import org.jboss.as.controller.registry.Resource;
-import org.jboss.as.jpa.spi.ManagementAdaptor;
 import org.jboss.dmr.ModelNode;
 import org.jipijapa.spi.statistics.Statistics;
 
@@ -43,12 +42,15 @@ public class ManagementStatisticsResource extends PlaceholderResource.Placeholde
 
     private final String puName;
     private final ModelNode model = new ModelNode();
-    private final ManagementAdaptor managementAdaptor;
+    // TODO: lookup statistics (per emf/pu service, instead of referencing one specific instance
+    private final Statistics statistics;
+    private final String identificationLabel;
 
-    public ManagementStatisticsResource(final ManagementAdaptor managementAdaptor, String puName) {
-        super(managementAdaptor.getIdentificationLabel(), puName);
+    public ManagementStatisticsResource(final Statistics statistics, String puName, String identificationLabel) {
+        super(identificationLabel, puName);
         this.puName = puName;
-        this.managementAdaptor = managementAdaptor;
+        this.statistics = statistics;
+        this.identificationLabel = identificationLabel;
     }
 
     @Override
@@ -192,10 +194,10 @@ public class ManagementStatisticsResource extends PlaceholderResource.Placeholde
 
     @Override
     public ManagementStatisticsResource clone() {
-        return new ManagementStatisticsResource(managementAdaptor, puName);
+        return new ManagementStatisticsResource(statistics, puName, identificationLabel);
     }
 
     private Statistics getStatistics() {
-        return managementAdaptor.getStatisticsPlugin().getStatistics();
+        return statistics;
     }
 }

@@ -93,20 +93,28 @@ public class ManagementAccess {
      */
     public static Resource createManagementStatisticsResource(final ManagementAdaptor managementAdaptor, final String scopedPersistenceUnitName) {
         synchronized (existingManagementStatisticsResource) {
+            // TODO: really need to separate static code that should execute once per adapter from per deployment pu registration code
+            final EntityManagerFactoryLookup entityManagerFactoryLookup = new EntityManagerFactoryLookup(scopedPersistenceUnitName);
             Resource result = existingManagementStatisticsResource.get(managementAdaptor.getVersion());
             if (result == null) {
                 final StatisticsPlugin statisticsPlugin = managementAdaptor.getStatisticsPlugin();
                 final Statistics statistics = statisticsPlugin.getStatistics();
                 // setup statistics
-                setupStatistics(statistics, jpaSubsystemDeployments,statisticsPlugin.TOPLEVEL_DESCRIPTION_RESOURCEBUNDLE_KEY, managementAdaptor.getIdentificationLabel());
-                result = new ManagementStatisticsResource(managementAdaptor, scopedPersistenceUnitName);
+                setupStatistics(statistics, jpaSubsystemDeployments,statisticsPlugin.TOPLEVEL_DESCRIPTION_RESOURCEBUNDLE_KEY,
+                        managementAdaptor.getIdentificationLabel(), scopedPersistenceUnitName, entityManagerFactoryLookup);
+                result = new ManagementStatisticsResource(statistics, scopedPersistenceUnitName, managementAdaptor.getIdentificationLabel());
                 existingManagementStatisticsResource.put(managementAdaptor.getVersion(),result);
             }
             return result;
         }
     }
 
-    private static void setupStatistics(final Statistics statistics, ManagementResourceRegistration managementResourceRegistration, final String descriptionKey, String identificationLabel) {
+    private static void setupStatistics(final Statistics statistics,
+                                        ManagementResourceRegistration managementResourceRegistration,
+                                        final String descriptionKey,
+                                        String identificationLabel,
+                                        final String scopedPersistenceUnitName,
+                                        final EntityManagerFactoryLookup entityManagerFactoryLookup) {
         DescriptionProvider descriptions = new DescriptionProvider() {
 
             @Override
@@ -115,17 +123,23 @@ public class ManagementAccess {
                 return describe(statistics, descriptionKey, locale);
             }
         };
+        final ManagementResourceRegistration jpaRegistration;
+        jpaRegistration = managementResourceRegistration.registerSubModel(PathElement.pathElement(identificationLabel), descriptions);
 
-        final ManagementResourceRegistration jpaHibernateRegistration =
-            managementResourceRegistration.registerSubModel(PathElement.pathElement(identificationLabel), descriptions);
-
-        registerStatistics(statistics, jpaHibernateRegistration);
+        registerStatistics(statistics, jpaRegistration, scopedPersistenceUnitName, entityManagerFactoryLookup);
 
         for( final String sublevelChildName : statistics.getChildrenNames()) {
-            setupStatistics(statistics.getChildren(sublevelChildName), jpaHibernateRegistration, sublevelChildName, sublevelChildName);
+            //setupStatistics(statistics.getChildren(sublevelChildName), jpaRegistration, sublevelChildName, null);
+            DescriptionProvider nestedDescriptions = new DescriptionProvider() {
+
+                @Override
+                public ModelNode getModelDescription(Locale locale) {
+                    // get description/type for each Hibernate statistic
+                    return describe(statistics.getChildren(sublevelChildName), sublevelChildName, locale);
+                }
+            };
+            jpaRegistration.registerSubModel(PathElement.pathElement(sublevelChildName),nestedDescriptions);
         }
-
-
     }
 
     private static ModelNode describe(Statistics statistics, String descriptionKey, Locale locale) {
@@ -176,7 +190,11 @@ public class ManagementAccess {
            return modelNode;
        }
 
-    private static void registerStatistics(final Statistics statistics, final ManagementResourceRegistration jpaHibernateRegistration) {
+    private static void registerStatistics(
+            final Statistics statistics,
+            final ManagementResourceRegistration jpaHibernateRegistration,
+            final String scopedPersistenceUnitName,
+            final EntityManagerFactoryLookup entityManagerFactoryLookup) {
 
         for(final String statisticName: statistics.getNames()) {
             if (statistics.isAttribute(statisticName)) {
@@ -186,13 +204,13 @@ public class ManagementAccess {
                         new AbstractMetricsHandler() {
                             @Override
                             void handle(final ModelNode response, final String name, OperationContext context) {
-                                Object result = statistics.getValue(statisticName);
+                                Object result = statistics.getValue(statisticName, entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(name));
                                 if (result != null) {
                                     response.set(result.toString());
                                 }
                             }
                         },
-                        new StatisticsEnabledWriteHandler(statistics, statisticName),
+                        new StatisticsEnabledWriteHandler(statistics, statisticName, entityManagerFactoryLookup),
                         AttributeAccess.Storage.RUNTIME
                     );
 
@@ -202,7 +220,7 @@ public class ManagementAccess {
                     jpaHibernateRegistration.registerMetric(statisticName, new AbstractMetricsHandler() {
                         @Override
                         void handle(final ModelNode response, final String name, OperationContext context) {
-                            Object result = statistics.getValue(statisticName);
+                            Object result = statistics.getValue(statisticName, entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(name));
                             if (result != null) {
                                 response.set(result.toString());
                             }
@@ -221,7 +239,7 @@ public class ManagementAccess {
                 jpaHibernateRegistration.registerOperationHandler(statisticName, new AbstractMetricsHandler() {
                     @Override
                     void handle(final ModelNode response, final String name, OperationContext context) {
-                        Object result = statistics.getValue(statisticName);
+                        Object result = statistics.getValue(statisticName, entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(name));
                         if (result != null) {
                             response.set(result.toString());
                         }
@@ -254,10 +272,12 @@ public class ManagementAccess {
         private final ParameterValidator validator = new StringLengthValidator(0, Integer.MAX_VALUE, false, false);
         private final Statistics statistics;
         private final String statisticName;
+        final EntityManagerFactoryLookup entityManagerFactoryLookup;
 
-        public StatisticsEnabledWriteHandler(final Statistics statistics, final String statisticName) {
+        public StatisticsEnabledWriteHandler(final Statistics statistics, final String statisticName, final EntityManagerFactoryLookup entityManagerFactoryLookup) {
             this.statistics = statistics;
             this.statisticName = statisticName;
+            this.entityManagerFactoryLookup = entityManagerFactoryLookup;
         }
 
         @Override
@@ -275,14 +295,17 @@ public class ManagementAccess {
                             final boolean setting = value.asBoolean();
 
                             final PathAddress address = PathAddress.pathAddress(operation.get(ModelDescriptionConstants.OP_ADDR));
-                            oldSetting = (Boolean)statistics.getValue(statisticName);
-                            statistics.setValue(statisticName,setting);
+                            final String name = address.getLastElement().getValue();
+                            oldSetting = (Boolean)statistics.getValue(statisticName, entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(name));
+                            statistics.setValue(statisticName,setting, entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(name));
                         }
                         final boolean rollBackValue = oldSetting;
                         context.completeStep(new OperationContext.RollbackHandler() {
                             @Override
                             public void handleRollback(OperationContext context, ModelNode operation) {
-                                statistics.setValue(statisticName,rollBackValue);
+                                final PathAddress address = PathAddress.pathAddress(operation.get(ModelDescriptionConstants.OP_ADDR));
+                                final String name = address.getLastElement().getValue();
+                                statistics.setValue(statisticName,rollBackValue, entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(name));
                             }
                         });
 

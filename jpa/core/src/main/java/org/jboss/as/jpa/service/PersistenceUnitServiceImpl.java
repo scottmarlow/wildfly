@@ -32,7 +32,6 @@ import javax.persistence.spi.PersistenceProvider;
 import javax.sql.DataSource;
 
 import org.jboss.as.jpa.classloader.TempClassLoaderFactoryImpl;
-import org.jboss.as.jpa.spi.ManagementAdaptor;
 import org.jboss.as.jpa.spi.PersistenceProviderAdaptor;
 import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
 import org.jboss.as.jpa.spi.PersistenceUnitService;
@@ -102,7 +101,7 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                     beanManagerLookup();
                     entityManagerFactory = createContainerEntityManagerFactory();
                     persistenceUnitRegistry.add(getScopedPersistenceUnitName(), getValue());
-                    addManagementConsole();
+//                    addManagementConsole();
                     context.complete();
                 } catch (Throwable t) {
                     context.failed(new StartException(t));
@@ -116,12 +115,12 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
         executor.execute(task);
     }
 
-    private void addManagementConsole() {
-        ManagementAdaptor managementAdaptor = persistenceProviderAdaptor.getManagementAdaptor();
-        if (managementAdaptor != null && managementAdaptor.getStatisticsPlugin() != null) {
-            managementAdaptor.getStatisticsPlugin().setEntityManagerFactory(entityManagerFactory);
-        }
-    }
+//    private void addManagementConsole() {
+//        ManagementAdaptor managementAdaptor = persistenceProviderAdaptor.getManagementAdaptor();
+//        if (managementAdaptor != null && managementAdaptor.getStatisticsPlugin() != null) {
+//            managementAdaptor.getStatisticsPlugin().setEntityManagerFactory(entityManagerFactory);
+//        }
+//    }
 
     @Override
     public void stop(final StopContext context) {
