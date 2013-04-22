@@ -22,11 +22,8 @@
 
 package org.jboss.as.jpa.management;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ATTRIBUTES;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DESCRIPTION;
 
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 import org.jboss.as.controller.AbstractRuntimeOnlyHandler;
@@ -38,7 +35,6 @@ import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinition;
 import org.jboss.as.controller.SimpleResourceDefinition;
-import org.jboss.as.controller.descriptions.DescriptionProvider;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
 import org.jboss.as.controller.descriptions.StandardResourceDescriptionResolver;
@@ -91,51 +87,31 @@ public class ManagementAccess {
             final EntityManagerFactoryLookup entityManagerFactoryLookup = new EntityManagerFactoryLookup(scopedPersistenceUnitName);
             Resource result = existingManagementStatisticsResource.get(managementAdaptor.getVersion());
             if (result == null) {
+
                 final StatisticsPlugin statisticsPlugin = managementAdaptor.getStatisticsPlugin();
                 final Statistics statistics = statisticsPlugin.getStatistics();
                 // setup statistics
-                setupStatistics(statistics, jpaSubsystemDeployments,
-                        managementAdaptor.getIdentificationLabel(), entityManagerFactoryLookup);
+                ResourceDescriptionResolver resourceDescriptionResolver = new StandardResourceDescriptionResolver(
+                        statistics.getResourceBundleKeyPrefix(), statistics.getResourceBundleName(), statistics.getClass().getClassLoader());
+
+                jpaSubsystemDeployments.registerSubModel(
+                        new ManagementResourceDefinition(PathElement.pathElement(managementAdaptor.getIdentificationLabel()), resourceDescriptionResolver, statistics, entityManagerFactoryLookup));
+
                 result = new ManagementStatisticsResource(statistics, scopedPersistenceUnitName, managementAdaptor.getIdentificationLabel());
+
                 existingManagementStatisticsResource.put(managementAdaptor.getVersion(),result);
+
             }
             return result;
         }
     }
-
-    private static void setupStatistics(final Statistics statistics,
-                                        ManagementResourceRegistration managementResourceRegistration,
-                                        String identificationLabel,
-                                        final EntityManagerFactoryLookup entityManagerFactoryLookup) {
-        final ManagementResourceRegistration jpaRegistration;
-        ResourceDescriptionResolver resourceDescriptionResolver = new StandardResourceDescriptionResolver(
-                statistics.getResourceBundleKeyPrefix(), statistics.getResourceBundleName(), statistics.getClass().getClassLoader());
-        jpaRegistration = managementResourceRegistration.registerSubModel(
-                new ManagementResourceDefinition(PathElement.pathElement(identificationLabel), resourceDescriptionResolver, statistics, entityManagerFactoryLookup));
-
-        for( final String sublevelChildName : statistics.getChildrenNames()) {
-            Statistics sublevelStatistics = statistics.getChildren(sublevelChildName);
-            ResourceDescriptionResolver sublevelResourceDescriptionResolver = new StandardResourceDescriptionResolver(
-                    sublevelStatistics.getResourceBundleKeyPrefix(), sublevelStatistics.getResourceBundleName(), sublevelStatistics.getClass().getClassLoader());
-            jpaRegistration.registerSubModel(
-                    new ManagementResourceDefinition(PathElement.pathElement(sublevelChildName), sublevelResourceDescriptionResolver, sublevelStatistics, entityManagerFactoryLookup));
-        }
-    }
-
-    private static ModelNode describeOperation(final Statistics statistics, final String statisticName, final Locale locale) {
-           ModelNode modelNode = new ModelNode();
-
-           String description = statistics.getDescription(statisticName, locale);
-           modelNode.get(ATTRIBUTES, statisticName, DESCRIPTION).set(description);
-           return modelNode;
-       }
-
 
     private static class ManagementResourceDefinition extends SimpleResourceDefinition {
 
         private final Statistics statistics;
         private final EntityManagerFactoryLookup entityManagerFactoryLookup;
         private final ResourceDescriptionResolver descriptionResolver;
+        private final PathElement pathElement;
 
         public ManagementResourceDefinition(
                 final PathElement pathElement,
@@ -143,6 +119,7 @@ public class ManagementAccess {
                 final Statistics statistics,
                 final EntityManagerFactoryLookup entityManagerFactoryLookup) {
             super(pathElement, descriptionResolver);
+            this.pathElement = pathElement;
             this.statistics = statistics;
             this.entityManagerFactoryLookup = entityManagerFactoryLookup;
             this.descriptionResolver = descriptionResolver;
@@ -166,6 +143,24 @@ public class ManagementAccess {
         }
 
         @Override
+        public void registerChildren(ManagementResourceRegistration resourceRegistration) {
+            super.registerChildren(resourceRegistration);
+
+        // TODO: also do subsystem.get(CHILDREN, "entity-cache", MODEL_DESCRIPTION); // placeholder
+        // subsystem.get(CHILDREN, "entity-cache", DESCRIPTION).set(bundle.getString(HibernateDescriptionConstants.SECOND_LEVEL_CACHE));
+        // either roll the following loop into ManagementResourceDefinition (would only handle single level of nesting) or not
+
+        for( final String sublevelChildName : statistics.getChildrenNames()) {
+            Statistics sublevelStatistics = statistics.getChildren(sublevelChildName);
+            ResourceDescriptionResolver sublevelResourceDescriptionResolver = new StandardResourceDescriptionResolver(
+                    sublevelChildName, sublevelStatistics.getResourceBundleName(), sublevelStatistics.getClass().getClassLoader());
+            resourceRegistration.registerSubModel(
+                    new ManagementResourceDefinition(PathElement.pathElement(sublevelChildName), sublevelResourceDescriptionResolver, sublevelStatistics, entityManagerFactoryLookup));
+        }
+
+        }
+
+        @Override
         public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
             super.registerAttributes(resourceRegistration);
 
@@ -182,6 +177,19 @@ public class ManagementAccess {
                         new AbstractMetricsHandler() {
                             @Override
                             void handle(final ModelNode response, OperationContext context, final ModelNode operation) {
+                                /** TODO: npe for statistics==org.jboss.as.jpa.hibernate4.management.HibernateEntityCacheStatistics, statisticName==second-level-cache-count-in-memory
+                                 * {    "address" => [
+                                         ("deployment" => "2lc.jar"),
+                                         ("subsystem" => "jpa"),
+                                         ("hibernate-persistence-unit" => "2lc.jar#TEST_PU"),
+                                         ("entity-cache" => "entity-cache-region-name")
+                                     ],
+                                     "operation" => "read-attribute",
+                                     "name" => "second-level-cache-count-in-memory",
+                                     "operation-headers" => {"caller-type" => "user"}
+                                 }
+                                 */
+
                                 Object result = statistics.getValue(statisticName, entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(statisticName));
                                 if (result != null) {
                                     response.set(result.toString());
@@ -231,7 +239,22 @@ public class ManagementAccess {
                     else {
                         resourceRegistration.registerReadOnlyAttribute(attributeDefinition, readHandler);
                     }
-                } else if(statistics.isOperation(statisticName)) {
+                }
+            }
+        }
+
+        @Override
+        public void registerOperations(ManagementResourceRegistration resourceRegistration) {
+            super.registerOperations(resourceRegistration);
+
+            for(final String statisticName: statistics.getNames()) {
+                if(statistics.isOperation(statisticName)) {
+                    AttributeDefinition attributeDefinition =
+                            new SimpleAttributeDefinitionBuilder(statisticName, getModelType(statistics.getType(statisticName)), true)
+                                    .setXmlName(statisticName)
+                                    .setAllowExpression(true)
+                                    .setFlags(AttributeAccess.Flag.STORAGE_RUNTIME)
+                                    .build();
 
                     OperationStepHandler operationHandler =
                     new AbstractMetricsHandler() {
@@ -245,27 +268,11 @@ public class ManagementAccess {
                     };
 
                     SimpleOperationDefinition definition =
-                        new SimpleOperationDefinition(statisticName, descriptionResolver) {
-                            @Override
-                            public DescriptionProvider getDescriptionProvider() {
-                                return new DescriptionProvider() {
-                                    @Override
-                                    public ModelNode getModelDescription(Locale locale) {
-                                        return describeOperation(statistics, statisticName, locale);
-                                    }
-                                };
-                            }
-                        };
+                        new SimpleOperationDefinition(statisticName, descriptionResolver, attributeDefinition);
                     resourceRegistration.registerOperationHandler(definition, operationHandler);
                 }
             }
         }
-
-        @Override
-        public void registerOperations(ManagementResourceRegistration resourceRegistration) {
-            super.registerOperations(resourceRegistration);
-        }
-
     }
 
     private abstract static class AbstractMetricsHandler extends AbstractRuntimeOnlyHandler {
