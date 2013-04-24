@@ -42,15 +42,20 @@ public class ManagementStatisticsResource extends PlaceholderResource.Placeholde
 
     private final String puName;
     private final ModelNode model = new ModelNode();
-    // TODO: lookup statistics (per emf/pu service, instead of referencing one specific instance
     private final Statistics statistics;
     private final String identificationLabel;
+    private final EntityManagerFactoryLookup entityManagerFactoryLookup;
 
-    public ManagementStatisticsResource(final Statistics statistics, String puName, String identificationLabel) {
+    public ManagementStatisticsResource(
+            final Statistics statistics,
+            final String puName,
+            final String identificationLabel,
+            final EntityManagerFactoryLookup entityManagerFactoryLookup) {
         super(identificationLabel, puName);
         this.puName = puName;
         this.statistics = statistics;
         this.identificationLabel = identificationLabel;
+        this.entityManagerFactoryLookup = entityManagerFactoryLookup;
     }
 
     @Override
@@ -68,8 +73,8 @@ public class ManagementStatisticsResource extends PlaceholderResource.Placeholde
         Statistics statistics = getStatistics();
         // if element key matches, check if element value also matches
         if (statistics.getChildrenNames().contains(element.getKey())) {
-            Statistics childStatistics = statistics.getChildren(element.getKey());
-            return childStatistics != null && childStatistics.getNames().contains(element.getValue());
+            Statistics childStatistics = statistics.getChild(element.getKey());
+            return childStatistics != null && childStatistics.getDynamicChildrenNames(entityManagerFactoryLookup).contains(element.getValue());
         } else {
             return super.hasChild(element);
         }
@@ -80,8 +85,8 @@ public class ManagementStatisticsResource extends PlaceholderResource.Placeholde
 
         Statistics statistics = getStatistics();
         if (statistics.getChildrenNames().contains(element.getKey())) {
-            Statistics childStatistics = statistics.getChildren(element.getKey());
-            return childStatistics != null && childStatistics.getNames().contains(element.getValue())
+            Statistics childStatistics = statistics.getChild(element.getKey());
+            return childStatistics != null && childStatistics.getDynamicChildrenNames(entityManagerFactoryLookup).contains(element.getValue())
                     ? PlaceholderResource.INSTANCE : null;
         } else {
             return super.getChild(element);
@@ -92,8 +97,8 @@ public class ManagementStatisticsResource extends PlaceholderResource.Placeholde
     public Resource requireChild(PathElement element) {
         Statistics statistics = getStatistics();
         if (statistics.getChildrenNames().contains(element.getKey())) {
-            Statistics childStatistics = statistics.getChildren(element.getKey());
-            if (childStatistics != null && childStatistics.getNames().contains(element.getValue())) {
+            Statistics childStatistics = statistics.getChild(element.getKey());
+            if (childStatistics != null && childStatistics.getDynamicChildrenNames(entityManagerFactoryLookup).contains(element.getValue())) {
                 return PlaceholderResource.INSTANCE;
             }
             throw new NoSuchResourceException(element);
@@ -106,7 +111,7 @@ public class ManagementStatisticsResource extends PlaceholderResource.Placeholde
     public boolean hasChildren(String childType) {
         Statistics statistics = getStatistics();
         if (statistics.getChildrenNames().contains(childType)) {
-            Statistics childStatistics = statistics.getChildren(childType);
+            Statistics childStatistics = statistics.getChild(childType);
             return childStatistics != null && childStatistics.getNames().size() > 0;
         } else {
             return super.hasChildren(childType);
@@ -138,8 +143,12 @@ public class ManagementStatisticsResource extends PlaceholderResource.Placeholde
     public Set<String> getChildrenNames(String childType) {
         Statistics statistics = getStatistics();
         if (statistics.getChildrenNames().contains(childType)) {
-            Statistics childStatistics = statistics.getChildren(childType);
-            return childStatistics.getNames();
+            Statistics childStatistics = statistics.getChild(childType);
+            Set<String>result = new HashSet<String>();
+            for(String name:childStatistics.getDynamicChildrenNames(entityManagerFactoryLookup)) {
+                result.add(name);
+            }
+            return result;
         } else {
             return super.getChildrenNames(childType);
         }
@@ -151,8 +160,8 @@ public class ManagementStatisticsResource extends PlaceholderResource.Placeholde
         Statistics statistics = getStatistics();
         if (statistics.getChildrenNames().contains(childType)) {
             Set<ResourceEntry> result = new HashSet<ResourceEntry>();
-            Statistics childStatistics = statistics.getChildren(childType);
-            for (String name : childStatistics.getNames()) {
+            Statistics childStatistics = statistics.getChild(childType);
+            for (String name : childStatistics.getDynamicChildrenNames(entityManagerFactoryLookup)) {
                 result.add(new PlaceholderResource.PlaceholderResourceEntry(childType, name));
             }
             return result;
@@ -194,7 +203,7 @@ public class ManagementStatisticsResource extends PlaceholderResource.Placeholde
 
     @Override
     public ManagementStatisticsResource clone() {
-        return new ManagementStatisticsResource(statistics, puName, identificationLabel);
+        return new ManagementStatisticsResource(statistics, puName, identificationLabel, entityManagerFactoryLookup);
     }
 
     private Statistics getStatistics() {

@@ -22,6 +22,7 @@
 
 package org.jboss.as.jpa.management;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADDRESS;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +32,7 @@ import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
+import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinition;
@@ -45,7 +47,6 @@ import org.jboss.as.jpa.spi.ManagementAdaptor;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.jipijapa.spi.statistics.Statistics;
-import org.jipijapa.spi.statistics.StatisticsPlugin;
 
 /**
  * ManagementAccess
@@ -88,8 +89,8 @@ public class ManagementAccess {
             Resource result = existingManagementStatisticsResource.get(managementAdaptor.getVersion());
             if (result == null) {
 
-                final StatisticsPlugin statisticsPlugin = managementAdaptor.getStatisticsPlugin();
-                final Statistics statistics = statisticsPlugin.getStatistics();
+
+                final Statistics statistics = managementAdaptor.getStatistics();
                 // setup statistics
                 ResourceDescriptionResolver resourceDescriptionResolver = new StandardResourceDescriptionResolver(
                         statistics.getResourceBundleKeyPrefix(), statistics.getResourceBundleName(), statistics.getClass().getClassLoader());
@@ -97,7 +98,7 @@ public class ManagementAccess {
                 jpaSubsystemDeployments.registerSubModel(
                         new ManagementResourceDefinition(PathElement.pathElement(managementAdaptor.getIdentificationLabel()), resourceDescriptionResolver, statistics, entityManagerFactoryLookup));
 
-                result = new ManagementStatisticsResource(statistics, scopedPersistenceUnitName, managementAdaptor.getIdentificationLabel());
+                result = new ManagementStatisticsResource(statistics, scopedPersistenceUnitName, managementAdaptor.getIdentificationLabel(), entityManagerFactoryLookup);
 
                 existingManagementStatisticsResource.put(managementAdaptor.getVersion(),result);
 
@@ -146,18 +147,18 @@ public class ManagementAccess {
         public void registerChildren(ManagementResourceRegistration resourceRegistration) {
             super.registerChildren(resourceRegistration);
 
-        // TODO: also do subsystem.get(CHILDREN, "entity-cache", MODEL_DESCRIPTION); // placeholder
-        // subsystem.get(CHILDREN, "entity-cache", DESCRIPTION).set(bundle.getString(HibernateDescriptionConstants.SECOND_LEVEL_CACHE));
-        // either roll the following loop into ManagementResourceDefinition (would only handle single level of nesting) or not
+            // TODO: also do subsystem.get(CHILDREN, "entity-cache", MODEL_DESCRIPTION); // placeholder
+            // subsystem.get(CHILDREN, "entity-cache", DESCRIPTION).set(bundle.getString(HibernateDescriptionConstants.SECOND_LEVEL_CACHE));
+            // either roll the following loop into ManagementResourceDefinition (would only handle single level of nesting) or not
+            for( final String sublevelChildName : statistics.getChildrenNames()) {
+                Statistics sublevelStatistics = statistics.getChild(sublevelChildName);
+                ResourceDescriptionResolver sublevelResourceDescriptionResolver = new StandardResourceDescriptionResolver(
+                        sublevelChildName, sublevelStatistics.getResourceBundleName(), sublevelStatistics.getClass().getClassLoader());
+                resourceRegistration.registerSubModel(
+                        // new ManagementChildrenResourceDefinition(PathElement.pathElement(sublevelChildName), sublevelResourceDescriptionResolver, sublevelStatistics, entityManagerFactoryLookup));
+                        new ManagementResourceDefinition(PathElement.pathElement(sublevelChildName), sublevelResourceDescriptionResolver, sublevelStatistics, entityManagerFactoryLookup));
 
-        for( final String sublevelChildName : statistics.getChildrenNames()) {
-            Statistics sublevelStatistics = statistics.getChildren(sublevelChildName);
-            ResourceDescriptionResolver sublevelResourceDescriptionResolver = new StandardResourceDescriptionResolver(
-                    sublevelChildName, sublevelStatistics.getResourceBundleName(), sublevelStatistics.getClass().getClassLoader());
-            resourceRegistration.registerSubModel(
-                    new ManagementResourceDefinition(PathElement.pathElement(sublevelChildName), sublevelResourceDescriptionResolver, sublevelStatistics, entityManagerFactoryLookup));
-        }
-
+            }
         }
 
         @Override
@@ -189,8 +190,12 @@ public class ManagementAccess {
                                      "operation-headers" => {"caller-type" => "user"}
                                  }
                                  */
-
-                                Object result = statistics.getValue(statisticName, entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(statisticName));
+                                final String dynamicName = PathAddress.pathAddress(operation.get(ADDRESS)).getLastElement().getValue();
+                                Object result = statistics.getValue(
+                                        statisticName,
+                                        entityManagerFactoryLookup,
+                                        StatisticNameLookup.statisticNameLookup(statisticName),
+                                        DynamicNameLookup.dynamicNameLookup(dynamicName));
                                 if (result != null) {
                                     response.set(result.toString());
                                 }
@@ -203,7 +208,12 @@ public class ManagementAccess {
                             new AbstractMetricsHandler() {
                                 @Override
                                 void handle(final ModelNode response, OperationContext context, final ModelNode operation) {
-                                    Object oldSetting = statistics.getValue(statisticName, entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(statisticName));
+                                    final String dynamicName = PathAddress.pathAddress(operation.get(ADDRESS)).getLastElement().getValue();
+                                    Object oldSetting = statistics.getValue(
+                                            statisticName,
+                                            entityManagerFactoryLookup,
+                                            StatisticNameLookup.statisticNameLookup(statisticName),
+                                            DynamicNameLookup.dynamicNameLookup(dynamicName));
                                     {
                                         final ModelNode value = operation.get(ModelDescriptionConstants.VALUE).resolve();
 
@@ -226,7 +236,10 @@ public class ManagementAccess {
                                         }
                                     });
 
-                                    Object result = statistics.getValue(statisticName, entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(statisticName));
+                                    Object result = statistics.getValue(
+                                            statisticName, entityManagerFactoryLookup,
+                                            StatisticNameLookup.statisticNameLookup(statisticName),
+                                            DynamicNameLookup.dynamicNameLookup(dynamicName));
                                     if (result != null) {
                                         response.set(result.toString());
                                     }
@@ -260,7 +273,11 @@ public class ManagementAccess {
                     new AbstractMetricsHandler() {
                         @Override
                         void handle(final ModelNode response, OperationContext context, final ModelNode operation) {
-                            Object result = statistics.getValue(statisticName, entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(statisticName));
+                            final String dynamicName = PathAddress.pathAddress(operation.get(ADDRESS)).getLastElement().getValue();
+                            Object result = statistics.getValue(
+                                    statisticName, entityManagerFactoryLookup,
+                                    StatisticNameLookup.statisticNameLookup(statisticName),
+                                    DynamicNameLookup.dynamicNameLookup(dynamicName));
                             if (result != null) {
                                 response.set(result.toString());
                             }
@@ -270,6 +287,61 @@ public class ManagementAccess {
                     SimpleOperationDefinition definition =
                         new SimpleOperationDefinition(statisticName, descriptionResolver, attributeDefinition);
                     resourceRegistration.registerOperationHandler(definition, operationHandler);
+                }
+            }
+        }
+    }
+
+    private static class ManagementChildrenResourceDefinition extends SimpleResourceDefinition {
+
+        private final Statistics statistics;
+        private final EntityManagerFactoryLookup entityManagerFactoryLookup;
+        private final ResourceDescriptionResolver descriptionResolver;
+        private final PathElement pathElement;
+
+        public ManagementChildrenResourceDefinition(
+                final PathElement pathElement,
+                final ResourceDescriptionResolver descriptionResolver,
+                final Statistics statistics,
+                final EntityManagerFactoryLookup entityManagerFactoryLookup) {
+            super(pathElement, descriptionResolver);
+            this.pathElement = pathElement;
+            this.statistics = statistics;
+            this.entityManagerFactoryLookup = entityManagerFactoryLookup;
+            this.descriptionResolver = descriptionResolver;
+        }
+
+        private ModelType getModelType(Class type) {
+
+            if(Integer.class.equals(type)) {
+                return ModelType.INT;
+            }
+            else if(Long.class.equals(type)) {
+                return ModelType.LONG;
+            }
+            else if(String.class.equals(type)) {
+                return ModelType.STRING;
+            }
+            else if(Boolean.class.equals(type)) {
+                return ModelType.BOOLEAN;
+            }
+            return ModelType.OBJECT;
+        }
+
+        @Override
+        public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
+            super.registerAttributes(resourceRegistration);
+
+            for(final String statisticName: statistics.getNames()) {
+
+                if (statistics.isAttribute(statisticName)) {
+                    AttributeDefinition attributeDefinition =
+                            new SimpleAttributeDefinitionBuilder(statisticName, getModelType(statistics.getType(statisticName)), true)
+                                    .setXmlName(statisticName)
+                                    .setAllowExpression(true)
+                                    .setFlags(AttributeAccess.Flag.STORAGE_RUNTIME)
+                                    .build();
+                    resourceRegistration.registerReadOnlyAttribute(attributeDefinition, null);
                 }
             }
         }
