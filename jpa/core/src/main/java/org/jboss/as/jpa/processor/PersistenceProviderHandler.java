@@ -22,7 +22,7 @@
 
 package org.jboss.as.jpa.processor;
 
-import static org.jboss.as.jpa.JpaMessages.MESSAGES;
+import static org.jboss.as.jpa.messages.JpaMessages.MESSAGES;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;

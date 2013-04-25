@@ -22,13 +22,14 @@
 
 package org.jboss.as.jpa.transaction;
 
-import static org.jboss.as.jpa.JpaLogger.JPA_LOGGER;
-import static org.jboss.as.jpa.JpaMessages.MESSAGES;
+import static org.jboss.as.jpa.messages.JpaLogger.JPA_LOGGER;
+import static org.jboss.as.jpa.messages.JpaMessages.MESSAGES;
 
 import java.util.Map;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.SynchronizationType;
 import javax.transaction.Status;
 import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
@@ -36,6 +37,7 @@ import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 import javax.transaction.TransactionSynchronizationRegistry;
 
+import org.jboss.as.jpa.container.AbstractEntityManager;
 import org.jboss.as.jpa.container.EntityManagerUtil;
 import org.jboss.as.jpa.container.ExtendedEntityManager;
 import org.jboss.tm.TxUtils;
@@ -106,12 +108,14 @@ public class TransactionUtil {
      * @param emf
      * @param scopedPuName
      * @param properties
+     * @param synchronizationType
      * @return
      */
-    public static EntityManager getOrCreateTransactionScopedEntityManager(EntityManagerFactory emf, String scopedPuName, Map properties) {
+    public static EntityManager getOrCreateTransactionScopedEntityManager(
+            final EntityManagerFactory emf, final String scopedPuName, final Map properties, final SynchronizationType synchronizationType) {
         EntityManager entityManager = getEntityManagerInTransactionRegistry(scopedPuName);
         if (entityManager == null) {
-            entityManager = EntityManagerUtil.createEntityManager(emf, properties);
+            entityManager = EntityManagerUtil.createEntityManager(emf, properties, synchronizationType);
             if (JPA_LOGGER.isDebugEnabled())
                 JPA_LOGGER.debugf("%s: created entity manager session %s", getEntityManagerDetails(entityManager),
                     getTransaction().toString());
@@ -119,6 +123,7 @@ public class TransactionUtil {
             registerSynchronization(entityManager, scopedPuName, autoCloseEntityManager);
             putEntityManagerInTransactionRegistry(scopedPuName, entityManager);
         } else {
+            testForMixedSyncronizationTypes(entityManager, scopedPuName, synchronizationType);
             if (JPA_LOGGER.isDebugEnabled()) {
                 JPA_LOGGER.debugf("%s: reuse entity manager session already in tx %s", getEntityManagerDetails(entityManager),
                     getTransaction().toString());
@@ -159,8 +164,20 @@ public class TransactionUtil {
         return result;
     }
 
+    /**
+     * throw error if jta transaction already has an UNSYNCHRONIZED persistence context and a SYNCHRONIZED persistence context
+     * is requested.  We are only fussy in this test, if the target component persistence context is SYNCHRONIZED.
+     */
+    private static void testForMixedSyncronizationTypes(EntityManager entityManager, String scopedPuName, final SynchronizationType targetSynchronizationType) {
+        if (SynchronizationType.SYNCHRONIZED.equals(targetSynchronizationType)
+                && entityManager instanceof AbstractEntityManager
+                && SynchronizationType.UNSYNCHRONIZED.equals( ((AbstractEntityManager)entityManager).getSynchronizationType())) {
+            throw MESSAGES.badSynchronizationTypeCombination(scopedPuName);
+        }
+    }
+
     private static EntityManager getEntityManagerInTransactionRegistry(String scopedPuName) {
-        return (EntityManager) getTransactionSynchronizationRegistry().getResource(scopedPuName);
+        return  (EntityManager)getTransactionSynchronizationRegistry().getResource(scopedPuName);
     }
 
     /**

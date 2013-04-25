@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import javax.persistence.SynchronizationType;
 import javax.persistence.ValidationMode;
 import javax.persistence.spi.PersistenceProvider;
 import javax.persistence.spi.PersistenceProviderResolverHolder;
@@ -52,13 +53,12 @@ import org.jboss.as.jpa.config.PersistenceProviderDeploymentHolder;
 import org.jboss.as.jpa.config.PersistenceUnitMetadataHolder;
 import org.jboss.as.jpa.container.TransactionScopedEntityManager;
 import org.jboss.as.jpa.interceptor.WebNonTxEmCloserAction;
+import org.jboss.as.jpa.management.ManagementAccess;
+import org.jboss.as.jpa.messages.JpaMessages;
 import org.jboss.as.jpa.persistenceprovider.PersistenceProviderLoader;
+import org.jboss.as.jpa.processor.SecondLevelCache.CacheDeploymentListener;
 import org.jboss.as.jpa.service.JPAService;
 import org.jboss.as.jpa.service.PersistenceUnitServiceImpl;
-import org.jboss.as.jpa.spi.ManagementAdaptor;
-import org.jboss.as.jpa.spi.PersistenceProviderAdaptor;
-import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
-import org.jboss.as.jpa.spi.PersistenceUnitService;
 import org.jboss.as.jpa.subsystem.PersistenceUnitRegistryImpl;
 import org.jboss.as.jpa.validator.SerializableValidatorFactory;
 import org.jboss.as.naming.ManagedReference;
@@ -92,10 +92,13 @@ import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistryException;
 import org.jboss.msc.service.ServiceTarget;
 import org.jboss.msc.value.ImmediateValue;
+import org.jipijapa.plugin.spi.ManagementAdaptor;
+import org.jipijapa.plugin.spi.PersistenceProviderAdaptor;
+import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
+import org.jipijapa.plugin.spi.PersistenceUnitService;
 
-import static org.jboss.as.jpa.JpaLogger.JPA_LOGGER;
-import static org.jboss.as.jpa.JpaLogger.ROOT_LOGGER;
-import static org.jboss.as.jpa.JpaMessages.MESSAGES;
+import static org.jboss.as.jpa.messages.JpaLogger.JPA_LOGGER;
+import static org.jboss.as.jpa.messages.JpaLogger.ROOT_LOGGER;
 import static org.jboss.as.server.Services.addServerExecutorDependency;
 
 /**
@@ -357,7 +360,15 @@ public class PersistenceUnitServiceHandler {
                 }
             }
 
-            adaptor.addProviderDependencies(phaseContext.getServiceRegistry(), serviceTarget, builder, pu);
+            try {
+                // save a thread local reference to the builder for setting up the second level cache dependencies
+                CacheDeploymentListener.setInternalDeploymentServiceBuilder(builder);
+                adaptor.addProviderDependencies(pu);
+            }
+            finally {
+                CacheDeploymentListener.clearInternalDeploymentServiceBuilder();
+            }
+
 
             /**
              * handle extension that binds a transaction scoped entity manager to specified JNDI location
@@ -384,7 +395,8 @@ public class PersistenceUnitServiceHandler {
                                             new TransactionScopedEntityManager(
                                                     pu.getScopedPersistenceUnitName(),
                                                     new HashMap(),
-                                                    value.getEntityManagerFactory()))));
+                                                    value.getEntityManagerFactory(),
+                                                    SynchronizationType.SYNCHRONIZED))));
                         }
 
                         @Override
@@ -436,7 +448,7 @@ public class PersistenceUnitServiceHandler {
             addManagementConsole(deploymentUnit, pu, adaptor);
 
         } catch (ServiceRegistryException e) {
-            throw MESSAGES.failedToAddPersistenceUnit(e, pu.getPersistenceUnitName());
+            throw JpaMessages.MESSAGES.failedToAddPersistenceUnit(e, pu.getPersistenceUnitName());
         }
     }
 
@@ -530,7 +542,7 @@ public class PersistenceUnitServiceHandler {
 
         }
         if (adaptor == null) {
-            throw MESSAGES.failedToGetAdapter(pu.getPersistenceProviderClassName());
+            throw JpaMessages.MESSAGES.failedToGetAdapter(pu.getPersistenceProviderClassName());
         }
         return adaptor;
     }
@@ -602,13 +614,13 @@ public class PersistenceUnitServiceHandler {
                     PersistenceProviderLoader.loadProviderModuleByName(persistenceProviderModule);
                     provider = getProviderByName(pu, persistenceProviderModule);
                 } catch (ModuleLoadException e) {
-                    throw MESSAGES.cannotLoadPersistenceProviderModule(e, persistenceProviderModule, persistenceProviderClassName);
+                    throw JpaMessages.MESSAGES.cannotLoadPersistenceProviderModule(e, persistenceProviderModule, persistenceProviderClassName);
                 }
             }
         }
 
         if (provider == null)
-            throw MESSAGES.persistenceProviderNotFound(persistenceProviderClassName);
+            throw JpaMessages.MESSAGES.persistenceProviderNotFound(persistenceProviderClassName);
         return provider;
     }
 
@@ -729,9 +741,9 @@ public class PersistenceUnitServiceHandler {
                 adaptor.doesScopedPersistenceUnitNameIdentifyCacheRegionName(pu)) {
             final String providerLabel = managementAdaptor.getIdentificationLabel();
             final String scopedPersistenceUnitName = pu.getScopedPersistenceUnitName();
+            Resource providerResource = ManagementAccess.createManagementStatisticsResource(managementAdaptor, scopedPersistenceUnitName);
 
-
-            Resource providerResource = managementAdaptor.createPersistenceUnitResource(scopedPersistenceUnitName, providerLabel);
+            // Resource providerResource = managementAdaptor.createPersistenceUnitResource(scopedPersistenceUnitName, providerLabel);
             ModelNode perPuNode = providerResource.getModel();
             perPuNode.get(SCOPED_UNIT_NAME).set(pu.getScopedPersistenceUnitName());
             // TODO this is a temporary hack into internals until DeploymentUnit exposes a proper Resource-based API

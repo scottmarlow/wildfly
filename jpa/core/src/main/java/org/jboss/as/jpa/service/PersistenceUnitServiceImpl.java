@@ -25,14 +25,13 @@ package org.jboss.as.jpa.service;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.spi.PersistenceProvider;
 import javax.sql.DataSource;
 
 import org.jboss.as.jpa.classloader.TempClassLoaderFactoryImpl;
-import org.jboss.as.jpa.spi.PersistenceProviderAdaptor;
-import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
-import org.jboss.as.jpa.spi.PersistenceUnitService;
 import org.jboss.as.jpa.subsystem.PersistenceUnitRegistryImpl;
 import org.jboss.as.jpa.util.JPAServiceNames;
 import org.jboss.as.naming.WritableServiceBasedNamingStore;
@@ -43,8 +42,11 @@ import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
+import org.jipijapa.plugin.spi.PersistenceProviderAdaptor;
+import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
+import org.jipijapa.plugin.spi.PersistenceUnitService;
 
-import static org.jboss.as.jpa.JpaLogger.JPA_LOGGER;
+import static org.jboss.as.jpa.messages.JpaLogger.JPA_LOGGER;
 
 /**
  * Persistence Unit service that is created for each deployed persistence unit that will be referenced by the
@@ -96,8 +98,10 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                     pu.setJtaDataSource(jtaDataSource.getOptionalValue());
                     pu.setNonJtaDataSource(nonJtaDataSource.getOptionalValue());
                     WritableServiceBasedNamingStore.pushOwner(deploymentUnitServiceName);
+                    beanManagerLookup();
                     entityManagerFactory = createContainerEntityManagerFactory();
                     persistenceUnitRegistry.add(getScopedPersistenceUnitName(), getValue());
+//                    addManagementConsole();
                     context.complete();
                 } catch (Throwable t) {
                     context.failed(new StartException(t));
@@ -110,6 +114,13 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
         context.asynchronous();
         executor.execute(task);
     }
+
+//    private void addManagementConsole() {
+//        ManagementAdaptor managementAdaptor = persistenceProviderAdaptor.getManagementAdaptor();
+//        if (managementAdaptor != null && managementAdaptor.getStatisticsPlugin() != null) {
+//            managementAdaptor.getStatisticsPlugin().setEntityManagerFactory(entityManagerFactory);
+//        }
+//    }
 
     @Override
     public void stop(final StopContext context) {
@@ -208,4 +219,22 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
             }
         }
     }
+
+    /**
+     * If the containing archive is a bean archive, the container must pass the BeanManager instance
+     * in the map with the key "javax.persistence.bean.manager".
+     *
+     * TODO: replace JNDI lookup with direct API for faster deployment.
+     */
+    private void beanManagerLookup() {
+        try {
+            InitialContext initialContext = new InitialContext();
+            Object beanManager = initialContext.lookup("java:comp/BeanManager");
+            properties.getValue().put("javax.persistence.bean.manager", beanManager);
+            initialContext.close();
+        } catch (NamingException ignore) {
+
+        }
+    }
+
 }

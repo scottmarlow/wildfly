@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2011, Red Hat, Inc., and individual contributors
+ * Copyright 2013, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -20,24 +20,29 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.jpa.container;
+package org.jboss.as.jpa.processor;
 
-import java.util.Map;
-
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.SynchronizationType;
+import org.jboss.as.jpa.processor.SecondLevelCache.CacheDeploymentListener;
+import org.jipijapa.core.EventListenerRegistration;
 
 /**
- * EntityManager utilities
+ * CacheDeploymentHelper
  *
  * @author Scott Marlow
  */
-public class EntityManagerUtil {
+public class CacheDeploymentHelper {
 
-    public static EntityManager createEntityManager(
-        EntityManagerFactory emf, Map properties, final SynchronizationType synchronizationType) {
-        return emf.createEntityManager(synchronizationType, properties);
+    private volatile CacheDeploymentListener listener;
+
+    public void register() {
+        listener = new CacheDeploymentListener();
+        EventListenerRegistration.add(listener);
     }
 
+    public void unregister() {
+        if (listener != null) {
+            EventListenerRegistration.remove(listener);
+            listener = null;
+        }
+    }
 }

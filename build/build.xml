@@ -470,7 +470,7 @@
         </module-def>
 
         <module-def name="javax.persistence.api">
-            <maven-resource group="org.hibernate.javax.persistence" artifact="hibernate-jpa-2.0-api"/>
+            <maven-resource group="org.hibernate.javax.persistence" artifact="hibernate-jpa-2.1-api"/>
         </module-def>
 
         <module-def name="javax.resource.api">
@@ -691,6 +691,7 @@
             <maven-resource group="org.hibernate" artifact="hibernate-core" />
             <maven-resource group="org.hibernate" artifact="hibernate-entitymanager" />
             <maven-resource group="org.hibernate" artifact="hibernate-infinispan"/>
+            <maven-resource group="com.fasterxml" artifact="classmate"/>
         </module-def>
 
         <module-def name="org.hibernate.commons-annotations">
@@ -859,19 +860,23 @@
         </module-def>
 
         <module-def name="org.jboss.as.jpa.hibernate" slot="3">
-            <maven-resource group="org.jboss.as" artifact="jboss-as-jpa-hibernate3"/>
+            <maven-resource group="org.jipijapa" artifact="hibernate3"/>
         </module-def>
 
         <module-def name="org.jboss.as.jpa.hibernate" slot="4">
-            <maven-resource group="org.jboss.as" artifact="jboss-as-jpa-hibernate4"/>
+            <maven-resource group="org.jipijapa" artifact="hibernate4-3"/>
         </module-def>
 
         <module-def name="org.jboss.as.jpa.openjpa">
-            <maven-resource group="org.jboss.as" artifact="jboss-as-jpa-openjpa"/>
+            <maven-resource group="org.jipijapa" artifact="openjpa"/>
         </module-def>
 
         <module-def name="org.jboss.as.jpa.spi">
-            <maven-resource group="org.jboss.as" artifact="jboss-as-jpa-spi"/>
+            <maven-resource group="org.jipijapa" artifact="spi"/>
+        </module-def>
+
+	<module-def name="org.jboss.as.jpa.spi">
+            <maven-resource group="org.jipijapa" artifact="core"/>
         </module-def>
 
         <module-def name="org.jboss.as.jpa.util">
