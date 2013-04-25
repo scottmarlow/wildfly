@@ -23,9 +23,7 @@
 package org.jboss.as.jpa.injectors;
 
 
-//import org.hibernate.ejb.EntityManagerFactoryImpl;
-
-import static org.jboss.as.jpa.JpaMessages.MESSAGES;
+import static org.jboss.as.jpa.messages.JpaMessages.MESSAGES;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

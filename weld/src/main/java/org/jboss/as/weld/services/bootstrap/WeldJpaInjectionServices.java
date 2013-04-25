@@ -77,14 +77,8 @@ public class WeldJpaInjectionServices implements JpaInjectionServices {
         final ServiceController<?> serviceController = serviceRegistry.getRequiredService(persistenceUnitServiceName);
         //now we have the service controller, as this method is only called at runtime the service should
         //always be up
-        final PersistenceUnitServiceImpl persistenceUnitService = (PersistenceUnitServiceImpl) serviceController.getValue();
-        return new ResourceReferenceFactory<EntityManager>() {
-            @Override
-            public ResourceReference<EntityManager> createResource() {
-                final TransactionScopedEntityManager result = new TransactionScopedEntityManager(scopedPuName, new HashMap<Object, Object>(), persistenceUnitService.getEntityManagerFactory());
-                return new SimpleResourceReference<EntityManager>(result);
-            }
-        };
+        PersistenceUnitServiceImpl persistenceUnitService = (PersistenceUnitServiceImpl) serviceController.getValue();
+        return new TransactionScopedEntityManager(scopedPuName, new HashMap<Object, Object>(), persistenceUnitService.getEntityManagerFactory(), context.synchronizationType());
     }
 
     @Override

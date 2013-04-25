@@ -70,8 +70,8 @@
         </dependency>
 
         <dependency>
-            <groupId>org.jboss.as</groupId>
-            <artifactId>jboss-as-jpa-spi</artifactId>
+            <groupId>org.jipijapa</groupId>
+            <artifactId>spi</artifactId>
         </dependency>
 
         <dependency>
@@ -86,6 +86,7 @@
         </dependency>
 
         <!-- External -->
+
 
         <dependency>
             <groupId>org.jboss.msc</groupId>
