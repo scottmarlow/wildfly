@@ -22,30 +22,15 @@
 
 package org.jboss.as.jpa.management;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADDRESS;
-
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jboss.as.controller.AbstractRuntimeOnlyHandler;
-import org.jboss.as.controller.AttributeDefinition;
-import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.OperationStepHandler;
-import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
-import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
-import org.jboss.as.controller.SimpleOperationDefinition;
-import org.jboss.as.controller.SimpleResourceDefinition;
-import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
 import org.jboss.as.controller.descriptions.StandardResourceDescriptionResolver;
-import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.jpa.spi.ManagementAdaptor;
-import org.jboss.dmr.ModelNode;
-import org.jboss.dmr.ModelType;
 import org.jipijapa.spi.statistics.Statistics;
 
 /**
@@ -91,271 +76,20 @@ public class ManagementAccess {
 
 
                 final Statistics statistics = managementAdaptor.getStatistics();
-                // setup statistics
+                // setup statistics (this used to be part of JPA subsystem startup)
                 ResourceDescriptionResolver resourceDescriptionResolver = new StandardResourceDescriptionResolver(
                         statistics.getResourceBundleKeyPrefix(), statistics.getResourceBundleName(), statistics.getClass().getClassLoader());
 
                 jpaSubsystemDeployments.registerSubModel(
                         new ManagementResourceDefinition(PathElement.pathElement(managementAdaptor.getIdentificationLabel()), resourceDescriptionResolver, statistics, entityManagerFactoryLookup));
 
-                result = new ManagementStatisticsResource(statistics, scopedPersistenceUnitName, managementAdaptor.getIdentificationLabel(), entityManagerFactoryLookup);
+                // create dynamic Resource implementation that can reflect the deployment specific names (e.g. jpa entity classname/Hibernate region name)
+                result = new DynamicManagementStatisticsResource(statistics, scopedPersistenceUnitName, managementAdaptor.getIdentificationLabel(), entityManagerFactoryLookup);
 
                 existingManagementStatisticsResource.put(managementAdaptor.getVersion(),result);
 
             }
             return result;
-        }
-    }
-
-    private static class ManagementResourceDefinition extends SimpleResourceDefinition {
-
-        private final Statistics statistics;
-        private final EntityManagerFactoryLookup entityManagerFactoryLookup;
-        private final ResourceDescriptionResolver descriptionResolver;
-        private final PathElement pathElement;
-
-        public ManagementResourceDefinition(
-                final PathElement pathElement,
-                final ResourceDescriptionResolver descriptionResolver,
-                final Statistics statistics,
-                final EntityManagerFactoryLookup entityManagerFactoryLookup) {
-            super(pathElement, descriptionResolver);
-            this.pathElement = pathElement;
-            this.statistics = statistics;
-            this.entityManagerFactoryLookup = entityManagerFactoryLookup;
-            this.descriptionResolver = descriptionResolver;
-        }
-
-        private ModelType getModelType(Class type) {
-
-            if(Integer.class.equals(type)) {
-                return ModelType.INT;
-            }
-            else if(Long.class.equals(type)) {
-                return ModelType.LONG;
-            }
-            else if(String.class.equals(type)) {
-                return ModelType.STRING;
-            }
-            else if(Boolean.class.equals(type)) {
-                return ModelType.BOOLEAN;
-            }
-            return ModelType.OBJECT;
-        }
-
-        @Override
-        public void registerChildren(ManagementResourceRegistration resourceRegistration) {
-            super.registerChildren(resourceRegistration);
-
-            // TODO: also do subsystem.get(CHILDREN, "entity-cache", MODEL_DESCRIPTION); // placeholder
-            // subsystem.get(CHILDREN, "entity-cache", DESCRIPTION).set(bundle.getString(HibernateDescriptionConstants.SECOND_LEVEL_CACHE));
-            // either roll the following loop into ManagementResourceDefinition (would only handle single level of nesting) or not
-            for( final String sublevelChildName : statistics.getChildrenNames()) {
-                Statistics sublevelStatistics = statistics.getChild(sublevelChildName);
-                ResourceDescriptionResolver sublevelResourceDescriptionResolver = new StandardResourceDescriptionResolver(
-                        sublevelChildName, sublevelStatistics.getResourceBundleName(), sublevelStatistics.getClass().getClassLoader());
-                resourceRegistration.registerSubModel(
-                        // new ManagementChildrenResourceDefinition(PathElement.pathElement(sublevelChildName), sublevelResourceDescriptionResolver, sublevelStatistics, entityManagerFactoryLookup));
-                        new ManagementResourceDefinition(PathElement.pathElement(sublevelChildName), sublevelResourceDescriptionResolver, sublevelStatistics, entityManagerFactoryLookup));
-
-            }
-        }
-
-        @Override
-        public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
-            super.registerAttributes(resourceRegistration);
-
-            for(final String statisticName: statistics.getNames()) {
-                AttributeDefinition attributeDefinition =
-                        new SimpleAttributeDefinitionBuilder(statisticName, getModelType(statistics.getType(statisticName)), true)
-                                .setXmlName(statisticName)
-                                .setAllowExpression(true)
-                                .setFlags(AttributeAccess.Flag.STORAGE_RUNTIME)
-                                .build();
-
-                if (statistics.isAttribute(statisticName)) {
-                    OperationStepHandler readHandler =
-                        new AbstractMetricsHandler() {
-                            @Override
-                            void handle(final ModelNode response, OperationContext context, final ModelNode operation) {
-                                /** TODO: npe for statistics==org.jboss.as.jpa.hibernate4.management.HibernateEntityCacheStatistics, statisticName==second-level-cache-count-in-memory
-                                 * {    "address" => [
-                                         ("deployment" => "2lc.jar"),
-                                         ("subsystem" => "jpa"),
-                                         ("hibernate-persistence-unit" => "2lc.jar#TEST_PU"),
-                                         ("entity-cache" => "entity-cache-region-name")
-                                     ],
-                                     "operation" => "read-attribute",
-                                     "name" => "second-level-cache-count-in-memory",
-                                     "operation-headers" => {"caller-type" => "user"}
-                                 }
-                                 */
-                                final String dynamicName = PathAddress.pathAddress(operation.get(ADDRESS)).getLastElement().getValue();
-                                Object result = statistics.getValue(
-                                        statisticName,
-                                        entityManagerFactoryLookup,
-                                        StatisticNameLookup.statisticNameLookup(statisticName),
-                                        DynamicNameLookup.dynamicNameLookup(dynamicName));
-                                if (result != null) {
-                                    response.set(result.toString());
-                                }
-                            }
-                        };
-
-                    // handle writeable attributes
-                    if (statistics.isWriteable(statisticName)) {
-                        OperationStepHandler writeHandler =
-                            new AbstractMetricsHandler() {
-                                @Override
-                                void handle(final ModelNode response, OperationContext context, final ModelNode operation) {
-                                    final String dynamicName = PathAddress.pathAddress(operation.get(ADDRESS)).getLastElement().getValue();
-                                    Object oldSetting = statistics.getValue(
-                                            statisticName,
-                                            entityManagerFactoryLookup,
-                                            StatisticNameLookup.statisticNameLookup(statisticName),
-                                            DynamicNameLookup.dynamicNameLookup(dynamicName));
-                                    {
-                                        final ModelNode value = operation.get(ModelDescriptionConstants.VALUE).resolve();
-
-                                        if (Boolean.class.equals(statistics.getType(statisticName))) {
-                                            statistics.setValue(statisticName, value.asBoolean(), entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(statisticName));
-                                        } else if(Integer.class.equals(statistics.getType(statisticName))) {
-                                            statistics.setValue(statisticName, value.asInt(), entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(statisticName));
-                                        } else if(Long.class.equals(statistics.getType(statisticName))) {
-                                            statistics.setValue(statisticName, value.asLong(), entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(statisticName));
-                                        } else {
-                                            statistics.setValue(statisticName, value.asString(), entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(statisticName));
-                                        }
-
-                                    }
-                                    final Object rollBackValue = oldSetting;
-                                    context.completeStep(new OperationContext.RollbackHandler() {
-                                        @Override
-                                        public void handleRollback(OperationContext context, ModelNode operation) {
-                                            statistics.setValue(statisticName,rollBackValue, entityManagerFactoryLookup, StatisticNameLookup.statisticNameLookup(statisticName));
-                                        }
-                                    });
-
-                                    Object result = statistics.getValue(
-                                            statisticName, entityManagerFactoryLookup,
-                                            StatisticNameLookup.statisticNameLookup(statisticName),
-                                            DynamicNameLookup.dynamicNameLookup(dynamicName));
-                                    if (result != null) {
-                                        response.set(result.toString());
-                                    }
-
-                                }
-                            };
-                        resourceRegistration.registerReadWriteAttribute(attributeDefinition, readHandler, writeHandler);
-
-                    }
-                    else {
-                        resourceRegistration.registerReadOnlyAttribute(attributeDefinition, readHandler);
-                    }
-                }
-            }
-        }
-
-        @Override
-        public void registerOperations(ManagementResourceRegistration resourceRegistration) {
-            super.registerOperations(resourceRegistration);
-
-            for(final String statisticName: statistics.getNames()) {
-                if(statistics.isOperation(statisticName)) {
-                    AttributeDefinition attributeDefinition =
-                            new SimpleAttributeDefinitionBuilder(statisticName, getModelType(statistics.getType(statisticName)), true)
-                                    .setXmlName(statisticName)
-                                    .setAllowExpression(true)
-                                    .setFlags(AttributeAccess.Flag.STORAGE_RUNTIME)
-                                    .build();
-
-                    OperationStepHandler operationHandler =
-                    new AbstractMetricsHandler() {
-                        @Override
-                        void handle(final ModelNode response, OperationContext context, final ModelNode operation) {
-                            final String dynamicName = PathAddress.pathAddress(operation.get(ADDRESS)).getLastElement().getValue();
-                            Object result = statistics.getValue(
-                                    statisticName, entityManagerFactoryLookup,
-                                    StatisticNameLookup.statisticNameLookup(statisticName),
-                                    DynamicNameLookup.dynamicNameLookup(dynamicName));
-                            if (result != null) {
-                                response.set(result.toString());
-                            }
-                        }
-                    };
-
-                    SimpleOperationDefinition definition =
-                        new SimpleOperationDefinition(statisticName, descriptionResolver, attributeDefinition);
-                    resourceRegistration.registerOperationHandler(definition, operationHandler);
-                }
-            }
-        }
-    }
-
-    private static class ManagementChildrenResourceDefinition extends SimpleResourceDefinition {
-
-        private final Statistics statistics;
-        private final EntityManagerFactoryLookup entityManagerFactoryLookup;
-        private final ResourceDescriptionResolver descriptionResolver;
-        private final PathElement pathElement;
-
-        public ManagementChildrenResourceDefinition(
-                final PathElement pathElement,
-                final ResourceDescriptionResolver descriptionResolver,
-                final Statistics statistics,
-                final EntityManagerFactoryLookup entityManagerFactoryLookup) {
-            super(pathElement, descriptionResolver);
-            this.pathElement = pathElement;
-            this.statistics = statistics;
-            this.entityManagerFactoryLookup = entityManagerFactoryLookup;
-            this.descriptionResolver = descriptionResolver;
-        }
-
-        private ModelType getModelType(Class type) {
-
-            if(Integer.class.equals(type)) {
-                return ModelType.INT;
-            }
-            else if(Long.class.equals(type)) {
-                return ModelType.LONG;
-            }
-            else if(String.class.equals(type)) {
-                return ModelType.STRING;
-            }
-            else if(Boolean.class.equals(type)) {
-                return ModelType.BOOLEAN;
-            }
-            return ModelType.OBJECT;
-        }
-
-        @Override
-        public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
-            super.registerAttributes(resourceRegistration);
-
-            for(final String statisticName: statistics.getNames()) {
-
-                if (statistics.isAttribute(statisticName)) {
-                    AttributeDefinition attributeDefinition =
-                            new SimpleAttributeDefinitionBuilder(statisticName, getModelType(statistics.getType(statisticName)), true)
-                                    .setXmlName(statisticName)
-                                    .setAllowExpression(true)
-                                    .setFlags(AttributeAccess.Flag.STORAGE_RUNTIME)
-                                    .build();
-                    resourceRegistration.registerReadOnlyAttribute(attributeDefinition, null);
-                }
-            }
-        }
-    }
-
-    private abstract static class AbstractMetricsHandler extends AbstractRuntimeOnlyHandler {
-
-        abstract void handle(final ModelNode response, final OperationContext context, final ModelNode operation);
-
-        @Override
-        protected void executeRuntimeStep(final OperationContext context, final ModelNode operation) throws
-                OperationFailedException {
-            handle(context.getResult(), context, operation);
-            context.stepCompleted();
         }
     }
 }

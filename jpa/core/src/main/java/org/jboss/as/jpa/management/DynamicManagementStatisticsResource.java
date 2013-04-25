@@ -38,7 +38,7 @@ import org.jipijapa.spi.statistics.Statistics;
  * @author Brian Stansberry (c) 2011 Red Hat Inc.
  * @author Scott Marlow
  */
-public class ManagementStatisticsResource extends PlaceholderResource.PlaceholderResourceEntry {
+public class DynamicManagementStatisticsResource extends PlaceholderResource.PlaceholderResourceEntry {
 
     private final String puName;
     private final ModelNode model = new ModelNode();
@@ -46,7 +46,7 @@ public class ManagementStatisticsResource extends PlaceholderResource.Placeholde
     private final String identificationLabel;
     private final EntityManagerFactoryLookup entityManagerFactoryLookup;
 
-    public ManagementStatisticsResource(
+    public DynamicManagementStatisticsResource(
             final Statistics statistics,
             final String puName,
             final String identificationLabel,
@@ -202,8 +202,8 @@ public class ManagementStatisticsResource extends PlaceholderResource.Placeholde
     }
 
     @Override
-    public ManagementStatisticsResource clone() {
-        return new ManagementStatisticsResource(statistics, puName, identificationLabel, entityManagerFactoryLookup);
+    public DynamicManagementStatisticsResource clone() {
+        return new DynamicManagementStatisticsResource(statistics, puName, identificationLabel, entityManagerFactoryLookup);
     }
 
     private Statistics getStatistics() {
