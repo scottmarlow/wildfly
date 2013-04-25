@@ -138,7 +138,6 @@ public class JPAService implements Service<Void> {
             .addDependency(JPAUserTransactionListenerService.SERVICE_NAME)
             .install();
     }
-
     /**
      * Create single instance of management statistics resource per managementAdaptor version.
      *
