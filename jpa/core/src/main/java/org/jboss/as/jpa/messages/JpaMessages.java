@@ -22,7 +22,6 @@
 
 package org.jboss.as.jpa.messages;
 
-import java.io.File;
 import java.net.URLConnection;
 
 import javax.ejb.EJBException;
@@ -71,8 +70,8 @@ public interface JpaMessages {
      *
      * @return an {@link IllegalArgumentException} for the error.
      */
-    @Message(id = 11421, value = "Cannot change input stream reference.")
-    IllegalArgumentException cannotChangeInputStream();
+    //@Message(id = 11421, value = "Cannot change input stream reference.")
+    //IllegalArgumentException cannotChangeInputStream();
 
     /**
      * Creates an exception indicating the entity manager cannot be closed when it is managed by the container.
@@ -89,8 +88,8 @@ public interface JpaMessages {
      * @param entityManagerTypeName the entity manager type name.
      * @return a {@link RuntimeException} for the error.
      */
-    @Message(id = 11423, value = "Can only close SFSB XPC entity manager that are instances of ExtendedEntityManager %s")
-    RuntimeException cannotCloseNonExtendedEntityManager(String entityManagerTypeName);
+    //@Message(id = 11423, value = "Can only close SFSB XPC entity manager that are instances of ExtendedEntityManager %s")
+    //RuntimeException cannotCloseNonExtendedEntityManager(String entityManagerTypeName);
 
     /**
      * Creates an exception indicating the transactional entity manager cannot be closed when it is managed by the
@@ -151,8 +150,8 @@ public interface JpaMessages {
      * @param unitName the unit name.
      * @return a {@link DeploymentUnitProcessingException} for the error.
      */
-    @Message(id = 11429, value = "Cannot inject RESOURCE_LOCAL entity manager %s using <persistence-context-ref>")
-    DeploymentUnitProcessingException cannotInjectResourceLocalEntityManager(String unitName);
+    //@Message(id = 11429, value = "Cannot inject RESOURCE_LOCAL entity manager %s using <persistence-context-ref>")
+    //DeploymentUnitProcessingException cannotInjectResourceLocalEntityManager(String unitName);
 
     /**
      * Creates an exception indicating the persistence provider adapter module, represented by the {@code adapterModule}
@@ -163,8 +162,8 @@ public interface JpaMessages {
      * @param persistenceProviderClass the persistence provider class.
      * @return a {@link DeploymentUnitProcessingException} for the error.
      */
-    @Message(id = 11430, value = "Persistence provider adapter module (%s) load error (class %s)")
-    DeploymentUnitProcessingException cannotLoadAdapterModule(@Cause Throwable cause, String adapterModule, String persistenceProviderClass);
+    //@Message(id = 11430, value = "Persistence provider adapter module (%s) load error (class %s)")
+    //DeploymentUnitProcessingException cannotLoadAdapterModule(@Cause Throwable cause, String adapterModule, String persistenceProviderClass);
 
     /**
      * Creates an exception indicating the entity class could not be loaded with the
@@ -174,8 +173,8 @@ public interface JpaMessages {
      * @param className the entity class name.
      * @return a {@link RuntimeException} for the error.
      */
-    @Message(id = 11431, value = "Could not load entity class '%s' with PersistenceUnitInfo.getClassLoader()")
-    RuntimeException cannotLoadEntityClass(@Cause Throwable cause, String className);
+    //@Message(id = 11431, value = "Could not load entity class '%s' with PersistenceUnitInfo.getClassLoader()")
+    //RuntimeException cannotLoadEntityClass(@Cause Throwable cause, String className);
 
     /**
      * Creates an exception indicating the {@code injectionTypeName} could not be loaded from the JPA modules class
@@ -299,8 +298,8 @@ public interface JpaMessages {
      * @param parameterName the parameter name.
      * @return an {@link IllegalArgumentException} for the error.
      */
-    @Message(id = 11442, value = "Parameter %s is empty")
-    IllegalArgumentException emptyParameter(String parameterName);
+    //@Message(id = 11442, value = "Parameter %s is empty")
+    //IllegalArgumentException emptyParameter(String parameterName);
 
     /**
      * Creates an exception indicating there was an error when trying to get the transaction associated with the
@@ -363,8 +362,8 @@ public interface JpaMessages {
      *
      * @return a {@link RuntimeException} for the error.
      */
-    @Message(id = 11450, value = "File %s not found")
-    RuntimeException fileNotFound(File file);
+    //@Message(id = 11450, value = "File %s not found")
+    //RuntimeException fileNotFound(File file);
 
     /**
      * Creates an exception indicating the persistence unit name contains an invalid character.
@@ -383,8 +382,8 @@ public interface JpaMessages {
      * @param name      the scope name that was supplied.
      * @return a {@link RuntimeException} for the error.
      */
-    @Message(id = 11452, value = "Scoped persistence name should be \"%s\" but was %s")
-    RuntimeException invalidScopeName(String validName, String name);
+    //@Message(id = 11452, value = "Scoped persistence name should be \"%s\" but was %s")
+    //RuntimeException invalidScopeName(String validName, String name);
 
     /**
      * Creates an exception indicating the inability to integrate the module, represented by the {@code integrationName}
@@ -405,8 +404,8 @@ public interface JpaMessages {
      *
      * @return a {@link RuntimeException} for the error.
      */
-    @Message(id = 11455, value = "Missing PersistenceUnitMetadata (thread local wasn't set)")
-    RuntimeException missingPersistenceUnitMetadata();
+    //@Message(id = 11455, value = "Missing PersistenceUnitMetadata (thread local wasn't set)")
+    //RuntimeException missingPersistenceUnitMetadata();
 
     /**
      * Creates an exception indicating the persistence provider adapter module, represented by the {@code adapterModule}
@@ -424,8 +423,8 @@ public interface JpaMessages {
      * @param sessionBean the stateful session bean.
      * @return a {@link RuntimeException} for the error.
      */
-    @Message(id = 11457, value = "More than one thread is invoking stateful session bean '%s' at the same time")
-    RuntimeException multipleThreadsInvokingSfsb(Object sessionBean);
+    //@Message(id = 11457, value = "More than one thread is invoking stateful session bean '%s' at the same time")
+    //RuntimeException multipleThreadsInvokingSfsb(Object sessionBean);
 
     /**
      * Creates an exception indicating more than one thread is using the entity manager instance at the same time.
@@ -433,8 +432,8 @@ public interface JpaMessages {
      * @param entityManager the entity manager.
      * @return a {@link RuntimeException} for the error.
      */
-    @Message(id = 11458, value = "More than one thread is using EntityManager instance '%s' at the same time")
-    RuntimeException multipleThreadsUsingEntityManager(EntityManager entityManager);
+    //@Message(id = 11458, value = "More than one thread is using EntityManager instance '%s' at the same time")
+    //RuntimeException multipleThreadsUsingEntityManager(EntityManager entityManager);
 
     /**
      * Creates an exception indicating the {@code name} was not set in the {@link org.jboss.invocation.InterceptorContext}.
@@ -451,8 +450,8 @@ public interface JpaMessages {
      *
      * @return a {@link RuntimeException} for the error.
      */
-    @Message(id = 11460, value = "Not yet implemented")
-    RuntimeException notYetImplemented();
+    //@Message(id = 11460, value = "Not yet implemented")
+    //RuntimeException notYetImplemented();
 
     /**
      * Creates an exception indicating the {@code description} is {@code null}.
@@ -480,8 +479,8 @@ public interface JpaMessages {
      * @param previous the previously defined object.
      * @return the message.
      */
-    @Message(id = 11463, value = "Previous object for class %s is %s instead of null")
-    String objectAlreadyDefined(Class<?> cls, Object previous);
+    //@Message(id = 11463, value = "Previous object for class %s is %s instead of null")
+    //String objectAlreadyDefined(Class<?> cls, Object previous);
 
     /**
      * Creates an exception indicating the parameter must be a ExtendedEntityManager
@@ -489,8 +488,8 @@ public interface JpaMessages {
      * @param gotClass
      * @return a {@link RuntimeException} for the error.
      */
-    @Message(id = 11465, value = "Internal error, expected parameter of type ExtendedEntityManager but instead got %s")
-    RuntimeException parameterMustBeExtendedEntityManager(String gotClass);
+    //@Message(id = 11465, value = "Internal error, expected parameter of type ExtendedEntityManager but instead got %s")
+    //RuntimeException parameterMustBeExtendedEntityManager(String gotClass);
 
     /**
      * Creates an exception indicating the persistence provider could not be found.

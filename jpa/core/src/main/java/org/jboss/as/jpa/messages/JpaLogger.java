@@ -102,9 +102,9 @@ public interface JpaLogger extends BasicLogger {
      *
      * @param cause the cause of the error.
      */
-    @LogMessage(level = ERROR)
-    @Message(id = 11404, value = "Could not load default persistence provider adaptor module.  Management attributes will not be registered for the adaptor")
-    void errorPreloadingDefaultProviderAdaptor(@Cause Throwable cause);
+    //@LogMessage(level = ERROR)
+    //@Message(id = 11404, value = "Could not load default persistence provider adaptor module.  Management attributes will not be registered for the adaptor")
+    //void errorPreloadingDefaultProviderAdaptor(@Cause Throwable cause);
 
     /**
      * Logs an error message indicating an exception occurred while preloading the default persistence provider module.
@@ -144,8 +144,8 @@ public interface JpaLogger extends BasicLogger {
      * @param cause     the cause of the error.
      * @param className the entity class name.
      */
-    @LogMessage(level = WARN)
-    @Message(id = 11408, value = "Could not load entity class '%s', ignoring this error and continuing with application deployment")
-    void cannotLoadEntityClass(@Cause Throwable cause, String className);
+    //@LogMessage(level = WARN)
+    //@Message(id = 11408, value = "Could not load entity class '%s', ignoring this error and continuing with application deployment")
+    //void cannotLoadEntityClass(@Cause Throwable cause, String className);
 
 }
