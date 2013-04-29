@@ -30,7 +30,7 @@ import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.registry.PlaceholderResource;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
-import org.jipijapa.spi.statistics.Statistics;
+import org.jipijapa.spi.Statistics;
 
 /**
  * Resource representing a JPA PersistenceUnit (from a persistence.xml) deployment.
