@@ -21,4 +21,9 @@ public class EntityManagerFactoryLookup implements EntityManagerFactoryAccess {
     public EntityManagerFactory entityManagerFactory() {
         return PersistenceUnitRegistryImpl.INSTANCE.getPersistenceUnitService(scopedPersistenceUnitName).getEntityManagerFactory();
     }
+
+    @Override
+    public String getScopedPersistenceUnitName() {
+        return scopedPersistenceUnitName;
+    }
 }
