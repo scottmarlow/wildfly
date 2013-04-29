@@ -28,13 +28,13 @@ import static org.jboss.as.jpa.messages.JpaMessages.MESSAGES;
 import java.util.List;
 
 import org.jboss.as.jpa.config.PersistenceUnitMetadataHolder;
-import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUtils;
 import org.jboss.as.server.deployment.SubDeploymentMarker;
 import org.jboss.as.server.deployment.module.ResourceRoot;
 import org.jboss.vfs.VirtualFile;
+import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
 
 /**
  * Perform scoped search for persistence unit name

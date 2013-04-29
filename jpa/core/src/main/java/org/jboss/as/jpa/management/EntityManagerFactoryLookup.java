@@ -3,7 +3,7 @@ package org.jboss.as.jpa.management;
 import javax.persistence.EntityManagerFactory;
 
 import org.jboss.as.jpa.subsystem.PersistenceUnitRegistryImpl;
-import org.jipijapa.spi.EntityManagerFactoryAccess;
+import org.jipijapa.management.spi.EntityManagerFactoryAccess;
 
 /**
  * EntityManagerFactoryLookup

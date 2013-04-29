@@ -25,7 +25,8 @@ package org.jboss.as.jpa.config;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
+import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
+
 
 /**
  * configuration properties that may appear in persistence.xml

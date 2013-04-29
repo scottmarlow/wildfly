@@ -35,9 +35,9 @@ import javax.xml.stream.XMLStreamReader;
 import org.jboss.as.jpa.config.Configuration;
 import org.jboss.as.jpa.config.PersistenceUnitMetadataHolder;
 import org.jboss.as.jpa.config.PersistenceUnitMetadataImpl;
-import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
 import org.jboss.metadata.parser.util.MetaDataElementParser;
 import org.jboss.metadata.property.PropertyReplacer;
+import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
 
 import static org.jboss.as.jpa.messages.JpaLogger.JPA_LOGGER;
 

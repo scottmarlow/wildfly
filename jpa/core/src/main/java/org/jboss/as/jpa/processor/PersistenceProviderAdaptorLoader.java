@@ -28,10 +28,6 @@ import static org.jboss.as.jpa.messages.JpaMessages.MESSAGES;
 import java.util.Map;
 import java.util.ServiceLoader;
 
-import org.jboss.as.jpa.spi.JtaManager;
-import org.jboss.as.jpa.spi.ManagementAdaptor;
-import org.jboss.as.jpa.spi.PersistenceProviderAdaptor;
-import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
 import org.jboss.as.jpa.transaction.JtaManagerImpl;
 import org.jboss.modules.Module;
 import org.jboss.modules.ModuleIdentifier;
@@ -40,6 +36,10 @@ import org.jboss.modules.ModuleLoader;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.msc.service.ServiceTarget;
+import org.jipijapa.plugin.spi.JtaManager;
+import org.jipijapa.plugin.spi.ManagementAdaptor;
+import org.jipijapa.plugin.spi.PersistenceProviderAdaptor;
+import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
 
 /**
  * Loads persistence provider adaptors

@@ -1,6 +1,6 @@
 package org.jboss.as.jpa.management;
 
-import org.jipijapa.spi.DynamicName;
+import org.jipijapa.management.spi.DynamicName;
 
 /**
  * DynamicNameLookup

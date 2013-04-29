@@ -30,8 +30,8 @@ import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
 import org.jboss.as.controller.descriptions.StandardResourceDescriptionResolver;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
-import org.jboss.as.jpa.spi.ManagementAdaptor;
-import org.jipijapa.spi.Statistics;
+import org.jipijapa.management.spi.Statistics;
+import org.jipijapa.plugin.spi.ManagementAdaptor;
 
 /**
  * ManagementAccess

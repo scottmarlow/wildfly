@@ -32,7 +32,6 @@ import javax.persistence.PersistenceUnit;
 import org.jboss.as.jpa.container.PersistenceUnitSearch;
 import org.jboss.as.jpa.container.TransactionScopedEntityManager;
 import org.jboss.as.jpa.service.PersistenceUnitServiceImpl;
-import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.weld.WeldMessages;
 import org.jboss.as.weld.util.ImmediateResourceReferenceFactory;
@@ -43,6 +42,7 @@ import org.jboss.weld.injection.spi.JpaInjectionServices;
 import org.jboss.weld.injection.spi.ResourceReference;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 import org.jboss.weld.injection.spi.helpers.SimpleResourceReference;
+import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
 
 public class WeldJpaInjectionServices implements JpaInjectionServices {
 

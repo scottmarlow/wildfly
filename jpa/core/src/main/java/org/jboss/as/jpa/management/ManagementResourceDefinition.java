@@ -41,7 +41,8 @@ import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
-import org.jipijapa.spi.Statistics;
+import org.jipijapa.management.spi.Statistics;
+
 
 /**
 * ManagementResourceDefinition

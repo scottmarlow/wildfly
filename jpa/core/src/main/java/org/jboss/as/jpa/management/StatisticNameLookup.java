@@ -1,6 +1,6 @@
 package org.jboss.as.jpa.management;
 
-import org.jipijapa.spi.StatisticName;
+import org.jipijapa.management.spi.StatisticName;
 
 /**
  * StatisticNameLookup
