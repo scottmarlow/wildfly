@@ -359,7 +359,7 @@ public class PersistenceUnitServiceHandler {
                 }
             }
 
-            adaptor.addProviderDependencies(phaseContext.getServiceRegistry(), serviceTarget, builder, pu);
+            adaptor.addProviderDependencies(builder, pu);
 
             /**
              * handle extension that binds a transaction scoped entity manager to specified JNDI location
