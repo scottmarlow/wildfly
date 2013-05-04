@@ -56,6 +56,7 @@ import org.jboss.as.jpa.interceptor.WebNonTxEmCloserAction;
 import org.jboss.as.jpa.management.ManagementAccess;
 import org.jboss.as.jpa.messages.JpaMessages;
 import org.jboss.as.jpa.persistenceprovider.PersistenceProviderLoader;
+import org.jboss.as.jpa.processor.SecondLevelCache.CacheDeploymentListener;
 import org.jboss.as.jpa.service.JPAService;
 import org.jboss.as.jpa.service.PersistenceUnitServiceImpl;
 import org.jboss.as.jpa.subsystem.PersistenceUnitRegistryImpl;
@@ -359,7 +360,15 @@ public class PersistenceUnitServiceHandler {
                 }
             }
 
-            adaptor.addProviderDependencies(builder, pu);
+            try {
+                // save a thread local reference to the builder for setting up the second level cache dependencies
+                CacheDeploymentListener.setInternalDeploymentServiceBuilder(builder);
+                adaptor.addProviderDependencies(pu);
+            }
+            finally {
+                CacheDeploymentListener.clearInternalDeploymentServiceBuilder();
+            }
+
 
             /**
              * handle extension that binds a transaction scoped entity manager to specified JNDI location

@@ -33,7 +33,6 @@ import org.jboss.modules.Module;
 import org.jboss.modules.ModuleIdentifier;
 import org.jboss.modules.ModuleLoadException;
 import org.jboss.modules.ModuleLoader;
-import org.jboss.msc.service.ServiceBuilder;
 import org.jipijapa.plugin.spi.JtaManager;
 import org.jipijapa.plugin.spi.ManagementAdaptor;
 import org.jipijapa.plugin.spi.PersistenceProviderAdaptor;
@@ -57,7 +56,7 @@ public class PersistenceProviderAdaptorLoader {
         }
 
         @Override
-        public void addProviderDependencies(ServiceBuilder<?> builder, PersistenceUnitMetadata pu) {
+        public void addProviderDependencies(PersistenceUnitMetadata pu) {
         }
 
         @Override

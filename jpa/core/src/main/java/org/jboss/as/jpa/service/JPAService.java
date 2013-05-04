@@ -28,6 +28,7 @@ import javax.transaction.TransactionManager;
 import javax.transaction.TransactionSynchronizationRegistry;
 
 import org.jboss.as.jpa.config.ExtendedPersistenceInheritance;
+import org.jboss.as.jpa.processor.CacheDeploymentHelper;
 import org.jboss.as.jpa.transaction.TransactionUtil;
 import org.jboss.as.jpa.util.JPAServiceNames;
 import org.jboss.as.txn.service.TransactionManagerService;
@@ -55,6 +56,7 @@ public class JPAService implements Service<Void> {
 
     private static volatile String defaultDataSourceName = null;
     private static volatile ExtendedPersistenceInheritance defaultExtendedPersistenceInheritance = null;
+    private final CacheDeploymentHelper cacheDeploymentHelper = new CacheDeploymentHelper();
 
     public static String getDefaultDataSourceName() {
         ROOT_LOGGER.tracef("JPAService.getDefaultDataSourceName() == %s", JPAService.defaultDataSourceName);
@@ -120,12 +122,12 @@ public class JPAService implements Service<Void> {
 
     @Override
     public void start(StartContext startContext) throws StartException {
-
+        cacheDeploymentHelper.register();
     }
 
     @Override
     public void stop(StopContext stopContext) {
-
+        cacheDeploymentHelper.unregister();
     }
 
     @Override
