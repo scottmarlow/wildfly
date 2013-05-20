@@ -149,7 +149,7 @@ public final class InfinispanSubsystemXMLReader_1_2 implements XMLElementReader<
         }
 
         // Backwards compatible default module
-        CacheContainerResourceDefinition.CACHE_CONTAINER_MODULE.parseAndSetParameter("org.jboss.as.jpa.hibernate:4", container, reader);
+        CacheContainerResourceDefinition.CACHE_CONTAINER_MODULE.parseAndSetParameter("org.hibernate", container, reader);
 
         ModelNode containerAddress = subsystemAddress.clone() ;
         containerAddress.add(ModelKeys.CACHE_CONTAINER, name);
