@@ -591,7 +591,7 @@ public interface JpaMessages {
      * @param classloader
      * @return a {@link RuntimeException} for the error.
      */
-    @Message(id = 11474, value = "Classloader '%s' has more than one Persistence provider adapter")
+    @Message(id = 11476, value = "Classloader '%s' has more than one Persistence provider adapter")
     RuntimeException classloaderHasMultipleAdapters(String classloader);
 
     /**
