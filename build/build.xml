@@ -702,7 +702,7 @@
             <maven-resource group="org.hibernate" artifact="hibernate-core" />
             <maven-resource group="org.hibernate" artifact="hibernate-entitymanager" />
             <maven-resource group="org.hibernate" artifact="hibernate-infinispan"/>
-            <maven-resource group="org.jipijapa"  artifact="hibernate4-3"/>
+            <maven-resource group="org.jipijapa"  artifact="jipijapa-hibernate4-3"/>
         </module-def>
 
         <module-def name="org.hibernate.commons-annotations">
@@ -875,15 +875,15 @@
         </module-def>
 <!-- TODO move other adapters to provider module(s) that user can create  -->
         <module-def name="org.jboss.as.jpa.hibernate" slot="3">
-            <maven-resource group="org.jipijapa" artifact="hibernate3"/>
+            <maven-resource group="org.jipijapa" artifact="jipijapa-hibernate3"/>
         </module-def>
 
         <module-def name="org.jboss.as.jpa.openjpa">
-            <maven-resource group="org.jipijapa" artifact="openjpa"/>
+            <maven-resource group="org.jipijapa" artifact="jipijapa-openjpa"/>
         </module-def>
 
         <module-def name="org.jboss.as.jpa.spi">
-            <maven-resource group="org.jipijapa" artifact="spi"/>
+            <maven-resource group="org.jipijapa" artifact="jipijapa-spi"/>
         </module-def>
 
         <module-def name="org.jboss.as.jpa.util">

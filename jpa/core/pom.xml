@@ -72,7 +72,7 @@
 
         <dependency>
             <groupId>org.jipijapa</groupId>
-            <artifactId>spi</artifactId>
+            <artifactId>jipijapa-spi</artifactId>
         </dependency>
 
         <dependency>
