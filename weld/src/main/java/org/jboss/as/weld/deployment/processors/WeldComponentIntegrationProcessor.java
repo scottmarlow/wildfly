@@ -21,6 +21,8 @@
  */
 package org.jboss.as.weld.deployment.processors;
 
+import static org.jboss.as.weld.util.Utils.getRootDeploymentUnit;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -35,6 +37,7 @@ import org.jboss.as.ee.component.EEModuleDescription;
 import org.jboss.as.ee.component.InterceptorDescription;
 import org.jboss.as.ee.component.interceptors.InterceptorOrder;
 import org.jboss.as.ee.component.interceptors.UserInterceptorFactory;
+import org.jboss.as.ee.weld.WeldDeploymentMarker;
 import org.jboss.as.ejb3.component.EJBComponentDescription;
 import org.jboss.as.ejb3.component.stateful.SerializedCdiInterceptorsKey;
 import org.jboss.as.ejb3.component.stateful.StatefulComponentDescription;
@@ -46,7 +49,6 @@ import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.reflect.ClassIndex;
 import org.jboss.as.server.deployment.reflect.DeploymentClassIndex;
 import org.jboss.as.weld.WeldBootstrapService;
-import org.jboss.as.ee.weld.WeldDeploymentMarker;
 import org.jboss.as.weld.WeldMessages;
 import org.jboss.as.weld.WeldStartService;
 import org.jboss.as.weld.ejb.EjbRequestScopeActivationInterceptor;
@@ -80,7 +82,7 @@ public class WeldComponentIntegrationProcessor implements DeploymentUnitProcesso
         }
 
 
-        final DeploymentUnit topLevelDeployment = deploymentUnit.getParent() == null ? deploymentUnit : deploymentUnit.getParent();
+        final DeploymentUnit topLevelDeployment = getRootDeploymentUnit(deploymentUnit);
         final EEModuleDescription eeModuleDescription = deploymentUnit.getAttachment(org.jboss.as.ee.component.Attachments.EE_MODULE_DESCRIPTION);
         final ServiceName weldBootstrapService = topLevelDeployment.getServiceName().append(WeldBootstrapService.SERVICE_NAME);
         final ServiceName weldStartService = topLevelDeployment.getServiceName().append(WeldStartService.SERVICE_NAME);
