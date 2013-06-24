@@ -334,8 +334,7 @@ public class PersistenceUnitServiceHandler {
             deploymentUnit.putAttachment(JpaAttachments.PERSISTENCE_UNIT_SERVICE_KEY, puServiceName);
 
             deploymentUnit.addToAttachmentList(Attachments.DEPLOYMENT_COMPLETE_SERVICES, puServiceName);
-            // add the PU service as a dependency to all EE components in this scope
-            addPUServiceDependencyToComponents(components, puServiceName);
+
             deploymentUnit.addToAttachmentList(Attachments.WEB_DEPENDENCIES, puServiceName);
 
             ServiceBuilder<PersistenceUnitService> builder = serviceTarget.addService(puServiceName, service);
