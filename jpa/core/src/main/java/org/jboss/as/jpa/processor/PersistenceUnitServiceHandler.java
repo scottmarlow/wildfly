@@ -226,8 +226,8 @@ public class PersistenceUnitServiceHandler {
      * @throws DeploymentUnitProcessingException
      *
      */
-    private static void addPuService(DeploymentPhaseContext phaseContext, ArrayList<PersistenceUnitMetadataHolder> puList,
-                                     boolean startEarly)
+    private static void addPuService(final DeploymentPhaseContext phaseContext, final ArrayList<PersistenceUnitMetadataHolder> puList,
+                                     final boolean startEarly)
         throws DeploymentUnitProcessingException {
 
         if (puList.size() > 0) {
@@ -268,15 +268,19 @@ public class PersistenceUnitServiceHandler {
                                     pu.getPersistenceUnitName(), deploymentUnit.getName());
                             }
                             else {
-                                deployPersistenceUnit(phaseContext, deploymentUnit, eeModuleDescription, components, serviceTarget, classLoader, pu, startEarly, provider, adaptor);
+                                // we need class file transformer to work, don't allow cdi bean manager to be access since that
+                                // could cause application classes to be loaded (workaround by setting jboss.as.jpa.classtransformer to false).  WFLY-1463
+                                final boolean allowCdiBeanManagerAccess = false;
+                                deployPersistenceUnit(phaseContext, deploymentUnit, eeModuleDescription, components, serviceTarget, classLoader, pu, startEarly, provider, adaptor, allowCdiBeanManagerAccess);
                             }
                         }
                         else { // !startEarly
                             if (twoPhaseBootStrapCapable) {
                                 deployPersistenceUnitPhaseTwo(phaseContext, deploymentUnit, eeModuleDescription, components, serviceTarget, classLoader, pu, provider, adaptor);
                             } else if (false == Configuration.needClassFileTransformer(pu)) {
+                                final boolean allowCdiBeanManagerAccess = true;
                                 // PUs that have Configuration.JPA_CONTAINER_CLASS_TRANSFORMER = false will start during INSTALL phase
-                                deployPersistenceUnit(phaseContext, deploymentUnit, eeModuleDescription, components, serviceTarget, classLoader, pu, startEarly, provider, adaptor);
+                                deployPersistenceUnit(phaseContext, deploymentUnit, eeModuleDescription, components, serviceTarget, classLoader, pu, startEarly, provider, adaptor, allowCdiBeanManagerAccess);
                             }
                         }
 
@@ -303,17 +307,21 @@ public class PersistenceUnitServiceHandler {
      * @param startEarly
      * @param provider
      * @param adaptor
+     * @param allowCdiBeanManagerAccess
      * @throws DeploymentUnitProcessingException
      */
     private static void deployPersistenceUnit(
-            DeploymentPhaseContext phaseContext,
-            DeploymentUnit deploymentUnit,
-            EEModuleDescription eeModuleDescription,
-            Collection<ComponentDescription> components,
-            ServiceTarget serviceTarget,
-            ModuleClassLoader classLoader,
+            final DeploymentPhaseContext phaseContext,
+            final DeploymentUnit deploymentUnit,
+            final EEModuleDescription eeModuleDescription,
+            final Collection<ComponentDescription> components,
+            final ServiceTarget serviceTarget,
+            final ModuleClassLoader classLoader,
             final PersistenceUnitMetadata pu,
-            boolean startEarly, PersistenceProvider provider, PersistenceProviderAdaptor adaptor) throws DeploymentUnitProcessingException {
+            final boolean startEarly,
+            final PersistenceProvider provider,
+            final PersistenceProviderAdaptor adaptor,
+            final boolean allowCdiBeanManagerAccess) throws DeploymentUnitProcessingException {
         pu.setClassLoader(classLoader);
         try {
             SerializableValidatorFactory validatorFactory = null;
@@ -372,7 +380,7 @@ public class PersistenceUnitServiceHandler {
 
             // JPA 2.1 sections 3.5.1 + 9.1 require the CDI bean manager to be passed to the peristence provider
             // if the persistence unit is contained in a deployment that is a CDI bean archive (has beans.xml).
-            if (WeldDeploymentMarker.isPartOfWeldDeployment(deploymentUnit)) {
+            if (allowCdiBeanManagerAccess && WeldDeploymentMarker.isPartOfWeldDeployment(deploymentUnit)) {
                 builder.addDependency(beanManagerServiceName(deploymentUnit),  new CastingInjector<BeanManager>(service.getBeanManagerInjector(), BeanManager.class));
             }
 
@@ -429,14 +437,14 @@ public class PersistenceUnitServiceHandler {
      * @throws DeploymentUnitProcessingException
      */
     private static void deployPersistenceUnitPhaseOne(
-            DeploymentPhaseContext phaseContext,
-            DeploymentUnit deploymentUnit,
-            EEModuleDescription eeModuleDescription,
-            Collection<ComponentDescription> components,
-            ServiceTarget serviceTarget,
-            ModuleClassLoader classLoader,
+            final DeploymentPhaseContext phaseContext,
+            final DeploymentUnit deploymentUnit,
+            final EEModuleDescription eeModuleDescription,
+            final Collection<ComponentDescription> components,
+            final ServiceTarget serviceTarget,
+            final ModuleClassLoader classLoader,
             final PersistenceUnitMetadata pu,
-            PersistenceProviderAdaptor adaptor) throws DeploymentUnitProcessingException {
+            final PersistenceProviderAdaptor adaptor) throws DeploymentUnitProcessingException {
         pu.setClassLoader(classLoader);
         try {
             SerializableValidatorFactory validatorFactory = null;
@@ -541,15 +549,15 @@ public class PersistenceUnitServiceHandler {
      * @throws DeploymentUnitProcessingException
      */
     private static void deployPersistenceUnitPhaseTwo(
-            DeploymentPhaseContext phaseContext,
-            DeploymentUnit deploymentUnit,
-            EEModuleDescription eeModuleDescription,
-            Collection<ComponentDescription> components,
-            ServiceTarget serviceTarget,
-            ModuleClassLoader classLoader,
+            final DeploymentPhaseContext phaseContext,
+            final DeploymentUnit deploymentUnit,
+            final EEModuleDescription eeModuleDescription,
+            final Collection<ComponentDescription> components,
+            final ServiceTarget serviceTarget,
+            final ModuleClassLoader classLoader,
             final PersistenceUnitMetadata pu,
-            PersistenceProvider provider,
-            PersistenceProviderAdaptor adaptor) throws DeploymentUnitProcessingException {
+            final PersistenceProvider provider,
+            final PersistenceProviderAdaptor adaptor) throws DeploymentUnitProcessingException {
         pu.setClassLoader(classLoader);
         try {
             SerializableValidatorFactory validatorFactory = null;
