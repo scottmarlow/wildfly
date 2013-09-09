@@ -29,6 +29,7 @@ import javax.enterprise.inject.spi.BeanManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.spi.PersistenceProvider;
 import javax.sql.DataSource;
+import javax.validation.ValidatorFactory;
 
 import org.jboss.as.jpa.beanmanager.ProxyBeanManager;
 import org.jboss.as.jpa.classloader.TempClassLoaderFactoryImpl;
@@ -43,6 +44,7 @@ import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
+import org.jipijapa.plugin.spi.EntityManagerFactoryBuilder;
 import org.jipijapa.plugin.spi.PersistenceProviderAdaptor;
 import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
 
@@ -66,6 +68,7 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
     private final InjectedValue<PhaseOnePersistenceUnitServiceImpl> phaseOnePersistenceUnitServiceInjectedValue = new InjectedValue<>();
 
     private static final String CDI_BEAN_MANAGER = "javax.persistence.bean.manager";
+    private static final String VALIDATOR_FACTORY = "javax.persistence.validation.factory";
 
     private final PersistenceProviderAdaptor persistenceProviderAdaptor;
     private final PersistenceProvider persistenceProvider;
@@ -73,6 +76,7 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
     private final ClassLoader classLoader;
     private final PersistenceUnitRegistryImpl persistenceUnitRegistry;
     private final ServiceName deploymentUnitServiceName;
+    private final ValidatorFactory validatorFactory;
 
     private volatile EntityManagerFactory entityManagerFactory;
     private volatile ProxyBeanManager proxyBeanManager;
@@ -83,13 +87,15 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
             final PersistenceProviderAdaptor persistenceProviderAdaptor,
             final PersistenceProvider persistenceProvider,
             final PersistenceUnitRegistryImpl persistenceUnitRegistry,
-            final ServiceName deploymentUnitServiceName) {
+            final ServiceName deploymentUnitServiceName,
+            final ValidatorFactory validatorFactory) {
         this.pu = pu;
         this.persistenceProviderAdaptor = persistenceProviderAdaptor;
         this.persistenceProvider = persistenceProvider;
         this.classLoader = classLoader;
         this.persistenceUnitRegistry = persistenceUnitRegistry;
         this.deploymentUnitServiceName = deploymentUnitServiceName;
+        this.validatorFactory = validatorFactory;
     }
 
     @Override
@@ -102,6 +108,12 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                     PhaseOnePersistenceUnitServiceImpl phaseOnePersistenceUnitService = phaseOnePersistenceUnitServiceInjectedValue.getOptionalValue();
                     WritableServiceBasedNamingStore.pushOwner(deploymentUnitServiceName);
 
+                    // as per JPA specification contract, always pass ValidatorFactory in via standard property before
+                    // creating container EntityManagerFactory
+                    if (validatorFactory != null) {
+                        properties.getValue().put(VALIDATOR_FACTORY, validatorFactory);
+                    }
+
                     // handle phase 2 of 2 of bootstrapping the persistence unit
                     if (phaseOnePersistenceUnitService != null) {
                         JPA_LOGGER.startingPersistenceUnitService(2, pu.getScopedPersistenceUnitName());
@@ -112,7 +124,16 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                             proxyBeanManager = phaseOnePersistenceUnitService.getBeanManager();
                             proxyBeanManager.setDelegate(beanManagerInjector.getOptionalValue());
                         }
-                        entityManagerFactory = phaseOnePersistenceUnitService.getEntityManagerFactoryBuilder().build();
+                        EntityManagerFactoryBuilder emfBuilder = phaseOnePersistenceUnitService.getEntityManagerFactoryBuilder();
+
+                        // always pass the ValidatorFactory before starting the second phase of the
+                        // persistence unit bootstrap.
+                        if (validatorFactory != null) {
+                            emfBuilder.withValidatorFactory(validatorFactory);
+                        }
+
+                        // get the EntityManagerFactory from the second phase of the persistence unit bootstrap
+                        entityManagerFactory = emfBuilder.build();
                     }
                     else {
                         JPA_LOGGER.startingService("Persistence Unit", pu.getScopedPersistenceUnitName());
