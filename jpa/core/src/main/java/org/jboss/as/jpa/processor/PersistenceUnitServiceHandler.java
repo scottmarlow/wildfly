@@ -349,7 +349,7 @@ public class PersistenceUnitServiceHandler {
             deploymentUnit.addToAttachmentList(Attachments.WEB_DEPENDENCIES, puServiceName);
 
             ServiceBuilder<PersistenceUnitService> builder = serviceTarget.addService(puServiceName, service);
-            boolean useDefaultDataSource = true;
+            boolean useDefaultDataSource = Configuration.allowDefaultDataSourceUse(pu);
             final String jtaDataSource = adjustJndi(pu.getJtaDataSourceName());
             final String nonJtaDataSource = adjustJndi(pu.getNonJtaDataSourceName());
 
@@ -483,7 +483,7 @@ public class PersistenceUnitServiceHandler {
             deploymentUnit.addToAttachmentList(Attachments.WEB_DEPENDENCIES, puServiceName);
 
             ServiceBuilder<PhaseOnePersistenceUnitServiceImpl> builder = serviceTarget.addService(puServiceName, service);
-            boolean useDefaultDataSource = true;
+            boolean useDefaultDataSource = Configuration.allowDefaultDataSourceUse(pu);
             final String jtaDataSource = adjustJndi(pu.getJtaDataSourceName());
             final String nonJtaDataSource = adjustJndi(pu.getNonJtaDataSourceName());
 
@@ -602,7 +602,7 @@ public class PersistenceUnitServiceHandler {
             // add dependency on first phase
             builder.addDependency(puServiceName.append(FIRST_PHASE), new CastingInjector<>(service.getPhaseOnePersistenceUnitServiceImplInjector(), PhaseOnePersistenceUnitServiceImpl.class));
 
-            boolean useDefaultDataSource = true;
+            boolean useDefaultDataSource = Configuration.allowDefaultDataSourceUse(pu);
             final String jtaDataSource = adjustJndi(pu.getJtaDataSourceName());
             final String nonJtaDataSource = adjustJndi(pu.getNonJtaDataSourceName());
 
