@@ -54,6 +54,7 @@ public class JPADefinition extends SimpleResourceDefinition {
 
     protected static final SimpleAttributeDefinition DEFAULT_DATASOURCE =
             new SimpleAttributeDefinitionBuilder(CommonAttributes.DEFAULT_DATASOURCE, ModelType.STRING, true)
+                    .setDeprecated(JPAExtension.MODEL_2_0_0)  // deprecated for WFLY-2212
                     .setAllowExpression(true)
                     .setXmlName(CommonAttributes.DEFAULT_DATASOURCE)
                     .setValidator(new StringLengthValidator(0, Integer.MAX_VALUE, true, true))

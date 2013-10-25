@@ -66,6 +66,9 @@ public class JPAExtension implements Extension {
 
     public static final String SUBSYSTEM_NAME = "jpa";
 
+    protected static final ModelVersion MODEL_2_0_0 = ModelVersion.create(2, 0, 0);
+
+    private static final JPASubsystemElementParser1_1 parser2_0 = new JPASubsystemElementParser1_1();   // 2.0 is the same as 1.1 + default ds is deprecated
     private static final JPASubsystemElementParser1_1 parser1_1 = new JPASubsystemElementParser1_1();
     private static final JPASubsystemElementParser1_0 parser1_0 = new JPASubsystemElementParser1_0();
 
@@ -78,8 +81,8 @@ public class JPAExtension implements Extension {
         }
         return new StandardResourceDescriptionResolver(prefix.toString(), RESOURCE_NAME, JPAExtension.class.getClassLoader(), true, false);
     }
-    private static final int MANAGEMENT_API_MAJOR_VERSION = 1;
-    private static final int MANAGEMENT_API_MINOR_VERSION = 2;
+    private static final int MANAGEMENT_API_MAJOR_VERSION = 2;
+    private static final int MANAGEMENT_API_MINOR_VERSION = 0;
     private static final int MANAGEMENT_API_MICRO_VERSION = 0;
 
 
@@ -89,7 +92,7 @@ public class JPAExtension implements Extension {
                 MANAGEMENT_API_MINOR_VERSION, MANAGEMENT_API_MICRO_VERSION);
         final ManagementResourceRegistration nodeRegistration = registration.registerSubsystemModel(JPADefinition.INSTANCE);
         nodeRegistration.registerOperationHandler(GenericSubsystemDescribeHandler.DEFINITION, GenericSubsystemDescribeHandler.INSTANCE);
-        registration.registerXMLElementWriter(parser1_1);
+        registration.registerXMLElementWriter(parser2_0);
 
         if (context.isRegisterTransformers()) {
             initializeTransformers_1_1_0(registration);
@@ -109,6 +112,7 @@ public class JPAExtension implements Extension {
 
     @Override
     public void initializeParsers(ExtensionParsingContext context) {
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.JPA_2_0.getUriString(), parser2_0);
         context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.JPA_1_1.getUriString(), parser1_1);
         context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.JPA_1_0.getUriString(), parser1_0);
     }
@@ -121,7 +125,7 @@ public class JPAExtension implements Extension {
             .addRejectCheck(RejectAttributeChecker.DEFINED, JPADefinition.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE)
             .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(new ModelNode(ExtendedPersistenceInheritance.DEEP.toString())), JPADefinition.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE)
             .end();
-        TransformationDescription.Tools.register(builder.build(), subsystemRegistration, ModelVersion.create(1, 1, 0));
+        TransformationDescription.Tools.register(builder.build(), subsystemRegistration, MODEL_2_0_0);
     }
 
     static class JPASubsystemElementParser1_1 implements XMLStreamConstants, XMLElementReader<List<ModelNode>>,

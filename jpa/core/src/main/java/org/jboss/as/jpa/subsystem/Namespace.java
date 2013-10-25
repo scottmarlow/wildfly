@@ -33,6 +33,7 @@ enum Namespace {
     UNKNOWN(null),
     JPA_1_0("urn:jboss:domain:jpa:1.0"),
     JPA_1_1("urn:jboss:domain:jpa:1.1"),
+    JPA_2_0("urn:jboss:domain:jpa:2.0"),
     ;
 
     private final String name;
