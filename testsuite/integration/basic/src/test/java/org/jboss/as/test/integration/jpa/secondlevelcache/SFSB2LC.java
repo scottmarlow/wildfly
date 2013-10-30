@@ -26,6 +26,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
 import java.util.List;
 
 import javax.ejb.Stateful;
@@ -142,7 +147,25 @@ public class SFSB2LC {
 			// add new entity
 			createEmployee(em, "David", "Praha", 10);
 			assertEquals("There is 1 put in the 2LC"+generateEntityCacheStats(emp2LCStats), 1, emp2LCStats.getPutCount());
-			
+            try {
+             //System.out.println("xxxx");
+             //Thread.dumpStack();
+             ByteArrayOutputStream stream = new ByteArrayOutputStream();
+           		ObjectOutput out = new ObjectOutputStream( stream );
+           		out.writeObject( em );
+                out.writeObject( em.getEntityManagerFactory() );
+             out.close();
+             byte[] serialized = stream.toByteArray();
+       		stream.close();
+       		ByteArrayInputStream byteIn = new ByteArrayInputStream( serialized );
+       		ObjectInputStream in = new ObjectInputStream( byteIn );
+       		// /*em =(EntityManager)*/  in.readObject();
+       		in.close();
+       		byteIn.close();
+         } catch (Exception e) {
+             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+         }
+
 		}catch (AssertionError e) {
 			return e.getMessage();
 		}	finally{

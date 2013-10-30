@@ -22,6 +22,13 @@
 
 package org.jboss.as.test.integration.jpa.secondlevelcache;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
+import java.lang.RuntimeException;
+
 import javax.ejb.Stateful;
 import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
@@ -46,7 +53,28 @@ public class SFSB1 {
     }
 
     public Employee getEmployeeNoTX(int id) {
+        try {
         return em.find(Employee.class, id, LockModeType.NONE);
+        }
+        finally {
+            try {
+                ByteArrayOutputStream stream = new ByteArrayOutputStream();
+              		ObjectOutput out = new ObjectOutputStream( stream );
+              		out.writeObject( em.getEntityManagerFactory() );
+                out.close();
+                byte[] serialized = stream.toByteArray();
+          		stream.close();
+          		ByteArrayInputStream byteIn = new ByteArrayInputStream( serialized );
+          		ObjectInputStream in = new ObjectInputStream( byteIn );
+          		/*em =(EntityManager)*/  in.readObject();
+          		in.close();
+          		byteIn.close();
+            } catch (Exception e) {
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                throw new RuntimeException(e.getMessage(),e);
+            }
+
+        }
     }
 
 }
