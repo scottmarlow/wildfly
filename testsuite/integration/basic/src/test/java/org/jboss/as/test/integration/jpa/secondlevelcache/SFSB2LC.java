@@ -26,6 +26,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.List;
 
 import javax.ejb.Stateful;
@@ -48,7 +53,7 @@ import org.hibernate.stat.Statistics;
  */
 @Stateful
 @TransactionManagement(TransactionManagementType.CONTAINER)
-public class SFSB2LC {
+public class SFSB2LC implements Serializable {
 	@PersistenceUnit(unitName = "mypc")
 	EntityManagerFactory emf;
 
@@ -427,5 +432,47 @@ public class SFSB2LC {
 
 		return query.getResultList();
 	}
+
+    public void serializeEntityManager() throws Exception {
+        EntityManager entityManager = emf.createEntityManager();
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
+
+        objectOutputStream.writeObject(entityManager);
+
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
+        ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
+        entityManager = (EntityManager)objectInputStream.readObject();
+        entityManager.getEntityManagerFactory();
+    }
+
+
+    public void serializeEntityManagerFactory() throws Exception {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
+
+        objectOutputStream.writeObject(emf);
+
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
+        ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
+        Object factory = objectInputStream.readObject();
+        if (factory == null) {
+            throw new RuntimeException("deserialization returned null entity manager factory");
+        }
+    }
+
+    public void serializeBean() throws Exception {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
+
+        objectOutputStream.writeObject(this);
+
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
+        ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream);
+        Object factory = objectInputStream.readObject();
+        if (factory == null) {
+            throw new RuntimeException("deserialization returned null");
+        }
+    }
 
 }

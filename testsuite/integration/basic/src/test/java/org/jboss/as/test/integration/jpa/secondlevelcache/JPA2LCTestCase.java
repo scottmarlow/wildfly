@@ -26,6 +26,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.Serializable;
 import java.sql.Connection;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -49,7 +50,7 @@ import org.junit.runners.MethodSorters;
  * @author Scott Marlow and Zbynek Roubalik
  */
 @RunWith(Arquillian.class)
-public class JPA2LCTestCase {
+public class JPA2LCTestCase implements Serializable {
 
     private static final String ARCHIVE_NAME = "jpa_SecondLevelCacheTestCase";
 
@@ -251,5 +252,27 @@ public class JPA2LCTestCase {
         }
 
     }
+
+    @Test
+    @InSequence(9)
+    public void testSerialize() throws Exception {
+        SFSB2LC sfsb = lookup("SFSB2LC", SFSB2LC.class);
+        sfsb.serializeEntityManager();
+    }
+
+    @Test
+    @InSequence(10)
+    public void testSerializeEntityManagerFactory() throws Exception {
+        SFSB2LC sfsb = lookup("SFSB2LC", SFSB2LC.class);
+        sfsb.serializeEntityManagerFactory();
+    }
+
+    @Test
+    @InSequence(11)
+    public void testSerializeBean() throws Exception {
+        SFSB2LC sfsb = lookup("SFSB2LC", SFSB2LC.class);
+        sfsb.serializeBean();
+    }
+
 
 }

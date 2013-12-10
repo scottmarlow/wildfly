@@ -22,6 +22,8 @@
 
 package org.jboss.as.test.integration.jpa.secondlevelcache;
 
+import java.io.Serializable;
+
 import javax.persistence.Cacheable;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -33,7 +35,7 @@ import javax.persistence.Id;
  */
 @Entity
 @Cacheable(true)
-public class Employee  {
+public class Employee implements Serializable {
 
     @Id
     private int id;
