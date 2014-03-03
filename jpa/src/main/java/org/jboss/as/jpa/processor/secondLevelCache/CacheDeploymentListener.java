@@ -44,6 +44,7 @@ public class CacheDeploymentListener implements EventListener {
 
     public CacheDeploymentListener() {
         delegates.put(Classification.INFINISPAN.getLocalName(), new InfinispanCacheDeploymentListener());
+        delegates.put(Classification.SHAREDCLUSTER.getLocalName(), new ClusteredCacheDeploymentListener());
     }
 
     public static void setInternalDeploymentServiceBuilder(ServiceBuilder serviceBuilder) {
