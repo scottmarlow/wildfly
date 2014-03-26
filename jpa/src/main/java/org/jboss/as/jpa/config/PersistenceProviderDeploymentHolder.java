@@ -83,7 +83,12 @@ public class PersistenceProviderDeploymentHolder {
             deploymentUnit.putAttachment(JpaAttachments.DEPLOYED_PERSISTENCE_PROVIDER, persistenceProviderDeploymentHolder);
         }
         else {
-            persistenceProviderDeploymentHolder.providerList.addAll(providerList);
+            if (persistenceProviderDeploymentHolder.providerList.size() > 0) {
+                persistenceProviderDeploymentHolder.providerList.addAll(0, providerList);
+            }
+            else {
+                persistenceProviderDeploymentHolder.providerList.addAll(providerList);
+            }
             if (adaptorList != null) {
                 persistenceProviderDeploymentHolder.adapterList.addAll(adaptorList);
             }
