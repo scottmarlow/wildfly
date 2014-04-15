@@ -83,10 +83,11 @@ public class PersistenceContextInjectionSource extends InjectionSource {
      * @param jpaDeploymentSettings Optional {@link JPADeploymentSettings} applicable for the persistence context
      */
     public PersistenceContextInjectionSource(final PersistenceContextType type, final SynchronizationType synchronizationType , final Map properties, final ServiceName puServiceName,
-                                             final ServiceRegistry serviceRegistry, final String scopedPuName, final String injectionTypeName, final PersistenceUnitMetadata pu, final JPADeploymentSettings jpaDeploymentSettings) {
+                                             final ServiceRegistry serviceRegistry, final String scopedPuName, final String injectionTypeName, final PersistenceUnitMetadata pu,
+                                             final JPADeploymentSettings jpaDeploymentSettings, final String targetClassName) {
 
         this.type = type;
-        injectable = new PersistenceContextJndiInjectable(puServiceName, serviceRegistry, this.type, synchronizationType , properties, scopedPuName, injectionTypeName, pu, jpaDeploymentSettings);
+        injectable = new PersistenceContextJndiInjectable(puServiceName, serviceRegistry, this.type, synchronizationType , properties, scopedPuName, injectionTypeName, pu, jpaDeploymentSettings, targetClassName);
         this.puServiceName = puServiceName;
     }
 
@@ -119,6 +120,7 @@ public class PersistenceContextInjectionSource extends InjectionSource {
         private final String injectionTypeName;
         private final PersistenceUnitMetadata pu;
         private final JPADeploymentSettings jpaDeploymentSettings;
+        private final String targetClassName;
 
         private static final String ENTITY_MANAGER_CLASS = "javax.persistence.EntityManager";
 
@@ -131,7 +133,8 @@ public class PersistenceContextInjectionSource extends InjectionSource {
             final String unitName,
             final String injectionTypeName,
             final PersistenceUnitMetadata pu,
-            final JPADeploymentSettings jpaDeploymentSettings) {
+            final JPADeploymentSettings jpaDeploymentSettings,
+            final String targetClassName) {
 
             this.puServiceName = puServiceName;
             this.serviceRegistry = serviceRegistry;
@@ -142,6 +145,7 @@ public class PersistenceContextInjectionSource extends InjectionSource {
             this.pu = pu;
             this.synchronizationType = synchronizationType;
             this.jpaDeploymentSettings = jpaDeploymentSettings;
+            this.targetClassName = targetClassName;
         }
 
         @Override
@@ -165,10 +169,10 @@ public class PersistenceContextInjectionSource extends InjectionSource {
                 ExtendedEntityManager entityManager1;
                 // handle PersistenceContextType.EXTENDED
                 if (useDeepInheritance) {
-                    entityManager1 = ExtendedPersistenceDeepInheritance.INSTANCE.findExtendedPersistenceContext(unitName);
+                    entityManager1 = ExtendedPersistenceDeepInheritance.INSTANCE.findExtendedPersistenceContext(unitName, targetClassName);
                 }
                 else {
-                    entityManager1 = ExtendedPersistenceShallowInheritance.INSTANCE.findExtendedPersistenceContext(unitName);
+                    entityManager1 = ExtendedPersistenceShallowInheritance.INSTANCE.findExtendedPersistenceContext(unitName, targetClassName);
                 }
 
                 if (entityManager1 == null) {

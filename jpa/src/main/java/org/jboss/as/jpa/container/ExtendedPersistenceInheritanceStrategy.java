@@ -51,8 +51,9 @@ public interface ExtendedPersistenceInheritanceStrategy {
      * PostConstruct has been invoked.
      *
      * @param puScopedName Scoped pu name
+     * @param targetClassName target class name
      *
      * @return the extended persistence context that matches puScopedName or null if not found
      */
-    ExtendedEntityManager findExtendedPersistenceContext(String puScopedName);
+    ExtendedEntityManager findExtendedPersistenceContext(String puScopedName, String targetClassName);
 }

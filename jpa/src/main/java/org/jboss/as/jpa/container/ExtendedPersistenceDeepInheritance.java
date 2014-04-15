@@ -24,6 +24,8 @@ package org.jboss.as.jpa.container;
 
 import java.util.Map;
 
+import static org.jboss.as.jpa.messages.JpaMessages.MESSAGES;
+
 /**
  * ExtendedPersistenceInheritance.DEEP inheritance strategy where we can inherit from any bean being created or from the
  * parent bean call stack.
@@ -42,9 +44,12 @@ public final class ExtendedPersistenceDeepInheritance implements ExtendedPersist
     }
 
     @Override
-    public ExtendedEntityManager findExtendedPersistenceContext(String puScopedName) {
+    public ExtendedEntityManager findExtendedPersistenceContext(String puScopedName, String targetClassName) {
         ExtendedEntityManager result;
         SFSBInjectedXPCs currentInjectedXPCs = SFSBCallStack.getSFSBCreationTimeInjectedXPCs();
+        if (null == currentInjectedXPCs) {  // targetClassName is not a SFSB EJB
+            throw MESSAGES.EntityManagerOnlyInSFSB(puScopedName, targetClassName);
+        }
         // will look directly at the top level bean being created (registerExtendedPersistenceContext() registers xpc there).
         result = currentInjectedXPCs.findExtendedPersistenceContextDeepInheritance(puScopedName);
 

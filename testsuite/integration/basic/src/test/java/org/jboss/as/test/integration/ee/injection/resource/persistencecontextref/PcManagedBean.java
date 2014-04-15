@@ -24,6 +24,7 @@ package org.jboss.as.test.integration.ee.injection.resource.persistencecontextre
 import javax.annotation.ManagedBean;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.PersistenceContextType;
 
 /**
  * Managed bean with persistence unit definitions.
@@ -38,6 +39,10 @@ public class PcManagedBean {
     //this one will be overridden via deployment descriptor to be otherpu
     @PersistenceContext(unitName = "mypc", name = "otherPcBinding")
     private EntityManager otherpc;
+
+    // WFLY-827
+    @PersistenceContext(unitName = "notUsedXPC", type = PersistenceContextType.EXTENDED)
+    private EntityManager notUsedXPC;
 
     //this one is injected via deployment descriptor
     private EntityManager mypc2;

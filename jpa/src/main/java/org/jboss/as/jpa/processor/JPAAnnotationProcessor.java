@@ -323,7 +323,7 @@ public class JPAAnnotationProcessor implements DeploymentUnitProcessor {
             }
             // get deployment settings from top level du (jboss-all.xml is only parsed at the top level).
             final JPADeploymentSettings jpaDeploymentSettings = DeploymentUtils.getTopDeploymentUnit(deploymentUnit).getAttachment(JpaAttachments.DEPLOYMENT_SETTINGS_KEY);
-            return new PersistenceContextInjectionSource(type, synchronizationType , properties, puServiceName, deploymentUnit.getServiceRegistry(), scopedPuName, injectionTypeName, pu, jpaDeploymentSettings);
+            return new PersistenceContextInjectionSource(type, synchronizationType , properties, puServiceName, deploymentUnit.getServiceRegistry(), scopedPuName, injectionTypeName, pu, jpaDeploymentSettings, classDescription.getClassName());
         } else {
             return new PersistenceUnitInjectionSource(puServiceName, deploymentUnit.getServiceRegistry(), injectionTypeName, pu);
         }

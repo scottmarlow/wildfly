@@ -22,6 +22,8 @@
 
 package org.jboss.as.jpa.container;
 
+import static org.jboss.as.jpa.messages.JpaMessages.MESSAGES;
+
 import java.util.Map;
 
 /**
@@ -40,12 +42,15 @@ public final class ExtendedPersistenceShallowInheritance implements ExtendedPers
 
 
     @Override
-    public ExtendedEntityManager findExtendedPersistenceContext(String puScopedName) {
+    public ExtendedEntityManager findExtendedPersistenceContext(String puScopedName, String targetClassName) {
         ExtendedEntityManager result = null;
         // if current bean is injected from a parent bean that is also being created, current bean
         // can inherit only from the parent bean.
         if (SFSBCallStack.getSFSBCreationBeanNestingLevel() > 1) {
             SFSBInjectedXPCs currentInjectedXPCs = SFSBCallStack.getSFSBCreationTimeInjectedXPCs();
+            if (null == currentInjectedXPCs) {  // targetClassName is not a SFSB EJB
+                throw MESSAGES.EntityManagerOnlyInSFSB(puScopedName, targetClassName);
+            }
             result = currentInjectedXPCs.findExtendedPersistenceContextShallowInheritance(puScopedName);
         } else {
             // else inherit from parent bean that created current bean (if any).  The parent bean is the one

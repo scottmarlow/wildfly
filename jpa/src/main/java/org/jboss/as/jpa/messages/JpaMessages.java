@@ -614,6 +614,15 @@ public interface JpaMessages {
     DeploymentUnitProcessingException persistenceProviderAdaptorModuleLoadError( @Cause Throwable cause, String adaptorModule);
 
     /**
+     * internal error indicating that the number of stateful session beans associated with a
+     * extended persistence context has reached a negative count.
+     *
+     * @return a {@link RuntimeException} for the error
+     */
+    @Message(id = 11479, value = "Extended persistence context (%s) can only be used in a stateful EJB bean (%s is not a SFSB)")
+    RuntimeException EntityManagerOnlyInSFSB(String scopedPuName, String targetClassName);
+
+    /**
      * Don't add any message ids higher than 11499 (will need a new chunk).
      */
 }

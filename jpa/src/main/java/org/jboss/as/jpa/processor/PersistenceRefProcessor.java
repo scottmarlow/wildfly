@@ -228,7 +228,7 @@ public class PersistenceRefProcessor extends AbstractDeploymentDescriptorBinding
         ServiceName puServiceName = getPuServiceName(scopedPuName);
         // get deployment settings from top level du (jboss-all.xml is only parsed at the top level).
         final JPADeploymentSettings jpaDeploymentSettings = DeploymentUtils.getTopDeploymentUnit(deploymentUnit).getAttachment(JpaAttachments.DEPLOYMENT_SETTINGS_KEY);
-        return new PersistenceContextInjectionSource(type, synchronizationType, properties, puServiceName, deploymentUnit.getServiceRegistry(), scopedPuName, EntityManager.class.getName(), pu, jpaDeploymentSettings);
+        return new PersistenceContextInjectionSource(type, synchronizationType, properties, puServiceName, deploymentUnit.getServiceRegistry(), scopedPuName, EntityManager.class.getName(), pu, jpaDeploymentSettings, null);
     }
 
     private PersistenceUnitMetadata getPersistenceUnit(final DeploymentUnit deploymentUnit, final String puName)

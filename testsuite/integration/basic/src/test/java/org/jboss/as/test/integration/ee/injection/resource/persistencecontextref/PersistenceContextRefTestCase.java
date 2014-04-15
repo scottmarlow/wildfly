@@ -62,6 +62,10 @@ public class PersistenceContextRefTestCase {
                     "  <class>" + PcOtherEntity.class.getName() + "</class>" +
                     "<properties> <property name=\"hibernate.hbm2ddl.auto\" value=\"create-drop\"/></properties>" +
                     "  </persistence-unit>" +
+                    "  <persistence-unit name=\"notUsedXPC\">" +
+                    "  <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>" +
+                    "<properties> <property name=\"hibernate.hbm2ddl.auto\" value=\"create-drop\"/></properties>" +
+                    "  </persistence-unit>" +
                     "</persistence>";
 
 
