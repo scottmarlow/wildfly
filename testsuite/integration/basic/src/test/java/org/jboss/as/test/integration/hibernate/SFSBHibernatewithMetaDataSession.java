@@ -87,7 +87,7 @@ public class SFSBHibernatewithMetaDataSession {
 
             // build metamodel
             SessionFactoryImplementor sfi = (SessionFactoryImplementor) sessionFactory;
-            MetamodelImpl.buildMetamodel(configuration.getClassMappings(), sfi);
+            //MetamodelImpl.buildMetamodel(configuration.getClassMappings(), sfi);
 
             sessionFactory.getStatistics().setStatisticsEnabled(true);
 

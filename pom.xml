@@ -150,7 +150,7 @@
         <version.org.glassfish.javax.el>3.0.0</version.org.glassfish.javax.el>
         <version.org.glassfish.javax.enterprise.concurrent>1.0</version.org.glassfish.javax.enterprise.concurrent>
         <version.org.glassfish.javax.json>1.0.3</version.org.glassfish.javax.json>
-        <version.org.hibernate>4.3.5.Final</version.org.hibernate>
+        <version.org.hibernate>5.0.0-SNAPSHOT</version.org.hibernate>
         <version.org.hibernate.commons.annotations>4.0.4.Final</version.org.hibernate.commons.annotations>
         <version.org.hibernate.validator>5.1.1.Final</version.org.hibernate.validator>
         <version.org.hibernate.javax.persistence.hibernate-jpa-2.1-api>1.0.0.Final</version.org.hibernate.javax.persistence.hibernate-jpa-2.1-api>
@@ -3637,6 +3637,10 @@
                         <groupId>org.jboss.logging</groupId>
                         <artifactId>jboss-logging-annotations</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.jboss.logging</groupId>
+                        <artifactId>jboss-logging-processor</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
 
@@ -3660,6 +3664,10 @@
                     <exclusion>
                         <groupId>org.jboss.logging</groupId>
                         <artifactId>jboss-logging-annotations</artifactId>
+                    </exclusion>
+		    <exclusion>
+                        <groupId>org.jboss.logging</groupId>
+                        <artifactId>jboss-logging-processor</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -3708,6 +3716,10 @@
                     <exclusion>
                         <groupId>org.jboss.logging</groupId>
                         <artifactId>jboss-logging-annotations</artifactId>
+                    </exclusion>
+		    <exclusion>
+                        <groupId>org.jboss.logging</groupId>
+                        <artifactId>jboss-logging-processor</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -3768,6 +3780,10 @@
                     <exclusion>
                        <groupId>org.jboss.logging</groupId>
                        <artifactId>jboss-logging-annotations</artifactId>
+                    </exclusion>
+		    <exclusion>
+                        <groupId>org.jboss.logging</groupId>
+                        <artifactId>jboss-logging-processor</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
