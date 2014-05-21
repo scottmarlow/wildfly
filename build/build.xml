@@ -791,7 +791,7 @@
             <maven-resource group="org.hibernate" artifact="hibernate-envers"/>
             <maven-resource group="org.hibernate" artifact="hibernate-entitymanager" />
             <maven-resource group="org.hibernate" artifact="hibernate-infinispan"/>
-            <maven-resource group="org.jipijapa"  artifact="jipijapa-hibernate4-3"/>
+            <maven-resource group="org.jipijapa"  artifact="jipijapa-hibernate5"/>
         </module-def>
 
         <module-def name="org.hibernate.commons-annotations">
@@ -826,6 +826,11 @@
         <!-- create empty slot for Hibernate 4.1.x or 4.2.x jars -->
         <module-def name="org.hibernate" slot="4.1">
             <maven-resource group="org.jipijapa" artifact="jipijapa-hibernate4-1"/>
+        </module-def>
+
+        <!-- create empty slot for Hibernate 4.3.x jars -->
+        <module-def name="org.hibernate" slot="4.3">
+            <maven-resource group="org.jipijapa" artifact="jipijapa-hibernate4-3"/>
         </module-def>
 
         <!-- create empty slot for OpenJPA jars -->
