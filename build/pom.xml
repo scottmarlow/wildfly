@@ -671,6 +671,11 @@
         </dependency>
 
         <dependency>
+	    <groupId>org.jipijapa</groupId>
+            <artifactId>jipijapa-hibernate5</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.jipijapa</groupId>
             <artifactId>jipijapa-hibernate4-3</artifactId>
         </dependency>
