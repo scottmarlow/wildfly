@@ -82,7 +82,7 @@ public class EclipseLinkSharedModuleProviderTestCase {
         ear.addAsModule(lib);
 
         lib = ShrinkWrap.create(JavaArchive.class, "entities.jar");
-        lib.addClasses(Employee.class);
+        lib.addClasses(Employee.class, Company.class);
         lib.addAsManifestResource(new StringAsset(persistence_xml), "persistence.xml");
         ear.addAsLibraries(lib);
 

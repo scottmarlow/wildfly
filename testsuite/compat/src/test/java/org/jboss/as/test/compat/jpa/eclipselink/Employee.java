@@ -23,7 +23,9 @@
 package org.jboss.as.test.compat.jpa.eclipselink;
 
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
+import javax.persistence.ManyToOne;
 
 /**
  * Employee entity class
@@ -35,6 +37,17 @@ public class Employee  {
 
     @Id
     private int id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Company company;
+
+    public Company getCompany() {
+        return company;
+    }
+
+    public void setCompany(Company company) {
+        this.company = company;
+    }
 
     private String name;
 
