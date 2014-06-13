@@ -60,6 +60,7 @@ public class EclipseLinkSharedModuleProviderTestCase {
             "  <properties>" +
             "  <property name=\"jboss.as.jpa.providerModule\" value=\"org.eclipse.persistence:test\"/>" +
             "  <property name=\"eclipselink.ddl-generation\" value=\"drop-and-create-tables\"/>"+
+//            "  <property name=\"eclipselink.weaving\" value=\"true\" />"+
             "  </properties>" +
             "  </persistence-unit>" +
             "</persistence>";
@@ -87,7 +88,7 @@ public class EclipseLinkSharedModuleProviderTestCase {
         ear.addAsLibraries(lib);
 
         final WebArchive main = ShrinkWrap.create(WebArchive.class, "main.war");
-        main.addClasses(EclipseLinkSharedModuleProviderTestCase.class);
+        main.addClasses(EclipseLinkSharedModuleProviderTestCase.class, Company.class);
         ear.addAsModule(main);
 
         return ear;
