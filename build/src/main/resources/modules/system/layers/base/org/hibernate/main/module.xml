@@ -29,7 +29,7 @@
         <artifact name="${org.hibernate:hibernate-envers}"/>
         <artifact name="${org.hibernate:hibernate-entitymanager}"/>
         <artifact name="${org.hibernate:hibernate-infinispan}"/>
-        <artifact name="${org.jipijapa:jipijapa-hibernate4-3}"/>
+        <artifact name="${org.jipijapa:jipijapa-hibernate5}"/>
     </resources>
 
     <dependencies>
