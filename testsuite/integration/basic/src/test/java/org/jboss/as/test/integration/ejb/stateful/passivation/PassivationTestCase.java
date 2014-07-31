@@ -97,6 +97,17 @@ public class PassivationTestCase {
                 remote2.hasBeenPassivated());
         Assert.assertTrue(remote1.isPersistenceContextSame());
         Assert.assertTrue(remote2.isPersistenceContextSame());
+
+        for(int looper = 0; looper < 1000; looper++) {
+            Assert.assertTrue("@PrePassivate not called, check cache configuration and client sleep time " + looper,
+                    remote1.hasBeenPassivated());
+            Assert.assertTrue("@PrePassivate not called, check cache configuration and client sleep time " + looper,
+                    remote2.hasBeenPassivated());
+            Assert.assertTrue(""+looper,remote1.isPersistenceContextSame());
+            Assert.assertTrue(""+looper, remote2.isPersistenceContextSame());
+
+        }
+
         Assert.assertEquals("Super", remote1.getSuperEmployee().getName());
         Assert.assertEquals("Super", remote2.getSuperEmployee().getName());
         Assert.assertEquals("bar", remote1.getManagedBeanMessage());
