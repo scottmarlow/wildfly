@@ -98,7 +98,7 @@ public class PassivationTestCase {
         Assert.assertTrue(remote1.isPersistenceContextSame());
         Assert.assertTrue(remote2.isPersistenceContextSame());
 
-        for(int looper = 0; looper < 1000; looper++) {
+        for(int looper = 0; looper < 8; looper++) {
             Assert.assertTrue("@PrePassivate not called, check cache configuration and client sleep time " + looper,
                     remote1.hasBeenPassivated());
             Assert.assertTrue("@PrePassivate not called, check cache configuration and client sleep time " + looper,
