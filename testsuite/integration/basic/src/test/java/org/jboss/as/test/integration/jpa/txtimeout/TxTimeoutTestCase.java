@@ -153,6 +153,7 @@ public class TxTimeoutTestCase {
         boolean notRolledBackException = false;
         while( !notRolledBackException) {
             try {
+                System.out.println("repeating invocation, count=" + count);
                 count++;
                 sfsb1.getEmployeeUntilTxTimeout();
             }
