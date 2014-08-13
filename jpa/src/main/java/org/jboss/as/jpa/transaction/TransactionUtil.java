@@ -64,6 +64,12 @@ public class TransactionUtil {
 
     public static boolean isInTx() {
         Transaction tx = getTransaction();
+if(tx!=null) try {
+    JPA_LOGGER.infof("tx.status = %d", tx.getStatus());
+} catch (SystemException e) {
+    e.printStackTrace();
+}
+
         if (tx == null || !TxUtils.isActive(tx))
             return false;
         return true;

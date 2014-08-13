@@ -26,12 +26,8 @@
 		<jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
         <properties>
             <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
-            <!--
-              Disable Hibernate check if the same thread is being used that originally
-              created EntityManager
             <property name="hibernate.jta.track_by_thread" value="false"/>
             <property name="hibernate.connection.release_mode" value="after_statement"/>
-            -->
         </properties>
 
 	</persistence-unit>

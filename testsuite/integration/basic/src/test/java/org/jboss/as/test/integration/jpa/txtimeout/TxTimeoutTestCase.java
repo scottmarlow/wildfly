@@ -22,23 +22,27 @@
 
 package org.jboss.as.test.integration.jpa.txtimeout;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.Assert.assertEquals;
 
-import javax.ejb.EJBTransactionRolledbackException;
+import java.net.URL;
+
 import javax.naming.InitialContext;
 import javax.naming.NameClassPair;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 
 import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
-import org.jboss.shrinkwrap.api.Archive;
+import org.jboss.as.test.integration.common.HttpRequest;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
-import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
-import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
 
 /**
  * Demonstrate concurrency issues that occur when Transaction times out while application or persistence provider is using EntityManager.
@@ -66,112 +70,38 @@ import org.junit.runner.RunWith;
  * @author Scott Marlow
  */
 @RunWith(Arquillian.class)
+@RunAsClient
 public class TxTimeoutTestCase {
 
     private static final String ARCHIVE_NAME = "jpa_txTimeoutTest";
 
-    @Deployment
-    public static Archive<?> deploy() {
-
-        EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, ARCHIVE_NAME + ".ear");
-
-        JavaArchive ejbjar = ShrinkWrap.create(JavaArchive.class, "ejbjar.jar");
-
-        ejbjar.addAsManifestResource(emptyEjbJar(), "ejb-jar.xml");
-        ejbjar.addClasses(TxTimeoutTestCase.class,
-                SFSB1.class,
-                Employee.class
-        );
-        ejbjar.addAsManifestResource(TxTimeoutTestCase.class.getPackage(), "persistence.xml", "persistence.xml");
-
-        ear.addAsModule(ejbjar);        // add ejbjar to root of ear
-
-        ear.addAsManifestResource(new StringAsset("Dependencies: org.jboss.jboss-transaction-spi export \n"), "MANIFEST.MF");
-        return ear;
-
-    }
-
-    private static StringAsset emptyEjbJar() {
-        return new StringAsset(
-                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<ejb-jar xmlns=\"http://java.sun.com/xml/ns/javaee\" \n" +
-                "         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" \n" +
-                "         xsi:schemaLocation=\"http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/ejb-jar_3_0.xsd\"\n" +
-                "         version=\"3.0\">\n" +
-                "   \n" +
-                "</ejb-jar>");
-    }
-
     @ArquillianResource
-    private InitialContext iniCtx;
+   	URL baseUrl;
 
-    protected <T> T lookup(String beanName, Class<T> interfaceType) throws NamingException {
-        try {
-            return interfaceType.cast(iniCtx.lookup("java:global/" + ARCHIVE_NAME + "/" + beanName + "!" + interfaceType.getName()));
-        } catch (NamingException e) {
-            dumpJndi("");
-            throw e;
+    @Deployment
+        public static WebArchive deployment() {
+            WebArchive war = ShrinkWrap.create(WebArchive.class, "TxTimeoutTestCase.war");
+            war.addClasses(HttpRequest.class, SimpleServlet.class, Employee.class, SFSB1.class);
+            // WEB-INF/classes is implied
+            war.addAsResource(TxTimeoutTestCase.class.getPackage(), "persistence.xml", "META-INF/persistence.xml");
+
+            return war;
         }
+
+    private String performCall(String urlPattern, String param) throws Exception {
+        System.out.println("perform http get baseUrl=: " + baseUrl);
+        String request = baseUrl.toString() + urlPattern + "?input=" + param;
+        System.out.println("perform http get for: " + request);
+        return HttpRequest.get(request, 10, SECONDS);
     }
 
-    // TODO: move this logic to a common base class (might be helpful for writing new tests)
-    private void dumpJndi(String s) {
-        try {
-            dumpTreeEntry(iniCtx.list(s), s);
-        } catch (NamingException ignore) {
-        }
-    }
-
-    private void dumpTreeEntry(NamingEnumeration<NameClassPair> list, String s) throws NamingException {
-        System.out.println("\ndump " + s);
-        while (list.hasMore()) {
-            NameClassPair ncp = list.next();
-            System.out.println(ncp.toString());
-            if (s.length() == 0) {
-                dumpJndi(ncp.getName());
-            } else {
-                dumpJndi(s + "/" + ncp.getName());
-            }
-        }
-    }
-
-    /**
-     * Loop until exception is thrown that is not EJBTransactionRolledbackException.  This helps to demonstrate
-     * what applications see when the JTA transaction is timed out from a background thread.
-     *
-     * @throws Exception
-     */
     @Test
-     public void test_UntilTxTimeoutCausesUnexpectedError() throws Exception {
-        SFSB1 sfsb1 = lookup("ejbjar/SFSB1", SFSB1.class);
-        int count = 0;
-        // create 1000 entities in database for testing
-        for(int looper = 0; looper < 1000; looper++) {
-            sfsb1.createEmployee("name" + looper, "Address"+looper, looper);
-        }
+    public void testEcho() throws Exception {
+        String result = performCall("simple", "Hello+world");
+        assertEquals("success", result);
 
-        boolean notRolledBackException = false;
-        while( !notRolledBackException) {
-            try {
-                System.out.println("repeating invocation, count=" + count);
-                count++;
-                sfsb1.getEmployeeUntilTxTimeout();
-            }
-            catch(Exception exception) {
-                if(exception instanceof EJBTransactionRolledbackException) {
-                    System.out.println("ignoring expected RollbackException by repeating invocation, count=" + count);
-                    sfsb1 = lookup("ejbjar/SFSB1", SFSB1.class);
-                }
-                else {
-                    System.out.println("caught exception that we didn't expect: " + exception.getClass().getName() + ", " + exception.getMessage() +
-                            ", count=" +count);
-
-                    notRolledBackException = true;
-                }
-                // try again until its not RollbackException:
-            }
-        }
-
-        }
+        result = performCall("simple", "Hello+world");
+        assertEquals("success", result);
+    }
 
 }

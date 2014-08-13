@@ -30,6 +30,7 @@ import javax.ejb.Stateful;
 import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
 import javax.persistence.PersistenceContext;
+import javax.persistence.PersistenceContextType;
 import javax.persistence.Query;
 import javax.transaction.Status;
 import javax.transaction.Synchronization;
@@ -45,11 +46,8 @@ import org.jboss.tm.TxUtils;
  */
 @Stateful
 public class SFSB1 {
-    @PersistenceContext
+    @PersistenceContext(type = PersistenceContextType.EXTENDED)
     EntityManager entityManager;
-
-    @Resource
-    TransactionSynchronizationRegistry transactionSynchronizationRegistry;
 
     public void createEmployee(String name, String address, int id) {
         Employee emp = new Employee();
@@ -59,19 +57,10 @@ public class SFSB1 {
         entityManager.persist(emp);
     }
 
-    /**
-     * Loop until JTA transaction times out (expected) or query returns null (not expected)
-     */
-    @TransactionTimeout(value = 1, unit = TimeUnit.SECONDS)
-    public void getEmployeeUntilTxTimeout() {
-        List list;
+    public Employee getEmployee(int id) {
 
-
-        do {
-            Query query = entityManager.createQuery("from Employee e where e.id<1000");
-            list = query.getResultList();
-        } while(list != null);
-        throw new RuntimeException("query unexpectedly returned null");
+        return entityManager.find(Employee.class, id);
     }
+
 
 }
