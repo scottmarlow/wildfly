@@ -27,18 +27,12 @@ import static org.junit.Assert.assertEquals;
 
 import java.net.URL;
 
-import javax.naming.InitialContext;
-import javax.naming.NameClassPair;
-import javax.naming.NamingEnumeration;
-import javax.naming.NamingException;
-
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.test.integration.common.HttpRequest;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -81,27 +75,23 @@ public class TxTimeoutTestCase {
     @Deployment
         public static WebArchive deployment() {
             WebArchive war = ShrinkWrap.create(WebArchive.class, "TxTimeoutTestCase.war");
-            war.addClasses(HttpRequest.class, SimpleServlet.class, Employee.class, SFSB1.class);
+            war.addClasses(HttpRequest.class, SimpleServlet.class, Employee.class);
             // WEB-INF/classes is implied
             war.addAsResource(TxTimeoutTestCase.class.getPackage(), "persistence.xml", "META-INF/persistence.xml");
 
             return war;
         }
 
-    private String performCall(String urlPattern, String param) throws Exception {
-        System.out.println("perform http get baseUrl=: " + baseUrl);
-        String request = baseUrl.toString() + urlPattern + "?input=" + param;
-        System.out.println("perform http get for: " + request);
-        return HttpRequest.get(request, 10, SECONDS);
+    private String invokeServlet(String urlPattern) throws Exception {
+        String request = baseUrl.toString() + urlPattern;
+        return HttpRequest.get(request, 60, SECONDS);
     }
 
     @Test
-    public void testEcho() throws Exception {
-        String result = performCall("simple", "Hello+world");
+    public void simulateInvalidApplicationStateAfterTxRollback() throws Exception {
+        String result = invokeServlet("simple");
         assertEquals("success", result);
 
-        result = performCall("simple", "Hello+world");
-        assertEquals("success", result);
     }
 
 }

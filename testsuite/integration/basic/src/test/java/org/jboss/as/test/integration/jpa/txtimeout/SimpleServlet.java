@@ -25,14 +25,17 @@ import java.io.IOException;
 import java.io.Writer;
 
 import javax.annotation.Resource;
-import javax.ejb.EJB;
 import javax.ejb.EJBTransactionRolledbackException;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.PersistenceUnit;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.transaction.NotSupportedException;
+import javax.transaction.Status;
 import javax.transaction.SystemException;
 import javax.transaction.UserTransaction;
 
@@ -47,40 +50,48 @@ public class SimpleServlet extends HttpServlet {
     @Resource
     private UserTransaction userTransaction;
 
-    @EJB
-    SFSB1 sfsb1;
-
-    private static int THREE_SECONDS = 3;
-
+    @PersistenceUnit
+    private EntityManagerFactory entityManagerFactory;
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String msg = req.getParameter("input");
-
         Writer writer = resp.getWriter();
 
-        int count = 0;
+        int entityCount = 0;
         try {
-            userTransaction.setTransactionTimeout(THREE_SECONDS);
+            int timeoutSeconds = 5;
+            userTransaction.setTransactionTimeout(timeoutSeconds);
             userTransaction.begin();
+            EntityManager entityManager = entityManagerFactory.createEntityManager();
             boolean notRolledBackException = false;
             while (!notRolledBackException) {
                 try {
-                    System.out.println("repeating invocation, count=" + count);
-                    count++;
-                    System.out.println("about to create entity " + count);
-                    sfsb1.createEmployee("name" + count, "address" + count, count);
-                    // sfsb1.getEmployeeUntilTxTimeout();
-                } catch (Exception exception) {
-                    if (exception instanceof EJBTransactionRolledbackException) {
-                        if (sfsb1.getEmployee(count) != null) {
-                            writer.write("failed as entity " + count +", was not rolled back");
+                    Thread.sleep(10 * 1000);
+                    int transactionStatus = userTransaction.getStatus();
+                    System.out.println("after ten second sleep (tx should of rolled back by now), application transaction status = " + transactionStatus );
+                    if ( transactionStatus == Status.STATUS_ROLLEDBACK) {
+                        /**
+                         * Simulate race condition that could happen if background transaction rollback (and persistence provider clearing of
+                         * persistence context) occurs before the application thread is about to add an entity (after the transaction rolled back in the background).
+                         * What should the application expect to happen in this case?
+                         */
+                        entityCount++;
+                        createEmployee(entityManager, "name" + entityCount, "address" + entityCount, entityCount);
+                        if (getEmployee(entityManager, entityCount) != null) {
+                            System.out.println("persistence context contains invalid state, as last written entity was not detached.");
+                            writer.write("failed as entity " + entityCount + ", was added after background transaction rollback simulation");
+                            writer.flush();
+                            writer.close();
                             return;
                         }
-                        System.out.println("ignoring expected RollbackException by repeating invocation, count=" + count);
+
+                    }
+                } catch (Exception exception) {
+                    if (exception instanceof EJBTransactionRolledbackException) {
+                        System.out.println("ignoring expected RollbackException by repeating invocation, count=" + entityCount);
                     } else {
                         System.out.println("caught exception that we didn't expect: " + exception.getClass().getName() + ", " + exception.getMessage() +
-                                ", count=" + count);
+                                ", count=" + entityCount);
 
                         notRolledBackException = true;
                     }
@@ -98,11 +109,20 @@ public class SimpleServlet extends HttpServlet {
                 e.printStackTrace();
             }
         }
-        if (sfsb1.getEmployee(count) != null) {
-            writer.write("failed as entity " + count +", was not rolled back");
-        }
-        else {
-            writer.write("success");
-        }
+        writer.write("success");
     }
+
+    public void createEmployee(EntityManager entityManager, String name, String address, int id) {
+        Employee emp = new Employee();
+        emp.setId(id);
+        emp.setAddress(address);
+        emp.setName(name);
+        entityManager.persist(emp);
+    }
+
+    public Employee getEmployee(EntityManager entityManager, int id) {
+
+        return entityManager.find(Employee.class, id);
+    }
+
 }
