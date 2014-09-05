@@ -63,6 +63,10 @@ public class SimpleServlet extends HttpServlet {
             userTransaction.setTransactionTimeout(timeoutSeconds);
             userTransaction.begin();
             EntityManager entityManager = entityManagerFactory.createEntityManager();
+            System.out.println("entityManager.isJoinedToTransaction() == " + entityManager.isJoinedToTransaction());
+            entityManager.joinTransaction();
+            System.out.println("entityManager.isJoinedToTransaction() == " + entityManager.isJoinedToTransaction());
+
             boolean notRolledBackException = false;
             while (!notRolledBackException) {
                 try {
