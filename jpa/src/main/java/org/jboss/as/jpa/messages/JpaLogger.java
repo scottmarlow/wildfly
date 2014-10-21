@@ -758,4 +758,14 @@ public interface JpaLogger extends BasicLogger {
     @Message(id = 70, value = "A container-managed extended persistence context can only be initiated within the scope of a stateful session bean (persistence unit '%s').")
     IllegalStateException xpcOnlyFromSFSB(String scopedPuName);
 
+
+    /**
+     * could not resume suspended transaction
+     *
+     * @param cause
+     * @param transaction
+     * @return a {@link RuntimeException} for the error.
+     */
+    @Message(id = 71, value = "Could not resume transaction '%s' ")
+    RuntimeException couldnotresumesuspendedtransaction(@Cause Throwable cause, String transaction);
 }

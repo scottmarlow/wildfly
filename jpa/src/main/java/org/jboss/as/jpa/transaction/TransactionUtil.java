@@ -25,6 +25,7 @@ package org.jboss.as.jpa.transaction;
 import static org.jboss.as.jpa.messages.JpaLogger.JPA_LOGGER;
 
 import javax.persistence.EntityManager;
+import javax.transaction.InvalidTransactionException;
 import javax.transaction.Status;
 import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
@@ -147,14 +148,25 @@ public class TransactionUtil {
              * referencing the EntityManager, it will be eligible for garbage collection.
              * See AS7-6586 for more details.
              */
+            Transaction suspendedTransaction=null;
             if (safeToClose(status)) {
                 try {
+                    suspendedTransaction = transactionManager.suspend();
                     if (JPA_LOGGER.isDebugEnabled())
                         JPA_LOGGER.debugf("%s: closing entity managersession", getEntityManagerDetails(manager));
                     manager.close();
                 } catch (Exception ignored) {
                     if (JPA_LOGGER.isDebugEnabled())
                         JPA_LOGGER.debugf(ignored, "ignoring error that occurred while closing EntityManager for %s (", scopedPuName);
+                }
+                finally {
+                    try {
+                        transactionManager.resume(suspendedTransaction);
+                    } catch (InvalidTransactionException e) {
+                        throw JPA_LOGGER.couldnotresumesuspendedtransaction(e, suspendedTransaction != null? suspendedTransaction.toString() : null);
+                    } catch (SystemException e) {
+                        throw JPA_LOGGER.couldnotresumesuspendedtransaction(e, suspendedTransaction != null? suspendedTransaction.toString() : null);
+                    }
                 }
             }
             // The TX reference to the entity manager, should be cleared by the TM
