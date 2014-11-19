@@ -54,14 +54,11 @@ public class Hibernate4NativeAPIProviderTestCase {
     private static final String ARCHIVE_NAME = "hibernate4native_test";
 
     public static final String hibernate_cfg = "<?xml version='1.0' encoding='utf-8'?>"
-            + "<!DOCTYPE hibernate-configuration PUBLIC " + "\"//Hibernate/Hibernate Configuration DTD 3.0//EN\" "
-            + "\"http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd\">"
             + "<hibernate-configuration><session-factory>" + "<property name=\"show_sql\">true</property>"
             + "<property name=\"current_session_context_class\">thread</property>"
             + "<mapping resource=\"testmapping.hbm.xml\"/>" + "</session-factory></hibernate-configuration>";
 
-    public static final String testmapping = "<?xml version=\"1.0\"?>" + "<!DOCTYPE hibernate-mapping PUBLIC "
-            + "\"-//Hibernate/Hibernate Mapping DTD 3.0//EN\" " + "\"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd\">"
+    public static final String testmapping = "<?xml version=\"1.0\"?>" 
             + "<hibernate-mapping package=\"org.jboss.as.test.integration.hibernate\">"
             + "<class name=\"org.jboss.as.test.integration.hibernate.Student\" table=\"STUDENT\">"
             + "<id name=\"studentId\" column=\"student_id\">" + "<generator class=\"native\"/>" + "</id>"
