@@ -12,6 +12,7 @@ IIOP_TESTS="-Dts.iiop"
 
 DOMAIN_TESTS="-Ddomain.module  -Dts.noSmoke"
 COMPAT_TESTS="-Dcompat.module  -Dts.noSmoke"
+NOSQL_TESTS="-Dnosql.module -Dts.noSmoke"
 
 #ALL_TESTS="$INTEGRATION_TESTS $DOMAIN_TESTS $COMPAT_TESTS $SMOKE_TESTS"
 #ALL_TESTS="$INTEGRATION_TESTS -Ddomain.module -Dcompat.module $SMOKE_TESTS"

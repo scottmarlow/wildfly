@@ -150,6 +150,12 @@ if "%1" == "-Dcompat-tests" (
   set "TESTS_SPECIFIED=Y"
   goto processed
 )
+REM  -Dnosql-tests
+if "%1" == "-Dnosql-tests" (
+  set "CMD_LINE_PARAMS=%CMD_LINE_PARAMS% %NOSQL_TESTS%"
+  set "TESTS_SPECIFIED=Y"
+  goto processed
+)
 REM  -Dsmoke-tests
 if "%1" == "-Dsmoke-tests" (
   set "CMD_LINE_PARAMS=%CMD_LINE_PARAMS% %SMOKE_TESTS%"
