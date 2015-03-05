@@ -207,6 +207,22 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
+	<dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongo-java-driver</artifactId>
+            <scope>test</scope>
+	</dependency>
+        <dependency>
+            <groupId>com.datastax.cassandra</groupId>
+            <artifactId>cassandra-driver-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+           <groupId>com.codahale.metrics</groupId>
+           <artifactId>metrics-core</artifactId>
+           <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
