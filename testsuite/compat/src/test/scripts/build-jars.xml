@@ -33,7 +33,7 @@
     <copy file="${commons-collections:commons-collections:jar}"     tofile="${tests.output.dir}/test-libs/commons-collections.jar"/>
     <copy file="${antlr:antlr:jar}"                                 tofile="${tests.output.dir}/test-libs/antlr.jar"/>
 
-   <!-- also create a Hibernate 3 module to test with -->     
+   <!-- also create a Hibernate 3 module to test with -->
     <copy file="${org.hibernate:hibernate-core:jar}"                tofile="${tests.output.dir}/modules/org/hibernate/3test/hibernate3-core.jar"/>
     <copy file="${org.hibernate:hibernate-envers:jar}"              tofile="${tests.output.dir}/modules/org/hibernate/3test/hibernate3-envers.jar"/>
     <copy file="${org.hibernate:hibernate-commons-annotations:jar}" tofile="${tests.output.dir}/modules/org/hibernate/3test/hibernate3-commons-annotations.jar"/>
