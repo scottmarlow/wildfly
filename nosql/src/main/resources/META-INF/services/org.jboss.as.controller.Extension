@@ -1,0 +1,3 @@
+org.jboss.as.nosql.subsystem.cassandra.CassandraDriverExtension
+org.jboss.as.nosql.subsystem.mongodb.MongoDriverExtension
+

@@ -112,7 +112,6 @@
             <version>1.14.1</version>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
     <dependencyManagement>
