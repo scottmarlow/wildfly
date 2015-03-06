@@ -36,8 +36,16 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.transaction.NotSupportedException;
 import javax.transaction.Status;
+import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
+import javax.transaction.TransactionSynchronizationRegistry;
 import javax.transaction.UserTransaction;
+
+import org.jboss.tm.listener.EventType;
+import org.jboss.tm.listener.TransactionEvent;
+import org.jboss.tm.listener.TransactionListener;
+import org.jboss.tm.listener.TransactionListenerRegistry;
+import org.jboss.tm.listener.TransactionTypeNotSupported;
 
 /**
  * @author Scott Marlow
@@ -45,13 +53,73 @@ import javax.transaction.UserTransaction;
  */
 
 @WebServlet(name="SimpleServlet", urlPatterns={"/simple"})
-public class SimpleServlet extends HttpServlet {
+public class SimpleServlet extends HttpServlet implements TransactionListener, Synchronization {
 
     @Resource
     private UserTransaction userTransaction;
 
     @PersistenceUnit
     private EntityManagerFactory entityManagerFactory;
+
+    EntityManager entityManager;
+
+    private TransactionSynchronizationRegistry tsr;
+
+    private transient boolean disassocCalled = false;
+    private transient boolean acCalled = false;
+
+    private void setupListener() {
+        TransactionListenerRegistry transactionListenerRegistry = (TransactionListenerRegistry)com.arjuna.ats.jta.TransactionManager.transactionManager();
+        try {
+            transactionListenerRegistry.addListener(com.arjuna.ats.jta.TransactionManager.transactionManager().getTransaction(),this);
+            tsr = new com.arjuna.ats.internal.jta.transaction.arjunacore.TransactionSynchronizationRegistryImple();
+            tsr.registerInterposedSynchronization(this);
+        } catch (TransactionTypeNotSupported transactionTypeNotSupported) {
+            transactionTypeNotSupported.printStackTrace();
+        } catch (SystemException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /* Synchronization methods */
+    @Override
+    public void beforeCompletion() {
+        System.out.println("xxxxx Synchronization.beforeCompletion");
+        acCalled = false;
+    }
+
+    @Override
+    public synchronized void afterCompletion(int status) {
+        System.out.println("xxxxx Synchronization.afterCompletion(" + status + ")");
+        acCalled = true;
+        if (safeToClose()) {
+            System.out.println("xxx safe to close resources after completion.  Clearing entityManager");
+            entityManager.clear();
+        }
+    }
+
+    private boolean safeToClose() {
+
+      return acCalled == true && disassocCalled == true;
+
+    }
+    /* TransactionListener methods */
+    @Override
+    public synchronized void onEvent(TransactionEvent transactionEvent) {
+        if (transactionEvent.getType().equals(EventType.ASSOCIATED)) {
+            System.out.println("xxxxx onEvent(TransactionEvent entered associated with transaction =" + transactionEvent.getTransaction());
+            disassocCalled = false;
+        }
+        else {
+            System.out.println("xxxxx onEvent(TransactionEvent entered disassociated with transaction =" + transactionEvent.getTransaction());
+            disassocCalled = true;
+            if (safeToClose()) {
+                System.out.println("xxx safe to close resources after disassociated.  Clearing entityManager");
+                entityManager.clear();
+            }
+        }
+
+    }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -62,7 +130,8 @@ public class SimpleServlet extends HttpServlet {
             int timeoutSeconds = 5;
             userTransaction.setTransactionTimeout(timeoutSeconds);
             userTransaction.begin();
-            EntityManager entityManager = entityManagerFactory.createEntityManager();
+            setupListener();
+            entityManager = entityManagerFactory.createEntityManager();
             System.out.println("entityManager.isJoinedToTransaction() == " + entityManager.isJoinedToTransaction());
             entityManager.joinTransaction();
             System.out.println("entityManager.isJoinedToTransaction() == " + entityManager.isJoinedToTransaction());
@@ -82,11 +151,25 @@ public class SimpleServlet extends HttpServlet {
                         entityCount++;
                         createEmployee(entityManager, "name" + entityCount, "address" + entityCount, entityCount);
                         if (getEmployee(entityManager, entityCount) != null) {
-                            System.out.println("persistence context contains invalid state, as last written entity was not detached.");
-                            writer.write("failed as entity " + entityCount + ", was added after background transaction rollback simulation");
-                            writer.flush();
-                            writer.close();
-                            return;
+                            System.out.println("persistence context contains invalid state, as last written entity was not detached. will rollback tx and check again");
+                            try {
+                                System.out.println("about to call userTransaction.rollback()");
+                                userTransaction.rollback();
+                            } catch (SystemException e) {
+                                e.printStackTrace();
+                            }
+                            if (getEmployee(entityManager, entityCount) != null) {
+                                writer.write("failed as entity " + entityCount + ", was added after background transaction rollback simulation");
+                                writer.flush();
+                                writer.close();
+                                return;
+                            }
+                            else {
+                                // loop again, start new tx
+                                userTransaction.begin();
+                                setupListener();
+                                entityManager.joinTransaction();
+                            }
                         }
 
                     }
@@ -106,12 +189,6 @@ public class SimpleServlet extends HttpServlet {
             e.printStackTrace();
         } catch (SystemException e) {
             e.printStackTrace();
-        } finally {
-            try {
-                userTransaction.rollback();
-            } catch (SystemException e) {
-                e.printStackTrace();
-            }
         }
         writer.write("success");
     }

@@ -33,6 +33,7 @@ import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.test.integration.common.HttpRequest;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -78,7 +79,7 @@ public class TxTimeoutTestCase {
             war.addClasses(HttpRequest.class, SimpleServlet.class, Employee.class);
             // WEB-INF/classes is implied
             war.addAsResource(TxTimeoutTestCase.class.getPackage(), "persistence.xml", "META-INF/persistence.xml");
-
+            war.addAsManifestResource(new StringAsset("Dependencies: org.jboss.jboss-transaction-spi,org.jboss.jts \n"), "MANIFEST.MF");
             return war;
         }
 
