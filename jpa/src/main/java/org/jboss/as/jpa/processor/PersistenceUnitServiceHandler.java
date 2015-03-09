@@ -1014,8 +1014,15 @@ public class PersistenceUnitServiceHandler {
     private static PersistenceProvider getProviderByName(PersistenceUnitMetadata pu, List<PersistenceProvider> providers) {
         String providerName = pu.getPersistenceProviderClassName();
         for (PersistenceProvider provider : providers) {
-            if (provider.getClass().getName().equals(providerName)) {
+            if (provider.getClass().getName().equals(providerName))  {
                 return provider;                    // return the provider that matched classname
+            }
+            try {
+                if (null != provider.getClass().getClassLoader().loadClass(providerName)) {
+                    return provider;
+                }
+            } catch (ClassNotFoundException e) {
+                // ignore
             }
         }
         return null;
