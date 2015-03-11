@@ -46,7 +46,7 @@ public class MongoDBTestCase {
        final WebArchive main = ShrinkWrap.create(WebArchive.class, "main.war");
        main.addClasses(MongoDBTestCase.class);
        ear.addAsModule(main);
-       ear.addAsManifestResource(new StringAsset("Dependencies: org.mongodb.driver \n"), "MANIFEST.MF");
+       // ear.addAsManifestResource(new StringAsset("Dependencies: org.mongodb.driver \n"), "MANIFEST.MF");
        return ear;
    }
 

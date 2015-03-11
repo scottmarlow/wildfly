@@ -45,7 +45,7 @@ public class CassandraTestCase {
        final WebArchive main = ShrinkWrap.create(WebArchive.class, "main.war");
        main.addClasses(CassandraTestCase.class);
        ear.addAsModule(main);
-       ear.addAsManifestResource(new StringAsset("Dependencies: com.datastax.cassandra.driver-core \n"), "MANIFEST.MF");
+       // ear.addAsManifestResource(new StringAsset("Dependencies: com.datastax.cassandra.driver-core \n"), "MANIFEST.MF");
        return ear;
    }
 

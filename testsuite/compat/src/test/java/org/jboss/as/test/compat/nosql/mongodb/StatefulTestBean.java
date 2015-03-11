@@ -24,7 +24,7 @@ import com.mongodb.util.JSON;
 @Stateful
 public class StatefulTestBean {
 
-    //@Resource(lookup = "java:jboss/mongodb/test")
+    // @Resource(lookup = "java:jboss/mongodb/test")
     private MongoClient mongoClient;
 
     public void addData() {

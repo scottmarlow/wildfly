@@ -285,6 +285,7 @@
         <module>messaging</module>
         <module>mod_cluster</module>
         <module>naming</module>
+        <module>nosql</module>
         <module>picketlink</module>
         <module>pojo</module>
         <module>sar</module>
@@ -1295,6 +1296,13 @@
                 <version>${project.version}</version>
             </dependency>
 
+
+            <dependency>
+	        <groupId>org.wildfly</groupId>
+                <artifactId>wildfly-nosql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+ 
             <dependency>
                 <groupId>org.wildfly.core</groupId>
                 <artifactId>wildfly-network</artifactId>

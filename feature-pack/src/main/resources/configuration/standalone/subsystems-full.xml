@@ -22,6 +22,7 @@
         <subsystem>mail.xml</subsystem>
         <subsystem>messaging.xml</subsystem>
         <subsystem>naming.xml</subsystem>
+        <subsystem>nosql.xml</subsystem>        
         <subsystem>pojo.xml</subsystem>
         <subsystem>remoting.xml</subsystem>
         <subsystem>resource-adapters.xml</subsystem>
