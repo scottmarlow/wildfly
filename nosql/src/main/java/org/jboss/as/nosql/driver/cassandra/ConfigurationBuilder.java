@@ -20,12 +20,37 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.nosql.subsystem;
+package org.jboss.as.nosql.driver.cassandra;
+
+import com.datastax.driver.core.Cluster;
 
 /**
+ * ConfigurationBuilder
+ *
  * @author Scott Marlow
  */
-interface CommonAttributes {
+public class ConfigurationBuilder {
 
-    String NOSQL = "NoSQL";
+    private Cluster.Builder builder = new Cluster.Builder();
+
+
+    public ConfigurationBuilder setPort(int port)  {
+        builder.withPort(port);
+        return this;
+    }
+
+    public ConfigurationBuilder addTarget(String host)  {
+        builder.addContactPoint(host);
+        return this;
+    }
+
+    public ConfigurationBuilder setName(String name) {
+        builder.withClusterName(name);
+        return this;
+    }
+
+
+    public Cluster build() {
+        return builder.build();
+    }
 }

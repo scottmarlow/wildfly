@@ -2,6 +2,6 @@
 <!--  See src/resources/configuration/ReadMe.txt for how the configuration assembly works -->
 <config>
    <extension-module>org.jboss.as.nosql</extension-module>
-   <subsystem xmlns="urn:jboss:domain:nosql:1.0">
+   <subsystem xmlns="urn:jboss:domain:cassandra:1.0">
    </subsystem>
 </config>

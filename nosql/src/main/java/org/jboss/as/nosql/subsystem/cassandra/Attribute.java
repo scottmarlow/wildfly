@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright (c) 2015, Red Hat, Inc., and individual contributors
+ * Copyright 2015, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -19,54 +19,51 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.jboss.as.nosql.subsystem;
 
-import java.util.EnumSet;
+package org.jboss.as.nosql.subsystem.cassandra;
+
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * @author Scott Marlow
  */
-enum Namespace {
-    // must be first
-    UNKNOWN(null),
-    NOSQL_1_0("urn:jboss:domain:nosql:1.0"),
-    ;
+enum Attribute {
 
+    UNKNOWN(null),
+    JNDI_NAME("jndi-name");
     private final String name;
 
-    Namespace(final String name) {
+    Attribute(final String name) {
         this.name = name;
     }
 
     /**
-     * Get the URI of this namespace.
+     * Get the local name of this attribute.
      *
-     * @return the URI
+     * @return the local name
      */
-    public String getUriString() {
+    public String getLocalName() {
         return name;
     }
 
-    /**
-     * Set of all namespaces, excluding the special {@link #UNKNOWN} value.
-     */
-    public static final EnumSet<Namespace> STANDARD_NAMESPACES = EnumSet.complementOf(EnumSet.of(Namespace.UNKNOWN));
-
-    private static final Map<String, Namespace> MAP;
+    private static final Map<String, Attribute> MAP;
 
     static {
-        final Map<String, Namespace> map = new HashMap<String, Namespace>();
-        for (Namespace namespace : values()) {
-            final String name = namespace.getUriString();
-            if (name != null) map.put(name, namespace);
+        final Map<String, Attribute> map = new HashMap<String, Attribute>();
+        for (Attribute element : values()) {
+            final String name = element.getLocalName();
+            if (name != null) map.put(name, element);
         }
         MAP = map;
     }
 
-    public static Namespace forUri(String uri) {
-        final Namespace element = MAP.get(uri);
+    public static Attribute forName(String localName) {
+        final Attribute element = MAP.get(localName);
         return element == null ? UNKNOWN : element;
+    }
+
+    public String toString() {
+        return getLocalName();
     }
 }

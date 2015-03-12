@@ -20,60 +20,51 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.nosql.subsystem;
+package org.jboss.as.nosql.subsystem.mongodb;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
 
-import java.util.List;
-
-import javax.xml.stream.XMLStreamConstants;
-import javax.xml.stream.XMLStreamException;
 
 import org.jboss.as.controller.Extension;
 import org.jboss.as.controller.ExtensionContext;
 import org.jboss.as.controller.ModelVersion;
+import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SubsystemRegistration;
 import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
 import org.jboss.as.controller.descriptions.StandardResourceDescriptionResolver;
 import org.jboss.as.controller.operations.common.GenericSubsystemDescribeHandler;
 import org.jboss.as.controller.parsing.ExtensionParsingContext;
-import org.jboss.as.controller.parsing.ParseUtils;
-import org.jboss.as.controller.persistence.SubsystemMarshallingContext;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
-import org.jboss.dmr.ModelNode;
-import org.jboss.staxmapper.XMLElementReader;
-import org.jboss.staxmapper.XMLElementWriter;
-import org.jboss.staxmapper.XMLExtendedStreamReader;
-import org.jboss.staxmapper.XMLExtendedStreamWriter;
 
 /**
  * NoSQLExtension
  *
  * @author Scott Marlow
  */
-public class NoSQLExtension implements Extension {
+public class MongoDriverExtension implements Extension {
 
-    public static final String SUBSYSTEM_NAME = "nosql";
-    public static final String NAMESPACE = "urn:jboss:domain:nosql:1.0";
-    public static final String RESOURCE_NAME = NoSQLExtension.class.getPackage().getName() + ".LocalDescriptions";
+    public static final String SUBSYSTEM_NAME = "mongodb";
+    protected static final PathElement SUBSYSTEM_PATH = PathElement.pathElement(SUBSYSTEM, SUBSYSTEM_NAME);
+    protected static final PathElement PROFILES_PATH = PathElement.pathElement(CommonAttributes.PROFILES);
+    protected static final PathElement PROFILE_PATH = PathElement.pathElement(CommonAttributes.PROFILE);
+    public static final String NAMESPACE = "urn:jboss:domain:mongodb:1.0";
+    public static final Namespace CURRENT = Namespace.MONGODB_1_0;
+    public static final String RESOURCE_NAME = MongoDriverExtension.class.getPackage().getName() + ".LocalDescriptions";
 
     static StandardResourceDescriptionResolver getResourceDescriptionResolver(final String... keyPrefix) {
         StringBuilder prefix = new StringBuilder(SUBSYSTEM_NAME);
         for (String kp : keyPrefix) {
             prefix.append('.').append(kp);
         }
-        return new StandardResourceDescriptionResolver(prefix.toString(), RESOURCE_NAME, NoSQLExtension.class.getClassLoader(), true, false);
+        return new StandardResourceDescriptionResolver(prefix.toString(), RESOURCE_NAME, MongoDriverExtension.class.getClassLoader(), true, false);
     }
 
-    private static final NoSQLSubsystemParser parser = new NoSQLSubsystemParser();
+    private static final MongoDriverSubsystemParser parser = new MongoDriverSubsystemParser();
 
     private static final ModelVersion CURRENT_MODEL_VERSION = ModelVersion.create(1, 0, 0);
 
     static ResourceDescriptionResolver getResourceDescriptionResolver(final String keyPrefix) {
-        return new StandardResourceDescriptionResolver(keyPrefix, RESOURCE_NAME, NoSQLExtension.class.getClassLoader(), true, false);
+        return new StandardResourceDescriptionResolver(keyPrefix, RESOURCE_NAME, MongoDriverExtension.class.getClassLoader(), true, false);
     }
 
     /**
@@ -82,7 +73,7 @@ public class NoSQLExtension implements Extension {
     @Override
     public void initialize(ExtensionContext context) {
         final SubsystemRegistration subsystem = context.registerSubsystem(SUBSYSTEM_NAME, CURRENT_MODEL_VERSION);
-        final ManagementResourceRegistration registration = subsystem.registerSubsystemModel(NoSQLDefinition.INSTANCE);
+        final ManagementResourceRegistration registration = subsystem.registerSubsystemModel(MongoDriverDefinition.INSTANCE);
         registration.registerOperationHandler(GenericSubsystemDescribeHandler.DEFINITION, GenericSubsystemDescribeHandler.INSTANCE);
         subsystem.registerXMLElementWriter(parser);
     }
@@ -95,27 +86,12 @@ public class NoSQLExtension implements Extension {
         context.setSubsystemXmlMapping(SUBSYSTEM_NAME, NAMESPACE, parser);
     }
 
-    static final class NoSQLSubsystemParser implements XMLStreamConstants, XMLElementReader<List<ModelNode>>, XMLElementWriter<SubsystemMarshallingContext> {
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void writeContent(final XMLExtendedStreamWriter writer, final SubsystemMarshallingContext context) throws XMLStreamException {
-            context.startSubsystemElement(NoSQLExtension.NAMESPACE, true);
+    public static StandardResourceDescriptionResolver getResolver(final String... keyPrefix) {
+        StringBuilder prefix = new StringBuilder(SUBSYSTEM_NAME);
+        for (String kp : keyPrefix) {
+            prefix.append('.').append(kp);
         }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public void readElement(final XMLExtendedStreamReader reader, final List<ModelNode> list) throws XMLStreamException {
-            // Require no content
-            ParseUtils.requireNoContent(reader);
-            final ModelNode subsystem = new ModelNode();
-            subsystem.get(OP).set(ADD);
-            subsystem.get(OP_ADDR).add(SUBSYSTEM, SUBSYSTEM_NAME);
-            list.add(subsystem);
-        }
+        return new StandardResourceDescriptionResolver(prefix.toString(), RESOURCE_NAME, MongoDriverExtension.class.getClassLoader(), true, false);
     }
+
 }

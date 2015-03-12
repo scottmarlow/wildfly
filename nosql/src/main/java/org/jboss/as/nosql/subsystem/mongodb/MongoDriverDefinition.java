@@ -20,32 +20,45 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.nosql.subsystem;
+package org.jboss.as.nosql.subsystem.mongodb;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
-import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
-import org.jboss.as.controller.registry.ManagementResourceRegistration;
 
 /**
  * NoSQL ResourceDefinition
  *
  */
-public class NoSQLDefinition extends SimpleResourceDefinition {
+public class MongoDriverDefinition extends PersistentResourceDefinition {
 
-    public static final NoSQLDefinition INSTANCE = new NoSQLDefinition();
+    public static final MongoDriverDefinition INSTANCE = new MongoDriverDefinition();
 
-    private NoSQLDefinition() {
-        super(PathElement.pathElement(ModelDescriptionConstants.SUBSYSTEM, NoSQLExtension.SUBSYSTEM_NAME),
-                NoSQLExtension.getResourceDescriptionResolver(),
-                NoSQLSubsystemAdd.INSTANCE,
+    static final PersistentResourceDefinition[] CHILDREN = {
+            ProfilesDefinition.INSTANCE
+        };
+
+    private MongoDriverDefinition() {
+        super(PathElement.pathElement(ModelDescriptionConstants.SUBSYSTEM, MongoDriverExtension.SUBSYSTEM_NAME),
+                MongoDriverExtension.getResourceDescriptionResolver(),
+                MongoDriverSubsystemAdd.INSTANCE,
                 ReloadRequiredRemoveStepHandler.INSTANCE);
     }
 
+    public Collection<AttributeDefinition> getAttributes() {
+        return Collections.emptySet();
+    }
 
     @Override
-    public void registerAttributes(ManagementResourceRegistration registration) {
-
+    protected List<? extends PersistentResourceDefinition> getChildren() {
+        return Arrays.asList(CHILDREN);
     }
+
 }

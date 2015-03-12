@@ -1,12 +1,12 @@
 package org.jboss.as.test.compat.nosql.mongodb;
 
-import java.util.Arrays;
-import java.util.List;
-
 import javax.annotation.Resource;
 import javax.ejb.Stateful;
 import javax.json.Json;
 import javax.json.JsonObject;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -17,83 +17,97 @@ import com.mongodb.MongoClient;
 import com.mongodb.util.JSON;
 
 /**
- * StatefulTestBean
+ * StatefulTestBean for the MongoDB document database
  *
  * @author Scott Marlow
  */
 @Stateful
 public class StatefulTestBean {
 
-    // @Resource(lookup = "java:jboss/mongodb/test")
+    @Resource(lookup = "java:jboss/mongodb/test")
     private MongoClient mongoClient;
 
-    public void addData() {
+    public void addUserComment() {
         MongoClient mongoClient = getConnection();
-        DB database = mongoClient.getDB("test");
+        DB database = mongoClient.getDB("mongotestdb");
         DBCollection collection = null;
         DBObject query = null;
-        final String id = "m933";
         try {
-
-            List<Integer> books = Arrays.asList(27464, 747854);
-            DBObject person = new BasicDBObject("_id", id)
-                    .append("name", "Melanie")
+            // add a comment from user Melanie
+            String who = "Melanie";
+            DBObject comment = new BasicDBObject("_id", who)
+                    .append("name", who)
                     .append("address", new BasicDBObject("street", "123 Main Street")
                             .append("city", "Fastville")
                             .append("state", "MA")
                             .append("zip", 18180))
-                    .append("books", books);
-            collection = database.getCollection("people");
+                    .append("comment","");
+            // save the comment
+            collection = database.getCollection("comments");
+            collection.insert(comment);
 
-            collection.insert(person);
-            query = new BasicDBObject("_id", id);
+            // look up the comment from Melanie
+            query = new BasicDBObject("_id", who);
             DBCursor cursor = collection.find(query);
-            DBObject melanie = cursor.next();
-            System.out.println("DBObject.toString() = " + melanie.toString());
+            DBObject userComment = cursor.next();
+            System.out.println("DBObject.toString() = " + userComment.toString());
         } finally {
             collection.remove(query);
-            mongoClient.close();
+        }
+    }
+
+    public void addProduct() {
+        MongoClient mongoClient = getConnection();
+        DB database = mongoClient.getDB("mongotestdb");
+        DBCollection collection = null;
+        database.getMongo();
+        DBObject query = null;
+        try {
+            collection = database.getCollection("company");
+            String companyName = "Acme products";
+            JsonObject object = Json.createObjectBuilder()
+                    .add("companyName", companyName)
+                    .add("street", "999 Flow Lane")
+                    .add("city", "Indiville")
+                    .add("_id", companyName)
+                    .build();
+
+            collection.insert((DBObject) JSON.parse(object.toString()));
+            query = new BasicDBObject("_id",companyName);
+            DBCursor cursor = collection.find(query);
+            DBObject dbObject = cursor.next();
+            System.out.println("DBObject.toString() = " + dbObject.toString());
+        } finally {
+            if (query != null) {
+                collection.remove(query);
+            }
         }
     }
 
     private MongoClient getConnection() {
         try {
-            if(this.mongoClient != null) {
-                return this.mongoClient;
+            System.out.println("getConnection called with existing mongoClient== " + mongoClient);
+            if(mongoClient == null) {
+
+                Context ctx;
+                try {
+                    ctx = new InitialContext();
+                    mongoClient = (MongoClient) ctx.lookup("java:jboss/mongodb/test");
+                } catch (NamingException e) {
+                    throw new RuntimeException(e);
+                }
+                System.out.println("jndi look up of java:jboss/mongodb/test returned " + mongoClient);
             }
-            System.out.println("resource injection of mongoclient did not occur.");
+
+            if(mongoClient != null) {
+                return mongoClient;
+            }
             return new MongoClient("localhost");
         } catch (java.net.UnknownHostException u) {
             throw new RuntimeException(u);
         }
     }
 
-    public void addDataViaJson() {
-        MongoClient mongoClient = getConnection();
-        DB database = mongoClient.getDB("test");
-        DBCollection collection = null;
-        final String id = "x559";
-        DBObject query = null;
-        try {
-            collection = database.getCollection("company");
 
-            JsonObject object = Json.createObjectBuilder()
-                    .add("companyName", "Acme products")
-                    .add("street", "999 Flow Lane")
-                    .add("city", "Indiville")
-                    .add("_id", id)
-                    .build();
-
-            collection.insert((DBObject) JSON.parse(object.toString()));
-            query = new BasicDBObject("_id", id);
-            DBCursor cursor = collection.find(query);
-            DBObject x555 = cursor.next();
-            System.out.println("DBObject.toString() = " + x555.toString());
-        } finally {
-            collection.remove(query);
-            mongoClient.close();
-        }
-
-    }
 
 }

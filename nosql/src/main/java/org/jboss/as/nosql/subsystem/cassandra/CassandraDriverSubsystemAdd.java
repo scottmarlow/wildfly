@@ -20,7 +20,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.nosql.subsystem;
+package org.jboss.as.nosql.subsystem.cassandra;
 
 import org.jboss.as.controller.AbstractBoottimeAddStepHandler;
 import org.jboss.as.controller.OperationContext;
@@ -36,13 +36,13 @@ import org.jboss.dmr.ModelNode;
  *
  * @author Scott Marlow
  */
-public class NoSQLSubsystemAdd extends AbstractBoottimeAddStepHandler {
+public class CassandraDriverSubsystemAdd extends AbstractBoottimeAddStepHandler {
 
-    public static final NoSQLSubsystemAdd INSTANCE = new NoSQLSubsystemAdd();
+    public static final CassandraDriverSubsystemAdd INSTANCE = new CassandraDriverSubsystemAdd();
 
     private final ParametersValidator runtimeValidator = new ParametersValidator();
 
-    private NoSQLSubsystemAdd() {
+    private CassandraDriverSubsystemAdd() {
     }
 
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
@@ -54,7 +54,7 @@ public class NoSQLSubsystemAdd extends AbstractBoottimeAddStepHandler {
         runtimeValidator.validate(operation.resolve());
         context.addStep(new AbstractDeploymentChainStep() {
             protected void execute(DeploymentProcessorTarget processorTarget) {
-                processorTarget.addDeploymentProcessor(NoSQLExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_PERSISTENCE_ANNOTATION, new NoSQLDependencyProcessor());
+                processorTarget.addDeploymentProcessor(CassandraDriverExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_PERSISTENCE_ANNOTATION, new CassandraDriverDependencyProcessor());
 
             }
         }, OperationContext.Stage.RUNTIME);

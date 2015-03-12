@@ -1,7 +1,5 @@
 package org.jboss.as.test.compat.nosql.mongodb;
 
-import java.io.File;
-
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
@@ -10,7 +8,6 @@ import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
@@ -57,8 +54,8 @@ public class MongoDBTestCase {
     @Test
     public void testSimpleCreateAndLoadEntities() throws Exception {
         StatefulTestBean statefulTestBean = lookup("StatefulTestBean", StatefulTestBean.class);
-        statefulTestBean.addData();
-        statefulTestBean.addDataViaJson();
+        statefulTestBean.addUserComment();
+        statefulTestBean.addProduct();
     }
 
 }

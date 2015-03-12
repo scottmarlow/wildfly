@@ -20,7 +20,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.nosql.subsystem;
+package org.jboss.as.nosql.subsystem.cassandra;
 
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
@@ -38,25 +38,22 @@ import org.jboss.modules.ModuleLoader;
  *
  * @author Scott Marlow
  */
-public class NoSQLDependencyProcessor implements DeploymentUnitProcessor {
+public class CassandraDriverDependencyProcessor implements DeploymentUnitProcessor {
 
     private static final ModuleIdentifier CASSANDRA_DRIVER_ID = ModuleIdentifier.create("com.datastax.cassandra.driver-core");
-    private static final ModuleIdentifier MONGODB_DRIVER_ID = ModuleIdentifier.create("org.mongodb.driver");
-
 
     /**
-     * Add dependencies for modules required for JPA deployments
+     * Add dependencies for modules required for Cassandra deployments
      */
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
         final ModuleSpecification moduleSpecification = deploymentUnit.getAttachment(Attachments.MODULE_SPECIFICATION);
         final ModuleLoader moduleLoader = Module.getBootModuleLoader();
 
-        // add MongoDB + Cassandra to all deployments
+        // add Cassandra to all deployments
         // todo: add the following dependencies conditionally based on the presence
         // of an annotation/deployment descriptor that requests them
         addDependency(moduleSpecification, moduleLoader, deploymentUnit, CASSANDRA_DRIVER_ID);
-        addDependency(moduleSpecification, moduleLoader, deploymentUnit, MONGODB_DRIVER_ID);
     }
 
     private void addDependency(ModuleSpecification moduleSpecification, ModuleLoader moduleLoader,

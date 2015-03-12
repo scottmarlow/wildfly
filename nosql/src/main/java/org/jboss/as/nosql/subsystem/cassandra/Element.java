@@ -19,7 +19,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.jboss.as.nosql.subsystem;
+package org.jboss.as.nosql.subsystem.cassandra;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,7 +30,11 @@ import java.util.Map;
 public enum Element {
     // must be first
     UNKNOWN(null),
-    JPA(CommonAttributes.NOSQL),;
+    SUBSYSTEM("subsystem"),
+    NOSQL("cassandradriver"),
+    PROFILES("profiles"),
+    DRIVERS("drivers"),
+    ;
 
     private final String name;
 
