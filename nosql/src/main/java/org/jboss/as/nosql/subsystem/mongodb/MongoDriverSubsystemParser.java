@@ -46,7 +46,8 @@ final class MongoDriverSubsystemParser extends PersistentResourceXMLParser {
                                                         ProfileDefinition.NAME,
                                                         ProfileDefinition.HOST,
                                                         ProfileDefinition.PORT,
-                                                        ProfileDefinition.JNDI_NAME
+                                                        ProfileDefinition.JNDI_NAME,
+                                                        ProfileDefinition.DATABASE
                                                 ))).
                 build();
     }

@@ -56,9 +56,6 @@ public class ConfigurationBuilder {
     }
 
     public MongoClient build() throws UnknownHostException {
-
-        if (target != null)
-            return new MongoClient(target, builder.build());
-        else return new MongoClient();
+        return new MongoClient(target, builder.build());
     }
 }

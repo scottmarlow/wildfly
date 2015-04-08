@@ -79,6 +79,12 @@ public class ProfileDefinition extends PersistentResourceDefinition {
                     .setAllowExpression(true)
                     .build();
 
+    protected static final SimpleAttributeDefinition DATABASE =
+            new SimpleAttributeDefinitionBuilder(CommonAttributes.DATABASE, ModelType.STRING, true)
+                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setAllowExpression(true)
+                    .build();
+
     protected static final SimpleAttributeDefinition PORT =
             new SimpleAttributeDefinitionBuilder(CommonAttributes.PORT, ModelType.INT, true)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
@@ -90,7 +96,8 @@ public class ProfileDefinition extends PersistentResourceDefinition {
             NAME,
             JNDI_NAME,
             HOST,
-            PORT);
+            PORT,
+            DATABASE);
 
     static final Map<String, AttributeDefinition> ATTRIBUTES_MAP = new HashMap<>();
 
@@ -128,13 +135,15 @@ public class ProfileDefinition extends PersistentResourceDefinition {
             final ModelNode jndiNameModel = JNDI_NAME.resolveModelAttribute(context, model);
             final ModelNode hostNameModel = HOST.resolveModelAttribute(context, model);
             final ModelNode portNumberModel = PORT.resolveModelAttribute(context, model);
+            final ModelNode databaseNameModel = DATABASE.resolveModelAttribute(context, model);
 
             final String profileName = nameModel.isDefined() ? nameModel.asString() : null;
             final String jndiName = jndiNameModel.isDefined() ? jndiNameModel.asString() : null;
             final String hostName = hostNameModel.isDefined() ? hostNameModel.asString() : null;
             final int port = portNumberModel.isDefined() ? portNumberModel.asInt() : 0;
+            final String databaseName = databaseNameModel.isDefined() ? databaseNameModel.asString() : null;
 
-            final MongoDriverService service = new MongoDriverService(profileName, jndiName, hostName, port);
+            final MongoDriverService service = new MongoDriverService(profileName, jndiName, hostName, port, databaseName);
             final ServiceName serviceName = MONGODBSERVICE.append(profileName);
             if(jndiName !=null && jndiName.length() > 0) {
                 final ContextNames.BindInfo bindingInfo = ContextNames.bindInfoFor(jndiName);
@@ -146,7 +155,7 @@ public class ProfileDefinition extends PersistentResourceDefinition {
                         @Override
                         public void inject(final MongoDriverService value) throws
                                 InjectionException {
-                            binderService.getManagedObjectInjector().inject(new ValueManagedReferenceFactory(new ImmediateValue<Object>(value.getClient())));
+                            binderService.getManagedObjectInjector().inject(new ValueManagedReferenceFactory(new ImmediateValue<>( value.getDatabase() !=null ? value.getDatabase(): value.getClient())));
                         }
 
                         @Override

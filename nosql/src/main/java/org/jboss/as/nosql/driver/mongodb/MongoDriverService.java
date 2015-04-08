@@ -24,6 +24,7 @@ package org.jboss.as.nosql.driver.mongodb;
 
 import java.net.UnknownHostException;
 
+import com.mongodb.DB;
 import com.mongodb.MongoClient;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.StartContext;
@@ -36,17 +37,19 @@ import org.jboss.msc.service.StopContext;
  * @author Scott Marlow
  */
 public class MongoDriverService implements Service<MongoDriverService> {
-
-    private final String profileName, jndiName, hostName;
+    // TODO: allow set of host/port pairs to be specified
+    private final String profileName, jndiName, hostName, databaseName;
     private final int port;
 
     private MongoClient client;
+    private DB database;
 
-    public MongoDriverService(String profileName, String jndiName, String hostName, int port) {
+    public MongoDriverService(String profileName, String jndiName, String hostName, int port, String databaseName) {
         this.hostName = hostName;
         this.profileName = profileName;
         this.jndiName = jndiName;
         this.port = port;
+        this.databaseName = databaseName;
     }
 
     @Override
@@ -56,6 +59,9 @@ public class MongoDriverService implements Service<MongoDriverService> {
             builder.addTarget(hostName, port);
             builder.setDescription(profileName);
             client = builder.build();
+            if(databaseName != null) {
+                database = client.getDB(databaseName);
+            }
 
         } catch (UnknownHostException e) {
             throw new StartException(e);
@@ -76,5 +82,7 @@ public class MongoDriverService implements Service<MongoDriverService> {
     public MongoClient getClient() {
         return client;
     }
+
+    public DB getDatabase() { return database;}
 
 }

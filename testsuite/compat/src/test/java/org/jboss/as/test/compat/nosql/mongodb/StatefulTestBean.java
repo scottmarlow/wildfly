@@ -4,16 +4,12 @@ import javax.annotation.Resource;
 import javax.ejb.Stateful;
 import javax.json.Json;
 import javax.json.JsonObject;
-import javax.naming.Context;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
 import com.mongodb.util.JSON;
 
 /**
@@ -25,11 +21,9 @@ import com.mongodb.util.JSON;
 public class StatefulTestBean {
 
     @Resource(lookup = "java:jboss/mongodb/test")
-    private MongoClient mongoClient;
+    DB database;
 
     public void addUserComment() {
-        MongoClient mongoClient = getConnection();
-        DB database = mongoClient.getDB("mongotestdb");
         DBCollection collection = null;
         DBObject query = null;
         try {
@@ -58,8 +52,6 @@ public class StatefulTestBean {
     }
 
     public void addProduct() {
-        MongoClient mongoClient = getConnection();
-        DB database = mongoClient.getDB("mongotestdb");
         DBCollection collection = null;
         database.getMongo();
         DBObject query = null;
@@ -84,31 +76,6 @@ public class StatefulTestBean {
             }
         }
     }
-
-    private MongoClient getConnection() {
-        try {
-            System.out.println("getConnection called with existing mongoClient== " + mongoClient);
-            if(mongoClient == null) {
-
-                Context ctx;
-                try {
-                    ctx = new InitialContext();
-                    mongoClient = (MongoClient) ctx.lookup("java:jboss/mongodb/test");
-                } catch (NamingException e) {
-                    throw new RuntimeException(e);
-                }
-                System.out.println("jndi look up of java:jboss/mongodb/test returned " + mongoClient);
-            }
-
-            if(mongoClient != null) {
-                return mongoClient;
-            }
-            return new MongoClient("localhost");
-        } catch (java.net.UnknownHostException u) {
-            throw new RuntimeException(u);
-        }
-    }
-
 
 
 }

@@ -34,4 +34,5 @@ public interface CommonAttributes {
     String JNDI_NAME= "jndi-name";
     String HOST = "host-name";
     String PORT = "host-port";
+    String DATABASE = "database";
 }
