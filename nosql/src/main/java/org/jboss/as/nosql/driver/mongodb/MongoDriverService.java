@@ -82,6 +82,8 @@ public class MongoDriverService implements Service<MongoDriverService> {
         return client;
     }
 
-    public DB getDatabase() { return database;}
+    public DB getDatabase() {
+        return database;
+    }
 
 }

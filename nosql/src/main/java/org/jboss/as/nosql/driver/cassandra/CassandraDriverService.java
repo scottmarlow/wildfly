@@ -79,6 +79,8 @@ public class CassandraDriverService implements Service<CassandraDriverService> {
         return cluster;
     }
 
-    public Session getSession() { return session;}
+    public Session getSession() {
+        return session;
+    }
 
 }
