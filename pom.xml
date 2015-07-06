@@ -4033,12 +4033,6 @@
 
             <dependency>
                 <groupId>org.hibernate</groupId>
-                <artifactId>hibernate-search-infinispan</artifactId>
-                <version>${version.org.hibernate.search}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.hibernate</groupId>
                 <artifactId>hibernate-search-backend-jms</artifactId>
                 <version>${version.org.hibernate.search}</version>
             </dependency>
@@ -4255,10 +4249,6 @@
                     <exclusion>
                         <groupId>org.hibernate</groupId>
                         <artifactId>hibernate-search-engine</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.hibernate</groupId>
-                        <artifactId>hibernate-search-infinispan</artifactId>
                     </exclusion>
                     <exclusion>
                         <groupId>org.hibernate</groupId>
