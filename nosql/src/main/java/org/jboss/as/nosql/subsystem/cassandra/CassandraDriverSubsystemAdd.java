@@ -87,6 +87,9 @@ public class CassandraDriverSubsystemAdd extends AbstractBoottimeAddStepHandler 
                     else if(profileEntry.hasDefined(CommonAttributes.JNDI_NAME)) {
                         builder.setJNDIName(profileEntry.get(CommonAttributes.JNDI_NAME).asString());
                     }
+                    else if(profileEntry.hasDefined(CommonAttributes.MODULE_NAME)) {
+                        builder.setModuleName(profileEntry.get(CommonAttributes.MODULE_NAME).asString());
+                    }
                     else if(profileEntry.hasDefined(CommonAttributes.DATABASE)) {
                         builder.setKeyspace(profileEntry.get(CommonAttributes.DATABASE).asString());
                     }
@@ -119,8 +122,7 @@ public class CassandraDriverSubsystemAdd extends AbstractBoottimeAddStepHandler 
     private void startCassandraDriverService(OperationContext context, ConfigurationBuilder builder) {
         if(builder.getJNDIName() !=null && builder.getJNDIName().length() > 0) {
             final CassandraDriverService service = new CassandraDriverService(builder);
-            final ServiceName serviceName = CASSANDRADBSERVICE.append(
-                    builder.getDescription());
+            final ServiceName serviceName = CASSANDRADBSERVICE.append( builder.getDescription());
             final ContextNames.BindInfo bindingInfo = ContextNames.bindInfoFor(builder.getJNDIName());
 
             final BinderService binderService = new BinderService(bindingInfo.getBindName());

@@ -22,7 +22,8 @@
 
 package org.jboss.as.nosql.driver.cassandra;
 
-import com.datastax.driver.core.Cluster;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * ConfigurationBuilder
@@ -30,45 +31,35 @@ import com.datastax.driver.core.Cluster;
  * @author Scott Marlow
  */
 public class ConfigurationBuilder {
+    private ArrayList<HostPortPair> targets = new ArrayList<>();
+    private String description; //
+    private String JNDIName;    // required global jndi name
+    private String keyspace;    // optional Cassandra keyspace
 
-    private Cluster.Builder builder = new Cluster.Builder();
-    private String uniqueName;
-    private String description;
-    private String JNDIName;
-    private String keyspace;
-    private String keySpace;
-
+    private String moduleName = // name of Cassandra module
+            "com.datastax.cassandra.driver-core";
 
     public ConfigurationBuilder setPort(int port)  {
-        builder.withPort(port);
+        HostPortPair pair = new HostPortPair(port);
+        targets.add(pair);
         return this;
     }
 
     public ConfigurationBuilder addTarget(String hostname, int port)  {
-        builder.withPort(port);
-        builder.addContactPoint(hostname);
+        HostPortPair pair = new HostPortPair(hostname, port);
+        targets.add(pair);
         return this;
     }
 
-    public ConfigurationBuilder addTarget(String host)  {
-        builder.addContactPoint(host);
+    public ConfigurationBuilder addTarget(String hostname)  {
+        HostPortPair pair = new HostPortPair(hostname);
+        targets.add(pair);
         return this;
     }
 
-    public ConfigurationBuilder setName(String name) {
-        builder.withClusterName(name);
-        return this;
+    public List<HostPortPair> getTargets() {
+        return targets;
     }
-
-    public ConfigurationBuilder setUniqueName(String uniqueName) {
-        this.uniqueName = uniqueName;
-        return this;
-        }
-
-    public Cluster build() {
-        return builder.build();
-    }
-
 
     public void setDescription(String description) {
         this.description = description;
@@ -91,6 +82,15 @@ public class ConfigurationBuilder {
     }
 
     public String getKeySpace() {
-        return keySpace;
+        return keyspace;
     }
+
+    public void setModuleName(String moduleName) {
+        this.moduleName = moduleName;
+    }
+
+    public String getModuleName() {
+        return moduleName;
+    }
+
 }

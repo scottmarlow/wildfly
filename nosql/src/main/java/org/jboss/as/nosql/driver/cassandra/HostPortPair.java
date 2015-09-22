@@ -20,20 +20,37 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.nosql.subsystem.cassandra;
+package org.jboss.as.nosql.driver.cassandra;
 
 /**
- * CommonAttributes
+ * HostPortPair
  *
  * @author Scott Marlow
  */
-public interface CommonAttributes {
-    String DATABASE = "database";
-    String HOST = "host-name";
-    String HOST_DEF = "host";
-    String ID_NAME = "id";
-    String JNDI_NAME= "jndi-name";
-    String MODULE_NAME = "module";
-    String PORT = "host-port";
-    String PROFILE = "cassandra";
+public class HostPortPair {
+    private String host;
+    private int port;
+
+    HostPortPair(int port) {
+        this.port = port;
+    }
+
+    HostPortPair(String host) {
+        this.host = host;
+    }
+
+    HostPortPair(String host, int port) {
+        this.port = port;
+        this.host = host;
+    }
+
+
+    public String getHost() {
+        return host;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
 }

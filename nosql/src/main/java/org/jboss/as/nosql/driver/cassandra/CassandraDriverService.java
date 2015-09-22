@@ -22,45 +22,69 @@
 
 package org.jboss.as.nosql.driver.cassandra;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
+import java.util.List;
+
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 
 /**
- * CassandraDriverService
+ * CassandraDriverService represents the connection into Cassandra
  *
  * @author Scott Marlow
  */
 public class CassandraDriverService implements Service<CassandraDriverService> {
-    private final ConfigurationBuilder builder;
 
-    private Cluster cluster;
-    private Session session;  // set if keyspaceName is specified
+    private final ConfigurationBuilder configurationBuilder;
+    private final CassandraInteraction cassandraInteraction;
+    private Object cluster;  // represents connection into Cassandra
+    private Object session;  // only set if keyspaceName is specified
+
 
     public CassandraDriverService(ConfigurationBuilder builder) {
-        this.builder = builder;
+        configurationBuilder = builder;
+        cassandraInteraction = new CassandraInteraction(configurationBuilder);
     }
 
     @Override
     public void start(StartContext startContext) throws StartException {
-        cluster = builder.build();
-        String keySpace = builder.getKeySpace();
+        Object builder = cassandraInteraction.getBuilder();
+
+        List<HostPortPair> targets = configurationBuilder.getTargets();
+
+        for(HostPortPair target : targets) {
+            if(target.getPort() > 0) {
+                cassandraInteraction.withPort(builder, target.getPort());
+            }
+            if(target.getHost() != null) {
+                cassandraInteraction.addContactPoint(builder, target.getHost());
+            }
+        }
+
+        if(configurationBuilder.getDescription() != null) {
+            cassandraInteraction.withClusterName(builder, configurationBuilder.getDescription());
+        }
+        cluster = cassandraInteraction.build(builder);
+
+        String keySpace = configurationBuilder.getKeySpace();
         if(keySpace != null) {
-            session = cluster.connect(keySpace);
+            session = cassandraInteraction.connect(cluster, keySpace);
         }
     }
 
     @Override
     public void stop(StopContext stopContext) {
-        if(session != null) {
-            session.close();
-            session = null;
+        try {
+            if (session != null) {
+                cassandraInteraction.sessionClose(session);
+                session = null;
+            }
+            cassandraInteraction.clusterClose(cluster);
+            cluster = null;
+        } catch( Throwable throwable) {
+            throwable.printStackTrace();
         }
-        cluster.close();
-        cluster = null;
     }
 
     @Override
@@ -68,12 +92,13 @@ public class CassandraDriverService implements Service<CassandraDriverService> {
         return this;
     }
 
-    public Cluster getCluster() {
+    public Object getCluster() {
         return cluster;
     }
 
-    public Session getSession() {
+    public Object getSession() {
         return session;
     }
+
 
 }

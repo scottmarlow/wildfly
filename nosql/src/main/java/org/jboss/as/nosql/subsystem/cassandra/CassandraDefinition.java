@@ -75,10 +75,18 @@ public class CassandraDefinition extends PersistentResourceDefinition {
                     .setAllowExpression(true)
                     .build();
 
+    protected static final SimpleAttributeDefinition MODULE =
+            new SimpleAttributeDefinitionBuilder(CommonAttributes.MODULE_NAME, ModelType.STRING, true)
+                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setAllowExpression(false)
+                    .build();
+
+
     protected static List<SimpleAttributeDefinition> ATTRIBUTES = Arrays.asList(
             ID_NAME,
             JNDI_NAME,
-            DATABASE);
+            DATABASE,
+            MODULE);
 
     static final Map<String, AttributeDefinition> ATTRIBUTES_MAP = new HashMap<>();
 
