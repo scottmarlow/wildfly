@@ -40,20 +40,17 @@ public class ConfigurationBuilder {
             "com.datastax.cassandra.driver-core";
 
     public ConfigurationBuilder setPort(int port)  {
-        HostPortPair pair = new HostPortPair(port);
-        targets.add(pair);
+        targets.add(new HostPortPair(port));
         return this;
     }
 
     public ConfigurationBuilder addTarget(String hostname, int port)  {
-        HostPortPair pair = new HostPortPair(hostname, port);
-        targets.add(pair);
+        targets.add(new HostPortPair(hostname, port));
         return this;
     }
 
     public ConfigurationBuilder addTarget(String hostname)  {
-        HostPortPair pair = new HostPortPair(hostname);
-        targets.add(pair);
+        targets.add(new HostPortPair(hostname));
         return this;
     }
 

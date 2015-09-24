@@ -20,36 +20,17 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.nosql.driver.cassandra;
+package org.jboss.as.nosql.driver.mongodb;
 
 /**
- * HostPortPair
+ * MongoInteraction
  *
  * @author Scott Marlow
  */
-public class HostPortPair {
-    private String host;
-    private int port;
+public class MongoInteraction {
+    public MongoInteraction(ConfigurationBuilder configurationBuilder) {
 
-    HostPortPair(int port) {
-        this.port = port;
     }
 
-    HostPortPair(String host) {
-        this.host = host;
-    }
-
-    HostPortPair(String host, int port) {
-        this.port = port;
-        this.host = host;
-    }
-
-    public String getHost() {
-        return host;
-    }
-
-    public int getPort() {
-        return port;
-    }
 
 }

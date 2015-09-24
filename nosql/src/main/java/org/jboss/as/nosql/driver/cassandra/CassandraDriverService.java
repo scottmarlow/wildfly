@@ -42,30 +42,28 @@ public class CassandraDriverService implements Service<CassandraDriverService> {
     private Object session;  // only set if keyspaceName is specified
 
 
-    public CassandraDriverService(ConfigurationBuilder builder) {
-        configurationBuilder = builder;
+    public CassandraDriverService(ConfigurationBuilder configurationBuilder) {
+        this.configurationBuilder = configurationBuilder;
         cassandraInteraction = new CassandraInteraction(configurationBuilder);
     }
 
     @Override
     public void start(StartContext startContext) throws StartException {
-        Object builder = cassandraInteraction.getBuilder();
 
         List<HostPortPair> targets = configurationBuilder.getTargets();
-
         for(HostPortPair target : targets) {
             if(target.getPort() > 0) {
-                cassandraInteraction.withPort(builder, target.getPort());
+                cassandraInteraction.withPort(target.getPort());
             }
             if(target.getHost() != null) {
-                cassandraInteraction.addContactPoint(builder, target.getHost());
+                cassandraInteraction.addContactPoint(target.getHost());
             }
         }
 
         if(configurationBuilder.getDescription() != null) {
-            cassandraInteraction.withClusterName(builder, configurationBuilder.getDescription());
+            cassandraInteraction.withClusterName(configurationBuilder.getDescription());
         }
-        cluster = cassandraInteraction.build(builder);
+        cluster = cassandraInteraction.build();
 
         String keySpace = configurationBuilder.getKeySpace();
         if(keySpace != null) {

@@ -23,9 +23,13 @@
 package org.jboss.as.nosql.driver.mongodb;
 
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.mongodb.DB;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.ServerAddress;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
@@ -37,21 +41,36 @@ import org.jboss.msc.service.StopContext;
  * @author Scott Marlow
  */
 public class MongoDriverService implements Service<MongoDriverService> {
-    final ConfigurationBuilder builder;
+    final ConfigurationBuilder configurationBuilder;
 
     private MongoClient client;
     private DB database;
+    private MongoInteraction mongoInteraction;
 
     public MongoDriverService(ConfigurationBuilder builder) {
-        this.builder = builder;
+        this.configurationBuilder = builder;
+        mongoInteraction = new MongoInteraction(configurationBuilder);
     }
 
     @Override
     public void start(StartContext startContext) throws StartException {
         try {
-            client = builder.build();
-            if(builder.getDatabase() != null) {
-                database = client.getDB(builder.getDatabase());
+            MongoClientOptions.Builder builder = new MongoClientOptions.Builder();
+            builder.description(configurationBuilder.getDescription());
+            ArrayList<ServerAddress> serverAddressArrayList = new ArrayList<>();
+            List<HostPortPair> targets = configurationBuilder.getTargets();
+            for(HostPortPair target : targets) {
+                if(target.getHost() != null && target.getPort() > 0) {
+                    serverAddressArrayList.add(new ServerAddress(target.getHost(),target.getPort()));
+                }
+                else if(target.getHost() != null) {
+                    serverAddressArrayList.add(new ServerAddress(target.getHost()));
+                }
+            }
+
+            client = new MongoClient(serverAddressArrayList,builder.build());
+            if(configurationBuilder.getDatabase() != null) {
+                database = client.getDB(configurationBuilder.getDatabase());
             }
 
         } catch (UnknownHostException e) {

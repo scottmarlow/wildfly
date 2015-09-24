@@ -46,18 +46,22 @@ public class CassandraInteraction {
     private static final String COM_DATASTAX_DRIVER_CORE_SESSION ="com.datastax.driver.core.Session";
 
     private ConfigurationBuilder configurationBuilder;
+    private Object clusterBuilder;
 
     CassandraInteraction(ConfigurationBuilder configurationBuilder) {
         this.configurationBuilder = configurationBuilder;
         // TODO: cache method handles + classes in constructor
     }
 
-    // create new com.datastax.driver.core.Cluster.Builder instance
-    protected Object getBuilder() throws StartException {
+    // return com.datastax.driver.core.Cluster.Builder instance
+    private Object getBuilder() throws StartException {
         try {
-            Class builder = getModuleClassLoader().loadClass(COM_DATASTAX_DRIVER_CORE_CLUSTER);
-            // public static Cluster.Builder builder() {
-            return builder.getMethod("builder").invoke(null);
+            if (clusterBuilder == null) {
+                Class builderClass = getModuleClassLoader().loadClass(COM_DATASTAX_DRIVER_CORE_CLUSTER);
+                // public static Cluster.Builder builder() {
+                this.clusterBuilder = builderClass.getMethod("builder").invoke(null);
+            }
+            return clusterBuilder;
         } catch (IllegalAccessException e) {
             throw new StartException(e);
         } catch (ClassNotFoundException e) {
@@ -71,14 +75,14 @@ public class CassandraInteraction {
 
     // call cluster = builder.build();
     // public Cluster build()
-    protected Object build(Object builder) throws StartException {
+    protected Object build() throws StartException {
         MethodHandles.Lookup lookup = MethodHandles.lookup();
         try {
             // returns com.datastax.driver.core.Cluster
             final Class clusterclass = getModuleClassLoader().loadClass(COM_DATASTAX_DRIVER_CORE_CLUSTER);
             final Class builderclass = getModuleClassLoader().loadClass(COM_DATASTAX_DRIVER_CORE_CLUSTER_BUILDER);
             MethodHandle build = lookup.findVirtual(builderclass, "build", MethodType.methodType(clusterclass));
-            return build.invokeWithArguments(builder);
+            return build.invokeWithArguments(getBuilder());
         } catch (NoSuchMethodException e) {
             throw new StartException(e);
         } catch (IllegalAccessException e) {
@@ -106,22 +110,22 @@ public class CassandraInteraction {
     }
 
     // call withClusterName(String name)
-    protected void withClusterName(Object builder, String clusterName) throws StartException {
+    protected void withClusterName(String clusterName) throws StartException {
         try {
             MethodHandles.Lookup lookup = MethodHandles.lookup();
-            MethodHandle withClusterName = lookup.findVirtual(builder.getClass(), "withClusterName", MethodType.methodType(builder.getClass(), String.class));
-            withClusterName.invoke(builder, clusterName);
+            MethodHandle withClusterName = lookup.findVirtual(getBuilder().getClass(), "withClusterName", MethodType.methodType(getBuilder().getClass(), String.class));
+            withClusterName.invoke(getBuilder(), clusterName);
         } catch (Throwable throwable) {
             throw new StartException(throwable);
         }
     }
 
     // call builder.withPort(target.getPort());
-    protected void withPort(Object builder, int port) throws StartException {
+    protected void withPort(int port) throws StartException {
         MethodHandles.Lookup lookup = MethodHandles.lookup();
         try {
-            MethodHandle withPort = lookup.findVirtual(builder.getClass(), "withPort", MethodType.methodType(builder.getClass(), int.class));
-            withPort = MethodHandles.insertArguments(withPort, 0, builder, port);
+            MethodHandle withPort = lookup.findVirtual(getBuilder().getClass(), "withPort", MethodType.methodType(getBuilder().getClass(), int.class));
+            withPort = MethodHandles.insertArguments(withPort, 0, getBuilder(), port);
             withPort.invoke();
         } catch (NoSuchMethodException e) {
             throw new StartException(e);
@@ -132,11 +136,11 @@ public class CassandraInteraction {
         }
     }
 
-    protected void addContactPoint(Object builder, String host) throws StartException {
+    protected void addContactPoint(String host) throws StartException {
         MethodHandles.Lookup lookup = MethodHandles.lookup();
         try {
-            MethodHandle withPort = lookup.findVirtual(builder.getClass(), "addContactPoint", MethodType.methodType(builder.getClass(), String.class));
-            withPort = MethodHandles.insertArguments(withPort, 0, builder, host);
+            MethodHandle withPort = lookup.findVirtual(getBuilder().getClass(), "addContactPoint", MethodType.methodType(getBuilder().getClass(), String.class));
+            withPort = MethodHandles.insertArguments(withPort, 0, getBuilder(), host);
             withPort.invoke();
         } catch (NoSuchMethodException e) {
             throw new StartException(e);

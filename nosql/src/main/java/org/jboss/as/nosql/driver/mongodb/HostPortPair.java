@@ -20,7 +20,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.nosql.driver.cassandra;
+package org.jboss.as.nosql.driver.mongodb;
 
 /**
  * HostPortPair
@@ -30,10 +30,6 @@ package org.jboss.as.nosql.driver.cassandra;
 public class HostPortPair {
     private String host;
     private int port;
-
-    HostPortPair(int port) {
-        this.port = port;
-    }
 
     HostPortPair(String host) {
         this.host = host;
