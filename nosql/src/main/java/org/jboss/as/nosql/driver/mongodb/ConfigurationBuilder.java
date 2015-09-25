@@ -38,6 +38,8 @@ public class ConfigurationBuilder {
     private String JNDIName;
     private String database;
     private String description;
+    private String moduleName = // name of MongoDB module
+            "org.mongodb.driver";
 
     public ConfigurationBuilder addTarget(String hostname) throws UnknownHostException {
         targets.add(new HostPortPair(hostname));
@@ -77,5 +79,13 @@ public class ConfigurationBuilder {
 
     public void setDatabase(String database) {
         this.database = database;
+    }
+
+    public void setModuleName(String moduleName) {
+        this.moduleName = moduleName;
+    }
+
+    public String getModuleName() {
+        return moduleName;
     }
 }

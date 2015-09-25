@@ -22,15 +22,64 @@
 
 package org.jboss.as.nosql.driver.mongodb;
 
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.ServerAddress;
+import org.jboss.modules.Module;
+import org.jboss.modules.ModuleIdentifier;
+import org.jboss.modules.ModuleLoadException;
+import org.jboss.modules.ModuleLoader;
+import org.jboss.msc.service.StartException;
+
 /**
  * MongoInteraction
  *
  * @author Scott Marlow
  */
 public class MongoInteraction {
-    public MongoInteraction(ConfigurationBuilder configurationBuilder) {
 
+    private ArrayList<ServerAddress> serverAddressArrayList = new ArrayList<>();
+    private ConfigurationBuilder configurationBuilder;
+
+    public MongoInteraction(ConfigurationBuilder configurationBuilder) {
+        this.configurationBuilder = configurationBuilder;
     }
 
+    public void hostPort(String host, int port) throws UnknownHostException {
+        serverAddressArrayList.add(new ServerAddress(host, port));
+    }
+
+    public void hostPort(String host) throws UnknownHostException {
+        serverAddressArrayList.add(new ServerAddress(host));
+    }
+
+    public Object mongoClient() {
+        MongoClientOptions.Builder builder = new MongoClientOptions.Builder();
+        builder.description(configurationBuilder.getDescription());
+        return new MongoClient(serverAddressArrayList,builder.build());
+    }
+
+    public Object getDB(Object client) {
+        return ((MongoClient)client).getDB(configurationBuilder.getDatabase());
+    }
+
+    public void close(Object client) {
+        if( client != null) {
+
+        }
+    }
+
+    protected ClassLoader getModuleClassLoader() throws StartException {
+        final ModuleLoader moduleLoader = Module.getBootModuleLoader();
+        try {
+            Module module = moduleLoader.loadModule(ModuleIdentifier.fromString(configurationBuilder.getModuleName()));
+            return module.getClassLoader();
+        } catch (ModuleLoadException e) {
+            throw new StartException(e);
+        }
+    }
 
 }

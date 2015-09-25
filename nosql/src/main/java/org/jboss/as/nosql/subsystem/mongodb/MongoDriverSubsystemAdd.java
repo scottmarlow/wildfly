@@ -90,6 +90,9 @@ public class MongoDriverSubsystemAdd extends AbstractBoottimeAddStepHandler {
                     else if(profileEntry.hasDefined(CommonAttributes.JNDI_NAME)) {
                         builder.setJNDIName(profileEntry.get(CommonAttributes.JNDI_NAME).asString());
                     }
+                    else if(profileEntry.hasDefined(CommonAttributes.MODULE_NAME)) {
+                        builder.setModuleName(profileEntry.get(CommonAttributes.MODULE_NAME).asString());
+                    }
                     else if(profileEntry.hasDefined(CommonAttributes.DATABASE)) {
                         builder.setDatabase(profileEntry.get(CommonAttributes.DATABASE).asString());
                     }

@@ -23,13 +23,8 @@
 package org.jboss.as.nosql.driver.mongodb;
 
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.List;
 
-import com.mongodb.DB;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.ServerAddress;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
@@ -43,34 +38,33 @@ import org.jboss.msc.service.StopContext;
 public class MongoDriverService implements Service<MongoDriverService> {
     final ConfigurationBuilder configurationBuilder;
 
-    private MongoClient client;
-    private DB database;
+    private Object client;
+    private Object database;
     private MongoInteraction mongoInteraction;
 
-    public MongoDriverService(ConfigurationBuilder builder) {
-        this.configurationBuilder = builder;
+    public MongoDriverService(ConfigurationBuilder configurationBuilder) {
+        this.configurationBuilder = configurationBuilder;
         mongoInteraction = new MongoInteraction(configurationBuilder);
     }
 
     @Override
     public void start(StartContext startContext) throws StartException {
         try {
-            MongoClientOptions.Builder builder = new MongoClientOptions.Builder();
-            builder.description(configurationBuilder.getDescription());
-            ArrayList<ServerAddress> serverAddressArrayList = new ArrayList<>();
             List<HostPortPair> targets = configurationBuilder.getTargets();
             for(HostPortPair target : targets) {
+
                 if(target.getHost() != null && target.getPort() > 0) {
-                    serverAddressArrayList.add(new ServerAddress(target.getHost(),target.getPort()));
+                    // serverAddressArrayList.add(new ServerAddress(target.getHost(),target.getPort()));
+                    mongoInteraction.hostPort(target.getHost(),target.getPort());
                 }
                 else if(target.getHost() != null) {
-                    serverAddressArrayList.add(new ServerAddress(target.getHost()));
+                    // serverAddressArrayList.add(new ServerAddress(target.getHost()));
+                    mongoInteraction.hostPort(target.getHost());
                 }
             }
-
-            client = new MongoClient(serverAddressArrayList,builder.build());
+            client = mongoInteraction.mongoClient();
             if(configurationBuilder.getDatabase() != null) {
-                database = client.getDB(configurationBuilder.getDatabase());
+                database = mongoInteraction.getDB(client);
             }
 
         } catch (UnknownHostException e) {
@@ -80,7 +74,7 @@ public class MongoDriverService implements Service<MongoDriverService> {
 
     @Override
     public void stop(StopContext stopContext) {
-        client.close();
+        mongoInteraction.close(client);
         client = null;
     }
 
@@ -89,11 +83,11 @@ public class MongoDriverService implements Service<MongoDriverService> {
         return this;
     }
 
-    public MongoClient getClient() {
+    public Object getClient() {
         return client;
     }
 
-    public DB getDatabase() {
+    public Object getDatabase() {
         return database;
     }
 

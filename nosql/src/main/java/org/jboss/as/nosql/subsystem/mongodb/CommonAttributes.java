@@ -28,11 +28,12 @@ package org.jboss.as.nosql.subsystem.mongodb;
  * @author Scott Marlow
  */
 public interface CommonAttributes {
-    String PROFILE = "mongo";
+    String DATABASE = "database";
+    String HOST = "host-name";
     String HOST_DEF = "host";
     String ID_NAME = "id";
     String JNDI_NAME= "jndi-name";
-    String HOST = "host-name";
+    String MODULE_NAME = "module";
     String PORT = "host-port";
-    String DATABASE = "database";
+    String PROFILE = "mongo";
 }
