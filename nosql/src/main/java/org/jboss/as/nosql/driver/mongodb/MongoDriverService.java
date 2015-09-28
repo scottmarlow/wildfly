@@ -22,7 +22,6 @@
 
 package org.jboss.as.nosql.driver.mongodb;
 
-import java.net.UnknownHostException;
 import java.util.List;
 
 import org.jboss.msc.service.Service;
@@ -49,32 +48,24 @@ public class MongoDriverService implements Service<MongoDriverService> {
 
     @Override
     public void start(StartContext startContext) throws StartException {
-        try {
-            List<HostPortPair> targets = configurationBuilder.getTargets();
-            for(HostPortPair target : targets) {
-
-                if(target.getHost() != null && target.getPort() > 0) {
-                    // serverAddressArrayList.add(new ServerAddress(target.getHost(),target.getPort()));
-                    mongoInteraction.hostPort(target.getHost(),target.getPort());
-                }
-                else if(target.getHost() != null) {
-                    // serverAddressArrayList.add(new ServerAddress(target.getHost()));
-                    mongoInteraction.hostPort(target.getHost());
-                }
-            }
-            client = mongoInteraction.mongoClient();
-            if(configurationBuilder.getDatabase() != null) {
-                database = mongoInteraction.getDB(client);
-            }
-
-        } catch (UnknownHostException e) {
-            throw new StartException(e);
+        List<HostPortPair> targets = configurationBuilder.getTargets();
+        for(HostPortPair target : targets) {
+            // serverAddressArrayList.add(new ServerAddress(target.getHost(),target.getPort()));
+            mongoInteraction.hostPort(target.getHost(),target.getPort());
+        }
+        client = mongoInteraction.mongoClient();
+        if(configurationBuilder.getDatabase() != null) {
+            database = mongoInteraction.getDB(client);
         }
     }
 
     @Override
     public void stop(StopContext stopContext) {
-        mongoInteraction.close(client);
+        try {
+            mongoInteraction.close(client);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace(); // todo: logger
+        }
         client = null;
     }
 

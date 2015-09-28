@@ -60,7 +60,6 @@ public class ConfigurationBuilder {
         return description;
     }
 
-
     public List<HostPortPair> getTargets() {
             return targets;
         }

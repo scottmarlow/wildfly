@@ -81,7 +81,7 @@ public class CassandraDriverService implements Service<CassandraDriverService> {
             cassandraInteraction.clusterClose(cluster);
             cluster = null;
         } catch( Throwable throwable) {
-            throwable.printStackTrace();
+            throwable.printStackTrace(); // todo: logger
         }
     }
 
