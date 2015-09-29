@@ -40,24 +40,25 @@ import org.jboss.modules.ModuleLoader;
  */
 public class CassandraDriverDependencyProcessor implements DeploymentUnitProcessor {
 
-    private static final ModuleIdentifier CASSANDRA_DRIVER_ID = ModuleIdentifier.create("com.datastax.cassandra.driver-core");
 
     /**
      * Add dependencies for modules required for Cassandra deployments
      */
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
-        final ModuleSpecification moduleSpecification = deploymentUnit.getAttachment(Attachments.MODULE_SPECIFICATION);
-        final ModuleLoader moduleLoader = Module.getBootModuleLoader();
+        final String moduleName = CassandraDriverScanDependencyProcessor.getPerDeploymentDeploymentModuleName(deploymentUnit);
 
-        // add Cassandra to all deployments
-        // todo: add the following dependencies conditionally based on the presence
-        // of an annotation/deployment descriptor that requests them
-        addDependency(moduleSpecification, moduleLoader, deploymentUnit, CASSANDRA_DRIVER_ID);
+        if( moduleName != null) {
+            final ModuleSpecification moduleSpecification = deploymentUnit.getAttachment(Attachments.MODULE_SPECIFICATION);
+            final ModuleLoader moduleLoader = Module.getBootModuleLoader();
+
+            addDependency(moduleSpecification, moduleLoader, ModuleIdentifier.create(moduleName));
+        }
+
     }
 
     private void addDependency(ModuleSpecification moduleSpecification, ModuleLoader moduleLoader,
-                               DeploymentUnit deploymentUnit, ModuleIdentifier... moduleIdentifiers) {
+                               ModuleIdentifier... moduleIdentifiers) {
         for ( ModuleIdentifier moduleIdentifier : moduleIdentifiers) {
             moduleSpecification.addSystemDependency(new ModuleDependency(moduleLoader, moduleIdentifier, false, false, true, false));
         }

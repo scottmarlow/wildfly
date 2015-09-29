@@ -22,6 +22,9 @@
 
 package org.jboss.as.nosql.subsystem.cassandra;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.jboss.as.controller.AbstractBoottimeAddStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
@@ -71,13 +74,14 @@ public class CassandraDriverSubsystemAdd extends AbstractBoottimeAddStepHandler 
         runtimeValidator.validate(operation.resolve());
         context.addStep(new AbstractDeploymentChainStep() {
             protected void execute(DeploymentProcessorTarget processorTarget) {
-                processorTarget.addDeploymentProcessor(CassandraDriverExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_PERSISTENCE_ANNOTATION, new CassandraDriverDependencyProcessor());
-
+                processorTarget.addDeploymentProcessor(CassandraDriverExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_PERSISTENCE_UNIT+1, new CassandraDriverScanDependencyProcessor());
+                processorTarget.addDeploymentProcessor(CassandraDriverExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_PERSISTENCE_ANNOTATION+1, new CassandraDriverDependencyProcessor());
             }
         }, OperationContext.Stage.RUNTIME);
 
         final ModelNode cassandraSubsystem = Resource.Tools.readModel(context.readResource(PathAddress.EMPTY_ADDRESS));
         if( cassandraSubsystem.hasDefined(CommonAttributes.PROFILE)) {
+            Map<String, String> jndiNameToModuleName = new HashMap<>();
             for( ModelNode profiles : cassandraSubsystem.get(CommonAttributes.PROFILE).asList()) {
                 ConfigurationBuilder builder = new ConfigurationBuilder();
                 for(ModelNode profileEntry : profiles.get(0).asList()) {
@@ -114,19 +118,32 @@ public class CassandraDriverSubsystemAdd extends AbstractBoottimeAddStepHandler 
                         }
                     }
                 }
-                startCassandraDriverService(context, builder);
+                startCassandraDriverService(context, builder,jndiNameToModuleName);
             }
+            startCassandraDriverSubsysteService(context, jndiNameToModuleName);
         }
     }
 
-    private void startCassandraDriverService(OperationContext context, ConfigurationBuilder builder) {
+    private void startCassandraDriverSubsysteService(final OperationContext context, final Map<String, String> jndiNameToModuleName) {
+        CassandraSubsystemService cassandraSubsystemService = new CassandraSubsystemService(jndiNameToModuleName);
+        context.getServiceTarget().addService(CassandraSubsystemService.serviceName(), cassandraSubsystemService).setInitialMode(ServiceController.Mode.ACTIVE).install();
+    }
+
+    private void startCassandraDriverService(OperationContext context, ConfigurationBuilder builder, Map<String, String> jndiNameToModuleName) {
         if(builder.getJNDIName() !=null && builder.getJNDIName().length() > 0) {
             final CassandraDriverService service = new CassandraDriverService(builder);
             final ServiceName serviceName = CASSANDRADBSERVICE.append( builder.getDescription());
             final ContextNames.BindInfo bindingInfo = ContextNames.bindInfoFor(builder.getJNDIName());
 
+            if(builder.getModuleName() != null) {
+                // maintain a mapping from JNDI name to NoSQL module name, that we will use during deployment time to
+                // identify the static module name to add to the deployment.
+                jndiNameToModuleName.put(builder.getJNDIName(), builder.getModuleName());
+            }
+
             final BinderService binderService = new BinderService(bindingInfo.getBindName());
             context.getServiceTarget().addService(bindingInfo.getBinderServiceName(), binderService)
+                .addDependency(CassandraSubsystemService.serviceName())
                 .addDependency(bindingInfo.getParentContextServiceName(), ServiceBasedNamingStore.class, binderService.getNamingStoreInjector())
                 .addDependency(serviceName, CassandraDriverService.class, new Injector<CassandraDriverService>() {
                     @Override
