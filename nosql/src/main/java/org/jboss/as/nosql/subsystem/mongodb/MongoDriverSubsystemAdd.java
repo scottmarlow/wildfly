@@ -23,6 +23,8 @@
 package org.jboss.as.nosql.subsystem.mongodb;
 
 import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.jboss.as.controller.AbstractBoottimeAddStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
@@ -74,13 +76,15 @@ public class MongoDriverSubsystemAdd extends AbstractBoottimeAddStepHandler {
         runtimeValidator.validate(operation.resolve());
         context.addStep(new AbstractDeploymentChainStep() {
             protected void execute(DeploymentProcessorTarget processorTarget) {
-                processorTarget.addDeploymentProcessor(MongoDriverExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_PERSISTENCE_ANNOTATION, new MongoDriverDependencyProcessor());
+                processorTarget.addDeploymentProcessor(MongoDriverExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_PERSISTENCE_UNIT+1, new MongoDriverScanDependencyProcessor());
+                processorTarget.addDeploymentProcessor(MongoDriverExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_PERSISTENCE_ANNOTATION+1, new MongoDriverDependencyProcessor());
 
             }
         }, OperationContext.Stage.RUNTIME);
 
         final ModelNode mongoSubsystem = Resource.Tools.readModel(context.readResource(PathAddress.EMPTY_ADDRESS));
         if( mongoSubsystem.hasDefined(CommonAttributes.PROFILE)) {
+            Map<String, String> jndiNameToModuleName = new HashMap<>();
             for( ModelNode profiles : mongoSubsystem.get(CommonAttributes.PROFILE).asList()) {
                 ConfigurationBuilder builder = new ConfigurationBuilder();
                 for(ModelNode profileEntry : profiles.get(0).asList()) {
@@ -121,32 +125,46 @@ public class MongoDriverSubsystemAdd extends AbstractBoottimeAddStepHandler {
                         }
                     }
                 }
-                startMongoDriverService(context, builder);
+                startMongoDriverService(context, builder, jndiNameToModuleName);
             }
+            startMongoDriverSubsysteService(context, jndiNameToModuleName);
+
         }
     }
 
-    private void startMongoDriverService(OperationContext context, ConfigurationBuilder builder) {
+    private void startMongoDriverSubsysteService(OperationContext context, Map<String, String> jndiNameToModuleName) {
+        MongoSubsystemService mongoSubsystemService = new MongoSubsystemService(jndiNameToModuleName);
+        context.getServiceTarget().addService(MongoSubsystemService.serviceName(), mongoSubsystemService).setInitialMode(ServiceController.Mode.ACTIVE).install();
+    }
+
+    private void startMongoDriverService(OperationContext context, ConfigurationBuilder builder, Map jndiNameToModuleName) {
         if(builder.getJNDIName() !=null && builder.getJNDIName().length() > 0) {
             final MongoDriverService service = new MongoDriverService(builder);
             final ServiceName serviceName = MONGODBSERVICE.append(builder.getDescription());
             final ContextNames.BindInfo bindingInfo = ContextNames.bindInfoFor(builder.getJNDIName());
 
+            if(builder.getModuleName() != null) {
+                // maintain a mapping from JNDI name to NoSQL module name, that we will use during deployment time to
+                // identify the static module name to add to the deployment.
+                jndiNameToModuleName.put(builder.getJNDIName(), builder.getModuleName());
+            }
+
             final BinderService binderService = new BinderService(bindingInfo.getBindName());
             context.getServiceTarget().addService(bindingInfo.getBinderServiceName(), binderService)
                 .addDependency(bindingInfo.getParentContextServiceName(), ServiceBasedNamingStore.class, binderService.getNamingStoreInjector())
-                .addDependency(serviceName, MongoDriverService.class, new Injector<MongoDriverService>() {
-                    @Override
-                    public void inject(final MongoDriverService value) throws
-                            InjectionException {
-                        binderService.getManagedObjectInjector().inject(new ValueManagedReferenceFactory(new ImmediateValue<>(value.getDatabase() != null ? value.getDatabase() : value.getClient())));
-                    }
+                .addDependency(MongoSubsystemService.serviceName())
+                    .addDependency(serviceName, MongoDriverService.class, new Injector<MongoDriverService>() {
+                        @Override
+                        public void inject(final MongoDriverService value) throws
+                                InjectionException {
+                            binderService.getManagedObjectInjector().inject(new ValueManagedReferenceFactory(new ImmediateValue<>(value.getDatabase() != null ? value.getDatabase() : value.getClient())));
+                        }
 
-                    @Override
-                    public void uninject() {
-                        binderService.getNamingStoreInjector().uninject();
-                    }
-                }).install();
+                        @Override
+                        public void uninject() {
+                            binderService.getNamingStoreInjector().uninject();
+                        }
+                    }).install();
             context.getServiceTarget().addService(serviceName, service).setInitialMode(ServiceController.Mode.ACTIVE).install();
         }
     }

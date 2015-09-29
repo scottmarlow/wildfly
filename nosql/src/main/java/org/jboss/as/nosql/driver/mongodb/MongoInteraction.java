@@ -39,6 +39,7 @@ import org.jboss.msc.service.StartException;
  * MongoInteraction
  *
  * @author Scott Marlow
+ *
  */
 public class MongoInteraction {
 

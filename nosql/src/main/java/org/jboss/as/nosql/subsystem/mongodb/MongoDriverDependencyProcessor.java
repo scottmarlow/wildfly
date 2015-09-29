@@ -40,21 +40,20 @@ import org.jboss.modules.ModuleLoader;
  */
 public class MongoDriverDependencyProcessor implements DeploymentUnitProcessor {
 
-    private static final ModuleIdentifier MONGODB_DRIVER_ID = ModuleIdentifier.create("org.mongodb.driver");
-
-
     /**
      * Add dependencies for modules required for MongoDB deployments
      */
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
-        final ModuleSpecification moduleSpecification = deploymentUnit.getAttachment(Attachments.MODULE_SPECIFICATION);
-        final ModuleLoader moduleLoader = Module.getBootModuleLoader();
+        final String moduleName = MongoDriverScanDependencyProcessor.getPerDeploymentDeploymentModuleName(deploymentUnit);
 
-        // add MongoDB to all deployments
-        // todo: add the following dependencies conditionally based on the presence
-        // of an annotation/deployment descriptor that requests them
-        addDependency(moduleSpecification, moduleLoader, MONGODB_DRIVER_ID);
+        if( moduleName != null) {
+            final ModuleSpecification moduleSpecification = deploymentUnit.getAttachment(Attachments.MODULE_SPECIFICATION);
+            final ModuleLoader moduleLoader = Module.getBootModuleLoader();
+
+            addDependency(moduleSpecification, moduleLoader, ModuleIdentifier.create(moduleName));
+        }
+
     }
 
     private void addDependency(ModuleSpecification moduleSpecification, ModuleLoader moduleLoader,
