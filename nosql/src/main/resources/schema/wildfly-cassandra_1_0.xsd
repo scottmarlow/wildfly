@@ -32,10 +32,12 @@
   </xs:element>
   <xs:element name="cassandra">
     <xs:complexType>
-      <xs:attribute name="cassandra-name" use="optional" type="xs:NCName"/>
+      <xs:attribute name="id" use="required" type="xs:NCName"/>
+      <xs:attribute name="module" use="optional" type="xs:NCName"/>
       <xs:attribute name="host-name" use="required" type="xs:NCName"/>
       <xs:attribute name="host-port" use="optional" type="xs:integer"/>
       <xs:attribute name="jndi-name" use="required" type="xs:anyURI"/>
+      <xs:attribute name="database" use="optional" type="xs:NCName"/>
     </xs:complexType>
   </xs:element>
 </xs:schema>
