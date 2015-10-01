@@ -68,7 +68,13 @@ public class CassandraTestCase {
     @Test
     public void testSimpleCreateAndLoadEntities() throws Exception {
         StatefulTestBean statefulTestBean = lookup("StatefulTestBean", StatefulTestBean.class);
-        statefulTestBean.addData();
+        statefulTestBean.query();
+    }
+
+    @Test
+    public void testAsyncQuery() throws Exception {
+        StatefulTestBean statefulTestBean = lookup("StatefulTestBean", StatefulTestBean.class);
+        statefulTestBean.asyncQuery();
     }
 
     private static void dumpJndi(String s) {
