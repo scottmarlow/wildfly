@@ -66,7 +66,7 @@ public class StatefulBean implements Stateful {
     public void createEmployee(String name, String address, int id) {
 
         Employee emp = new Employee();
-        emp.setId(id);
+        emp.setId(new EventId("" + id));
         emp.setAddress(address);
         emp.setName(name);
         em.persist(emp);
@@ -79,7 +79,7 @@ public class StatefulBean implements Stateful {
     @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
     public Employee getEmployee(int id) {
         logStats("getEmployee " + id);
-        return em.find(Employee.class, id, LockModeType.NONE);
+        return em.find(Employee.class, new EventId("" + id), LockModeType.NONE);
     }
 
     @Override
@@ -87,7 +87,7 @@ public class StatefulBean implements Stateful {
     public Employee getSecondBeanEmployee(int id) {
         logStats("getSecondBeanEmployee");
         //return secondBean.getEmployee(id);
-        return em.find(Employee.class, id, LockModeType.NONE);
+        return em.find(Employee.class, new EventId("" + id), LockModeType.NONE);
     }
 
     @Override
@@ -101,7 +101,7 @@ public class StatefulBean implements Stateful {
     @Override
     @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void deleteEmployee(int id) {
-        Employee employee = em.find(Employee.class, id, LockModeType.NONE);
+        Employee employee = em.find(Employee.class, new EventId("" +id), LockModeType.NONE);
         em.remove(employee);
         logStats("deleteEmployee");
         version = "deletedEmployee";

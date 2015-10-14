@@ -25,6 +25,7 @@ package org.jboss.as.test.clustering.cluster.ejb.xpc.bean;
 import java.io.Serializable;
 
 import javax.persistence.Cacheable;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 
@@ -33,13 +34,17 @@ import javax.persistence.Id;
  *
  * @author Scott Marlow
  */
+import javax.persistence.Embeddable;
+
+
+
 @Entity
-@Cacheable(true) // allow second level cache to cache Employee
+//@Cacheable(true) // allow second level cache to cache Employee
 public class Employee implements Serializable {
     private static final long serialVersionUID = 6836274800449981797L;
 
-    @Id
-    private int id;
+    @EmbeddedId
+    public EventId id;
 
     private String name;
 
@@ -61,12 +66,12 @@ public class Employee implements Serializable {
         this.address = address;
     }
 
-    public int getId() {
+    public EventId getId() {
 
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(EventId id) {
         this.id = id;
     }
 

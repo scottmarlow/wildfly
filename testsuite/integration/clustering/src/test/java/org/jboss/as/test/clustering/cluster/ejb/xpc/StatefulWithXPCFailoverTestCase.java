@@ -78,6 +78,7 @@ public class StatefulWithXPCFailoverTestCase extends ClusterAbstractTestCase {
                     "<property name=\"hibernate.cache.use_second_level_cache\" value=\"true\" />" +
                     "<property name=\"hibernate.generate_statistics\" value=\"true\" />" +
                     "<property name=\"hibernate.show_sql\" value=\"true\"/>" +
+                    "<property name=\"xxxxhibernate.session_factory_name\" value=\"CattyWampus\"/>" +
                     "</properties>" +
                     "  </persistence-unit>" +
                     "</persistence>";

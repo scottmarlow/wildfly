@@ -41,7 +41,7 @@ public class SecondBean {
     EntityManager em;
 
     @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
-    public Employee getEmployee(int id) {
+    public Employee getEmployee(EventId id) {
         return em.find(Employee.class, id, LockModeType.NONE);
     }
 
