@@ -39,7 +39,7 @@ import javax.persistence.Embeddable;
 
 
 @Entity
-//@Cacheable(true) // allow second level cache to cache Employee
+@Cacheable(true) // allow second level cache to cache Employee
 public class Employee implements Serializable {
     private static final long serialVersionUID = 6836274800449981797L;
 
