@@ -24,7 +24,7 @@ package org.jboss.as.nosql.subsystem.cassandra;
 
 import java.util.Map;
 
-import org.jboss.as.server.CurrentServiceContainer;
+import org.jboss.as.nosql.subsystem.common.DriverService;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.StartContext;
@@ -36,7 +36,7 @@ import org.jboss.msc.service.StopContext;
  *
  * @author Scott Marlow
  */
-public class CassandraSubsystemService implements Service<CassandraSubsystemService> {
+public class CassandraSubsystemService implements Service<DriverService>, DriverService {
 
     private static final ServiceName SERVICENAME = ServiceName.JBOSS.append("cassandrasubsystem");
 
@@ -66,12 +66,9 @@ public class CassandraSubsystemService implements Service<CassandraSubsystemServ
     }
 
     @Override
-    public CassandraSubsystemService getValue() throws IllegalStateException, IllegalArgumentException {
+    public DriverService getValue() throws IllegalStateException, IllegalArgumentException {
         return this;
     }
 
-    public static CassandraSubsystemService getCassandraSubsystem() {
-        return (CassandraSubsystemService)CurrentServiceContainer.getServiceContainer().getService(serviceName()).getValue();
-    }
 
 }

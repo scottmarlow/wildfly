@@ -38,6 +38,8 @@ import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.as.naming.service.BinderService;
 import org.jboss.as.nosql.driver.cassandra.CassandraDriverService;
 import org.jboss.as.nosql.driver.cassandra.ConfigurationBuilder;
+import org.jboss.as.nosql.subsystem.common.DriverDependencyProcessor;
+import org.jboss.as.nosql.subsystem.common.DriverScanDependencyProcessor;
 import org.jboss.as.server.AbstractDeploymentChainStep;
 import org.jboss.as.server.DeploymentProcessorTarget;
 import org.jboss.as.server.deployment.Phase;
@@ -74,8 +76,8 @@ public class CassandraDriverSubsystemAdd extends AbstractBoottimeAddStepHandler 
         runtimeValidator.validate(operation.resolve());
         context.addStep(new AbstractDeploymentChainStep() {
             protected void execute(DeploymentProcessorTarget processorTarget) {
-                processorTarget.addDeploymentProcessor(CassandraDriverExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_PERSISTENCE_UNIT+1, new CassandraDriverScanDependencyProcessor());
-                processorTarget.addDeploymentProcessor(CassandraDriverExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_PERSISTENCE_ANNOTATION+1, new CassandraDriverDependencyProcessor());
+                processorTarget.addDeploymentProcessor(CassandraDriverExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_PERSISTENCE_UNIT+1, new DriverScanDependencyProcessor("cassandrasubsystem"));
+                processorTarget.addDeploymentProcessor(CassandraDriverExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_PERSISTENCE_ANNOTATION+1, DriverDependencyProcessor.getInstance());
             }
         }, OperationContext.Stage.RUNTIME);
 

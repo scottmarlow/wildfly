@@ -24,7 +24,7 @@ package org.jboss.as.nosql.subsystem.mongodb;
 
 import java.util.Map;
 
-import org.jboss.as.server.CurrentServiceContainer;
+import org.jboss.as.nosql.subsystem.common.DriverService;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.StartContext;
@@ -36,7 +36,7 @@ import org.jboss.msc.service.StopContext;
  *
  * @author Scott Marlow
  */
-public class MongoSubsystemService implements Service<MongoSubsystemService> {
+public class MongoSubsystemService implements Service<DriverService>, DriverService {
 
     private static final ServiceName SERVICENAME = ServiceName.JBOSS.append("mongodbsubsystem");
 
@@ -66,12 +66,8 @@ public class MongoSubsystemService implements Service<MongoSubsystemService> {
     }
 
     @Override
-    public MongoSubsystemService getValue() throws IllegalStateException, IllegalArgumentException {
+    public DriverService getValue() throws IllegalStateException, IllegalArgumentException {
         return this;
-    }
-
-    public static MongoSubsystemService getMongoSubsystem() {
-        return (MongoSubsystemService)CurrentServiceContainer.getServiceContainer().getService(serviceName()).getValue();
     }
 
 }

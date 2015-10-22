@@ -20,13 +20,14 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.nosql.subsystem.cassandra;
+package org.jboss.as.nosql.subsystem.common;
 
 import java.util.List;
 
 import javax.annotation.Resource;
 import javax.annotation.Resources;
 
+import org.jboss.as.server.CurrentServiceContainer;
 import org.jboss.as.server.deployment.AttachmentKey;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
@@ -41,21 +42,29 @@ import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.FieldInfo;
 import org.jboss.jandex.MethodInfo;
+import org.jboss.msc.service.ServiceName;
 
 /**
- * CassandraDriverScanDependencyProcessor
+ * DriverScanDependencyProcessor
  *
  * @author Scott Marlow
  */
-public class CassandraDriverScanDependencyProcessor implements DeploymentUnitProcessor {
+public class DriverScanDependencyProcessor implements DeploymentUnitProcessor {
 
     private static final DotName RESOURCE_ANNOTATION_NAME = DotName.createSimple(Resource.class.getName());
     private static final DotName RESOURCES_ANNOTATION_NAME = DotName.createSimple(Resources.class.getName());
-    // there should be no more than one Cassandra module referenced (there can be many references to that module but only
-    // one version of Cassandra should be included per application deployment).
-    private static final AttachmentKey<String> mongoModuleNameKey = AttachmentKey.create(String.class);
+    // there should be no more than one NoSQL module referenced (there can be many references to that module but only
+    // one version of NoSQL should be included per application deployment).
+    private static final AttachmentKey<String> perModuleNameKey = AttachmentKey.create(String.class);
+
+    private ServiceName serviceName;
+
+    public DriverScanDependencyProcessor(String serviceName) {
+        this.serviceName = ServiceName.JBOSS.append(serviceName);
+    }
+
     /**
-     * Add dependencies for modules required for Cassandra deployments
+     * Add dependencies for modules required for NoSQL deployments
      */
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
@@ -92,8 +101,10 @@ public class CassandraDriverScanDependencyProcessor implements DeploymentUnitPro
 
     protected void processFieldResource(final DeploymentUnit deploymentUnit, final String lookup) throws DeploymentUnitProcessingException {
 
-        String moduleName = CassandraSubsystemService.getCassandraSubsystem().moduleName(lookup);
-        savePerDeploymentModuleName(deploymentUnit, moduleName);
+        String moduleName = getService().moduleName(lookup);
+        if (moduleName != null) {
+            savePerDeploymentModuleName(deploymentUnit, moduleName);
+        }
     }
 
     protected void processMethodResource(final DeploymentUnit deploymentUnit, final MethodInfo methodInfo, final String lookup) throws DeploymentUnitProcessingException {
@@ -101,32 +112,35 @@ public class CassandraDriverScanDependencyProcessor implements DeploymentUnitPro
         if (!methodName.startsWith("set") || methodInfo.args().length != 1) {
             //throw EeLogger.ROOT_LOGGER.setterMethodOnly("@Resource", methodInfo);
         }
-        String moduleName = CassandraSubsystemService.getCassandraSubsystem().moduleName(lookup);
-        savePerDeploymentModuleName(deploymentUnit, moduleName);
+        String moduleName = getService().moduleName(lookup);
+        if (moduleName != null) {
+            savePerDeploymentModuleName(deploymentUnit, moduleName);
+        }
     }
 
     protected void processClassResource(final DeploymentUnit deploymentUnit, final String lookup) throws DeploymentUnitProcessingException {
         if (isEmpty(lookup)) {
 //            throw EeLogger.ROOT_LOGGER.annotationAttributeMissing("@Resource", "lookup");
         }
-        String moduleName = CassandraSubsystemService.getCassandraSubsystem().moduleName(lookup);
-        savePerDeploymentModuleName(deploymentUnit, moduleName);
-
+        String moduleName = getService().moduleName(lookup);
+        if (moduleName != null) {
+            savePerDeploymentModuleName(deploymentUnit, moduleName);
+        }
     }
 
-    private static void savePerDeploymentModuleName(DeploymentUnit deploymentUnit, String module) {
+    private void savePerDeploymentModuleName(DeploymentUnit deploymentUnit, String module) {
         if (deploymentUnit.getParent() != null) {
             deploymentUnit = deploymentUnit.getParent();
         }
         synchronized (deploymentUnit) {
-            String currentValue = deploymentUnit.getAttachment(mongoModuleNameKey);
+            String currentValue = deploymentUnit.getAttachment(perModuleNameKey);
             // saved if not already set by another thread
             if (currentValue == null) {
-                deploymentUnit.putAttachment(mongoModuleNameKey, module);
+                deploymentUnit.putAttachment(perModuleNameKey, module);
             }
             else if(!module.equals(currentValue)) {
                 // TODO: Add logger
-                throw new IllegalStateException("Cannot add reference to Cassandra module='" + module + "' when module '" + currentValue +
+                throw new IllegalStateException("Cannot add reference to NoSQL module='" + module + "' when module '" + currentValue +
                         "' is also used by application deployment");
             }
         }
@@ -137,9 +151,14 @@ public class CassandraDriverScanDependencyProcessor implements DeploymentUnitPro
             deploymentUnit = deploymentUnit.getParent();
         }
         synchronized (deploymentUnit) {
-            return deploymentUnit.getAttachment(mongoModuleNameKey);
+            return deploymentUnit.getAttachment(perModuleNameKey);
         }
     }
+
+    private DriverService getService() {
+        return (DriverService) CurrentServiceContainer.getServiceContainer().getService(serviceName).getValue();
+    }
+
 
     private boolean isEmpty(final String string) {
         return string == null || string.isEmpty();
