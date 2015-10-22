@@ -20,7 +20,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.nosql.subsystem.mongodb;
+package org.jboss.as.nosql.subsystem.common;
 
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
@@ -34,18 +34,24 @@ import org.jboss.modules.ModuleIdentifier;
 import org.jboss.modules.ModuleLoader;
 
 /**
- * MongoDriverDependencyProcessor
+ * DriverDependencyProcessor
  *
  * @author Scott Marlow
  */
-public class MongoDriverDependencyProcessor implements DeploymentUnitProcessor {
+public class DriverDependencyProcessor implements DeploymentUnitProcessor {
+
+    private static final DriverDependencyProcessor driverDependencyProcessor = new DriverDependencyProcessor();
+
+    public static DriverDependencyProcessor getInstance() {
+        return driverDependencyProcessor;
+    }
 
     /**
-     * Add dependencies for modules required for MongoDB deployments
+     * Add dependencies for modules required for NoSQL deployments
      */
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
-        final String moduleName = MongoDriverScanDependencyProcessor.getPerDeploymentDeploymentModuleName(deploymentUnit);
+        final String moduleName = DriverScanDependencyProcessor.getPerDeploymentDeploymentModuleName(deploymentUnit);
 
         if( moduleName != null) {
             final ModuleSpecification moduleSpecification = deploymentUnit.getAttachment(Attachments.MODULE_SPECIFICATION);
