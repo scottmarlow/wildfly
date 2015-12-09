@@ -39,7 +39,7 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
 import org.hibernate.engine.transaction.jta.platform.internal.JBossAppServerJtaPlatform;
 import org.hibernate.internal.util.config.ConfigurationHelper;
-import org.infinispan.manager.CacheContainer;
+//import org.infinispan.manager.CacheContainer;
 
 /**
  *
@@ -59,9 +59,9 @@ public class SFSB {
      * To:
      *   <cache-container name="hibernate" default-cache="local-query" start="EAGER">
      */
-    private static final String CONTAINER_JNDI_NAME = "java:jboss/infinispan/container/hibernate";
-    @Resource(lookup = CONTAINER_JNDI_NAME)
-    private CacheContainer container;
+//    private static final String CONTAINER_JNDI_NAME = "java:jboss/infinispan/container/hibernate";
+//    @Resource(lookup = CONTAINER_JNDI_NAME)
+//    private CacheContainer container;
 
     public void cleanup() {
         sessionFactory.close();

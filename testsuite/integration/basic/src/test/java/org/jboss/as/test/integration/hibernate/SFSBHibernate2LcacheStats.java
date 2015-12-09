@@ -46,7 +46,7 @@ import org.hibernate.engine.transaction.jta.platform.internal.JBossAppServerJtaP
 import org.hibernate.internal.util.config.ConfigurationHelper;
 import org.hibernate.stat.SessionStatistics;
 import org.hibernate.stat.Statistics;
-import org.infinispan.manager.CacheContainer;
+// import org.infinispan.manager.CacheContainer;
 
 /**
  *
@@ -64,9 +64,9 @@ public class SFSBHibernate2LcacheStats {
      * We also could change the following line in standalone.xml: <cache-container name="hibernate" default-cache="local-query">
      * To: <cache-container name="hibernate" default-cache="local-query" start="EAGER">
      */
-    private static final String CONTAINER_JNDI_NAME = "java:jboss/infinispan/container/hibernate";
-    @Resource(lookup = CONTAINER_JNDI_NAME)
-    private CacheContainer container;
+//    private static final String CONTAINER_JNDI_NAME = "java:jboss/infinispan/container/hibernate";
+//    @Resource(lookup = CONTAINER_JNDI_NAME)
+//    private CacheContainer container;
 
 
     public void cleanup() {
