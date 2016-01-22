@@ -82,6 +82,7 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
     private final PersistenceUnitRegistryImpl persistenceUnitRegistry;
     private final ServiceName deploymentUnitServiceName;
     private final ValidatorFactory validatorFactory;
+    private Object wrapperBeanManagerLifeCycle;
 
     private volatile EntityManagerFactory entityManagerFactory;
     private volatile ProxyBeanManager proxyBeanManager;
@@ -138,9 +139,11 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                                         // indicate that the second phase of bootstrapping the persistence unit has started
                                         phaseOnePersistenceUnitService.setSecondPhaseStarted(true);
                                         if (beanManagerInjector.getOptionalValue() != null) {
+                                            BeanManager beanManager = beanManagerInjector.getOptionalValue();
+                                            wrapperBeanManagerLifeCycle = phaseOnePersistenceUnitService.getBeanManagerLifeCycle();
                                             // update the bean manager proxy to the actual CDI bean manager
                                             proxyBeanManager = phaseOnePersistenceUnitService.getBeanManager();
-                                            proxyBeanManager.setDelegate(beanManagerInjector.getOptionalValue());
+                                            proxyBeanManager.setDelegate(beanManager);
                                         }
                                         EntityManagerFactoryBuilder emfBuilder = phaseOnePersistenceUnitService.getEntityManagerFactoryBuilder();
 
@@ -160,14 +163,23 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                                         pu.setNonJtaDataSource(nonJtaDataSource.getOptionalValue());
 
                                         if (beanManagerInjector.getOptionalValue() != null) {
+                                            wrapperBeanManagerLifeCycle = persistenceProviderAdaptor.beanManagerLifeCycle(proxyBeanManager);
+
                                             proxyBeanManager = new ProxyBeanManager();
                                             proxyBeanManager.setDelegate(beanManagerInjector.getOptionalValue());
-                                            properties.getValue().put(CDI_BEAN_MANAGER, proxyBeanManager);
+                                            if (wrapperBeanManagerLifeCycle != null) {
+                                                properties.getValue().put(CDI_BEAN_MANAGER, wrapperBeanManagerLifeCycle);
+                                            } else {
+                                                properties.getValue().put(CDI_BEAN_MANAGER, proxyBeanManager);
+                                            }
                                         }
                                         entityManagerFactory = createContainerEntityManagerFactory();
                                     }
                                     persistenceUnitRegistry.add(getScopedPersistenceUnitName(), getValue());
                                     context.complete();
+                                    if(wrapperBeanManagerLifeCycle != null) {
+                                        persistenceProviderAdaptor.markPersistenceUnitAvailable(wrapperBeanManagerLifeCycle);
+                                    }
                                 } catch (Throwable t) {
                                     context.failed(new StartException(t));
                                 } finally {

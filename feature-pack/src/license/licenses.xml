@@ -1375,6 +1375,16 @@
       </dependency>
       <dependency>
           <groupId>org.wildfly</groupId>
+          <artifactId>jipijapa-hibernate5-1</artifactId>
+          <licenses>
+              <license>
+                  <name>GNU Lesser General Public License, Version 2.1</name>
+                  <url>http://repository.jboss.org/licenses/lgpl-2.1.txt</url>
+              </license>
+          </licenses>
+      </dependency>
+      <dependency>
+          <groupId>org.wildfly</groupId>
           <artifactId>jipijapa-hibernate5-0</artifactId>
           <licenses>
               <license>
