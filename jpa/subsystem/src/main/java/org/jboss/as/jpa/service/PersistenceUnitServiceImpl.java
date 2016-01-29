@@ -35,6 +35,7 @@ import javax.persistence.spi.PersistenceProvider;
 import javax.sql.DataSource;
 import javax.validation.ValidatorFactory;
 
+import org.jboss.as.jpa.beanmanager.AfterDeploymentNotification;
 import org.jboss.as.jpa.beanmanager.ProxyBeanManager;
 import org.jboss.as.jpa.classloader.TempClassLoaderFactoryImpl;
 import org.jboss.as.jpa.spi.PersistenceUnitService;
@@ -178,7 +179,8 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                                     persistenceUnitRegistry.add(getScopedPersistenceUnitName(), getValue());
                                     context.complete();
                                     if(wrapperBeanManagerLifeCycle != null) {
-                                        persistenceProviderAdaptor.markPersistenceUnitAvailable(wrapperBeanManagerLifeCycle);
+                                        // persistenceProviderAdaptor.markPersistenceUnitAvailable(wrapperBeanManagerLifeCycle);
+                                        AfterDeploymentNotification.current().register(persistenceProviderAdaptor, wrapperBeanManagerLifeCycle);
                                     }
                                 } catch (Throwable t) {
                                     context.failed(new StartException(t));
