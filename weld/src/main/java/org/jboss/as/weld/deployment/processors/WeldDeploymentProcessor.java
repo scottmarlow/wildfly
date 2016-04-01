@@ -43,6 +43,7 @@ import org.jboss.as.ee.naming.JavaNamespaceSetup;
 import org.jboss.as.ee.weld.WeldDeploymentMarker;
 import org.jboss.as.jpa.config.Configuration;
 import org.jboss.as.jpa.config.PersistenceUnitMetadataHolder;
+import org.jboss.as.jpa.config.PersistenceUnitsInApplication;
 import org.jboss.as.jpa.service.PersistenceUnitServiceImpl;
 import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.as.naming.deployment.JndiNamingDependencyProcessor;
@@ -56,7 +57,6 @@ import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
-import org.jboss.as.server.deployment.DeploymentUtils;
 import org.jboss.as.server.deployment.SetupAction;
 import org.jboss.as.server.deployment.annotation.CompositeIndex;
 import org.jboss.as.server.deployment.module.ModuleDependency;
@@ -176,11 +176,9 @@ public class WeldDeploymentProcessor implements DeploymentUnitProcessor {
         final List<DeploymentUnit> subDeployments = deploymentUnit.getAttachmentList(Attachments.SUB_DEPLOYMENTS);
 
         final Set<ClassLoader> subDeploymentLoaders = new HashSet<ClassLoader>();
-
-        getJpaDependencies(deploymentUnit, jpaServices);
+        getTopLevelJpaDependencies(parent, jpaServices);
 
         for (DeploymentUnit subDeployment : subDeployments) {
-            getJpaDependencies(deploymentUnit, jpaServices);
             final Module subDeploymentModule = subDeployment.getAttachment(Attachments.MODULE);
             if (subDeploymentModule == null) {
                 continue;
@@ -318,24 +316,28 @@ public class WeldDeploymentProcessor implements DeploymentUnitProcessor {
         return dependencies;
     }
 
-    private void getJpaDependencies(final DeploymentUnit deploymentUnit, final Set<ServiceName> jpaServices) {
-        for (ResourceRoot root : DeploymentUtils.allResourceRoots(deploymentUnit)) {
-
-            final PersistenceUnitMetadataHolder persistenceUnits = root.getAttachment(PersistenceUnitMetadataHolder.PERSISTENCE_UNITS);
-            if (persistenceUnits != null && persistenceUnits.getPersistenceUnits() != null) {
-                for (final PersistenceUnitMetadata pu : persistenceUnits.getPersistenceUnits()) {
-                    final Properties properties = pu.getProperties();
-                    final String jpaContainerManaged = properties.getProperty(Configuration.JPA_CONTAINER_MANAGED);
-                    final boolean deployPU = (jpaContainerManaged == null || Boolean.parseBoolean(jpaContainerManaged));
-                    if (deployPU) {
-                        final ServiceName serviceName = PersistenceUnitServiceImpl.getPUServiceName(pu);
-                        jpaServices.add(serviceName);
-                    }
-                }
+    private void getTopLevelJpaDependencies(final DeploymentUnit deploymentUnit, final Set<ServiceName> jpaServices) {
+        PersistenceUnitsInApplication persistenceUnitsInApplication = deploymentUnit.getAttachment(PersistenceUnitsInApplication.PERSISTENCE_UNITS_IN_APPLICATION);
+        if (persistenceUnitsInApplication != null && persistenceUnitsInApplication.getPersistenceUnitHolders() != null) {
+            for (PersistenceUnitMetadataHolder persistenceUnitHolder: persistenceUnitsInApplication.getPersistenceUnitHolders()) {
+                getJpaDependencies(persistenceUnitHolder, jpaServices);
             }
         }
     }
 
+    private void getJpaDependencies(final PersistenceUnitMetadataHolder persistenceUnits, final Set<ServiceName> jpaServices) {
+        if (persistenceUnits != null && persistenceUnits.getPersistenceUnits() != null) {
+            for (final PersistenceUnitMetadata pu : persistenceUnits.getPersistenceUnits()) {
+                final Properties properties = pu.getProperties();
+                final String jpaContainerManaged = properties.getProperty(Configuration.JPA_CONTAINER_MANAGED);
+                final boolean deployPU = (jpaContainerManaged == null || Boolean.parseBoolean(jpaContainerManaged));
+                if (deployPU) {
+                    final ServiceName serviceName = PersistenceUnitServiceImpl.getPUServiceName(pu);
+                    jpaServices.add(serviceName);
+                }
+            }
+        }
+    }
 
     private ServiceName installSecurityService(ServiceTarget serviceTarget, DeploymentUnit deploymentUnit,
                                                WeldBootstrapService weldService, ServiceBuilder<WeldBootstrapService> weldServiceBuilder) {
