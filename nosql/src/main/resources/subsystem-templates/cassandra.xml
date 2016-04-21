@@ -26,7 +26,10 @@
    <extension-module>org.jboss.as.nosql</extension-module>
       <subsystem xmlns="urn:jboss:domain:cassandra:1.0">
           <cassandra id="cassandratestprofile" jndi-name="java:jboss/cassandradriver/test">
-              <host host-name="localhost" host-port="9042" />
+              <host outbound-socket-binding-ref="casstesthost"/>
           </cassandra>
     </subsystem>
+    <outbound-socket-binding name="casstesthost">
+        <remote-destination host="localhost" port="9042"/>
+    </outbound-socket-binding>
 </config>

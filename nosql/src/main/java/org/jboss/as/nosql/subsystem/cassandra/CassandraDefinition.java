@@ -43,7 +43,7 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 
 /**
- * CassandraDefinition
+ * CassandraDefinition represents a Cassandra database.
  *
  * @author Scott Marlow
  */

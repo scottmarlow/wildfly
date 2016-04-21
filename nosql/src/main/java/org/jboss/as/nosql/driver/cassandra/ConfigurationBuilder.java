@@ -22,41 +22,18 @@
 
 package org.jboss.as.nosql.driver.cassandra;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * ConfigurationBuilder
  *
  * @author Scott Marlow
  */
 public class ConfigurationBuilder {
-    private ArrayList<HostPortPair> targets = new ArrayList<>();
     private String description; //
     private String JNDIName;    // required global jndi name
     private String keyspace;    // optional Cassandra keyspace
 
     private String moduleName = // name of Cassandra module
             "com.datastax.cassandra.driver-core";
-
-    public ConfigurationBuilder setPort(int port)  {
-        targets.add(new HostPortPair(port));
-        return this;
-    }
-
-    public ConfigurationBuilder addTarget(String hostname, int port)  {
-        targets.add(new HostPortPair(hostname, port));
-        return this;
-    }
-
-    public ConfigurationBuilder addTarget(String hostname)  {
-        targets.add(new HostPortPair(hostname));
-        return this;
-    }
-
-    public List<HostPortPair> getTargets() {
-        return targets;
-    }
 
     public void setDescription(String description) {
         this.description = description;
@@ -89,5 +66,4 @@ public class ConfigurationBuilder {
     public String getModuleName() {
         return moduleName;
     }
-
 }

@@ -28,12 +28,11 @@ package org.jboss.as.nosql.subsystem.cassandra;
  * @author Scott Marlow
  */
 public interface CommonAttributes {
+    String OUTBOUND_SOCKET_BINDING_REF = "outbound-socket-binding-ref";
     String DATABASE = "database";
-    String HOST = "host-name";
     String HOST_DEF = "host";
     String ID_NAME = "id";
     String JNDI_NAME= "jndi-name";
     String MODULE_NAME = "module";
-    String PORT = "host-port";
     String PROFILE = "cassandra";
 }

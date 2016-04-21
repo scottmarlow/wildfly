@@ -22,8 +22,12 @@
 
 package org.jboss.as.nosql.subsystem.cassandra;
 
+import static org.jboss.as.nosql.subsystem.cassandra.CassandraDriverDefinition.OUTBOUND_SOCKET_BINDING_CAPABILITY_NAME;
+
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.jboss.as.controller.AbstractBoottimeAddStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
@@ -36,6 +40,7 @@ import org.jboss.as.naming.ServiceBasedNamingStore;
 import org.jboss.as.naming.ValueManagedReferenceFactory;
 import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.as.naming.service.BinderService;
+import org.jboss.as.network.OutboundSocketBinding;
 import org.jboss.as.nosql.driver.cassandra.CassandraDriverService;
 import org.jboss.as.nosql.driver.cassandra.ConfigurationBuilder;
 import org.jboss.as.nosql.subsystem.common.DriverDependencyProcessor;
@@ -46,6 +51,7 @@ import org.jboss.as.server.deployment.Phase;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.inject.InjectionException;
 import org.jboss.msc.inject.Injector;
+import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.value.ImmediateValue;
@@ -62,6 +68,7 @@ public class CassandraDriverSubsystemAdd extends AbstractBoottimeAddStepHandler 
     private final ParametersValidator runtimeValidator = new ParametersValidator();
 
     private CassandraDriverSubsystemAdd() {
+        super(CassandraDriverDefinition.DRIVER_SERVICE_CAPABILITY);
     }
 
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
@@ -76,51 +83,39 @@ public class CassandraDriverSubsystemAdd extends AbstractBoottimeAddStepHandler 
         runtimeValidator.validate(operation.resolve());
         context.addStep(new AbstractDeploymentChainStep() {
             protected void execute(DeploymentProcessorTarget processorTarget) {
-                processorTarget.addDeploymentProcessor(CassandraDriverExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_PERSISTENCE_UNIT+1, new DriverScanDependencyProcessor("cassandrasubsystem"));
-                processorTarget.addDeploymentProcessor(CassandraDriverExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_PERSISTENCE_ANNOTATION+1, DriverDependencyProcessor.getInstance());
+                processorTarget.addDeploymentProcessor(CassandraDriverExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_PERSISTENCE_UNIT + 1, new DriverScanDependencyProcessor("cassandrasubsystem"));
+                processorTarget.addDeploymentProcessor(CassandraDriverExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_PERSISTENCE_ANNOTATION + 1, DriverDependencyProcessor.getInstance());
             }
         }, OperationContext.Stage.RUNTIME);
 
         final ModelNode cassandraSubsystem = Resource.Tools.readModel(context.readResource(PathAddress.EMPTY_ADDRESS));
-        if( cassandraSubsystem.hasDefined(CommonAttributes.PROFILE)) {
+        if (cassandraSubsystem.hasDefined(CommonAttributes.PROFILE)) {
             Map<String, String> jndiNameToModuleName = new HashMap<>();
-            for( ModelNode profiles : cassandraSubsystem.get(CommonAttributes.PROFILE).asList()) {
+            for (ModelNode profiles : cassandraSubsystem.get(CommonAttributes.PROFILE).asList()) {
+                final Set<String> outboundSocketBindings = new HashSet<>();
                 ConfigurationBuilder builder = new ConfigurationBuilder();
-                for(ModelNode profileEntry : profiles.get(0).asList()) {
-                    if(profileEntry.hasDefined(CommonAttributes.ID_NAME)) {
+                for (ModelNode profileEntry : profiles.get(0).asList()) {
+                    if (profileEntry.hasDefined(CommonAttributes.ID_NAME)) {
                         builder.setDescription(profileEntry.get(CommonAttributes.ID_NAME).asString());
-                    }
-                    else if(profileEntry.hasDefined(CommonAttributes.JNDI_NAME)) {
+                    } else if (profileEntry.hasDefined(CommonAttributes.JNDI_NAME)) {
                         builder.setJNDIName(profileEntry.get(CommonAttributes.JNDI_NAME).asString());
-                    }
-                    else if(profileEntry.hasDefined(CommonAttributes.MODULE_NAME)) {
+                    } else if (profileEntry.hasDefined(CommonAttributes.MODULE_NAME)) {
                         builder.setModuleName(profileEntry.get(CommonAttributes.MODULE_NAME).asString());
-                    }
-                    else if(profileEntry.hasDefined(CommonAttributes.DATABASE)) {
+                    } else if (profileEntry.hasDefined(CommonAttributes.DATABASE)) {
                         builder.setKeyspace(profileEntry.get(CommonAttributes.DATABASE).asString());
-                    }
-                    else if(profileEntry.hasDefined(CommonAttributes.HOST_DEF)) {
+                    } else if (profileEntry.hasDefined(CommonAttributes.HOST_DEF)) {
                         ModelNode hostModels = profileEntry.get(CommonAttributes.HOST_DEF);
-                        for(ModelNode host: hostModels.asList()) {
-                            String hostname=null;
-                            int port=0;
-                            for(ModelNode hostEntry: host.get(0).asList()) {
-                                if(hostEntry.hasDefined(CommonAttributes.HOST)) {
-                                    hostname = hostEntry.get(CommonAttributes.HOST).asString();
+                        for (ModelNode host : hostModels.asList()) {
+                            for (ModelNode hostEntry : host.get(0).asList()) {
+                                if (hostEntry.hasDefined(CommonAttributes.OUTBOUND_SOCKET_BINDING_REF)) {
+                                    String outboundSocketBindingRef = hostEntry.get(CommonAttributes.OUTBOUND_SOCKET_BINDING_REF).asString();
+                                    outboundSocketBindings.add(outboundSocketBindingRef);
                                 }
-                                else if(hostEntry.hasDefined(CommonAttributes.PORT)) {
-                                    port = hostEntry.get(CommonAttributes.PORT).asInt();
-                                }
-                            }
-                            if(port > 0) {
-                                builder.addTarget(hostname, port);
-                            } else {
-                                builder.addTarget(hostname);
                             }
                         }
                     }
                 }
-                startCassandraDriverService(context, builder,jndiNameToModuleName);
+                startCassandraDriverService(context, builder, jndiNameToModuleName, outboundSocketBindings);
             }
             startCassandraDriverSubsysteService(context, jndiNameToModuleName);
         }
@@ -131,35 +126,41 @@ public class CassandraDriverSubsystemAdd extends AbstractBoottimeAddStepHandler 
         context.getServiceTarget().addService(CassandraSubsystemService.serviceName(), cassandraSubsystemService).setInitialMode(ServiceController.Mode.ACTIVE).install();
     }
 
-    private void startCassandraDriverService(OperationContext context, ConfigurationBuilder builder, Map<String, String> jndiNameToModuleName) {
-        if(builder.getJNDIName() !=null && builder.getJNDIName().length() > 0) {
-            final CassandraDriverService service = new CassandraDriverService(builder);
-            final ServiceName serviceName = CASSANDRADBSERVICE.append( builder.getDescription());
+    private void startCassandraDriverService(OperationContext context, ConfigurationBuilder builder, Map<String, String> jndiNameToModuleName, final Set<String> outboundSocketBindings) throws OperationFailedException {
+        if (builder.getJNDIName() != null && builder.getJNDIName().length() > 0) {
+            final CassandraDriverService cassandraDriverService = new CassandraDriverService(builder);
+            final ServiceName serviceName = CASSANDRADBSERVICE.append(builder.getDescription());
             final ContextNames.BindInfo bindingInfo = ContextNames.bindInfoFor(builder.getJNDIName());
 
-            if(builder.getModuleName() != null) {
+            if (builder.getModuleName() != null) {
                 // maintain a mapping from JNDI name to NoSQL module name, that we will use during deployment time to
                 // identify the static module name to add to the deployment.
                 jndiNameToModuleName.put(builder.getJNDIName(), builder.getModuleName());
             }
-
             final BinderService binderService = new BinderService(bindingInfo.getBindName());
             context.getServiceTarget().addService(bindingInfo.getBinderServiceName(), binderService)
-                .addDependency(CassandraSubsystemService.serviceName())
-                .addDependency(bindingInfo.getParentContextServiceName(), ServiceBasedNamingStore.class, binderService.getNamingStoreInjector())
-                .addDependency(serviceName, CassandraDriverService.class, new Injector<CassandraDriverService>() {
-                    @Override
-                    public void inject(final CassandraDriverService value) throws
-                            InjectionException {
-                        binderService.getManagedObjectInjector().inject(new ValueManagedReferenceFactory(new ImmediateValue<>(value.getSession() != null ? value.getSession() : value.getCluster())));
-                    }
+                    .addDependency(CassandraSubsystemService.serviceName())
+                    .addDependency(bindingInfo.getParentContextServiceName(), ServiceBasedNamingStore.class, binderService.getNamingStoreInjector())
+                    .addDependency(serviceName, CassandraDriverService.class, new Injector<CassandraDriverService>() {
+                        @Override
+                        public void inject(final CassandraDriverService value) throws
+                                InjectionException {
+                            binderService.getManagedObjectInjector().inject(new ValueManagedReferenceFactory(new ImmediateValue<>(value.getSession() != null ? value.getSession() : value.getCluster())));
+                        }
 
-                    @Override
-                    public void uninject() {
-                        binderService.getNamingStoreInjector().uninject();
-                    }
-                }).install();
-            context.getServiceTarget().addService(serviceName, service).setInitialMode(ServiceController.Mode.ACTIVE).install();
+                        @Override
+                        public void uninject() {
+                            binderService.getNamingStoreInjector().uninject();
+                        }
+                    }).install();
+
+            final ServiceBuilder<CassandraDriverService> serviceBuilder = context.getServiceTarget().addService(serviceName, cassandraDriverService);
+            // add service dependency on each separate hostname/port reference in standalone*.xml referenced from this driver profile definition.
+            for (final String outboundSocketBinding : outboundSocketBindings) {
+                final ServiceName outboundSocketBindingDependency = context.getCapabilityServiceName(OUTBOUND_SOCKET_BINDING_CAPABILITY_NAME, outboundSocketBinding, OutboundSocketBinding.class);
+                serviceBuilder.addDependency(ServiceBuilder.DependencyType.REQUIRED, outboundSocketBindingDependency, OutboundSocketBinding.class, cassandraDriverService.getOutboundSocketBindingInjector(outboundSocketBinding));
+            }
+            serviceBuilder.setInitialMode(ServiceController.Mode.ACTIVE).install();
         }
     }
 

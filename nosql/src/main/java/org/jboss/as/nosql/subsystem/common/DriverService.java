@@ -23,12 +23,19 @@
 package org.jboss.as.nosql.subsystem.common;
 
 /**
- * DriverService
+ * DriverService is implemented by each NoSQL driver subsystem.
  *
  * @author Scott Marlow
  */
 public interface DriverService {
 
+    /**
+     * Convert JNDI name to module name for resolving the NoSQL module to inject into deployments.
+     * Each NoSQL subsystem knows the NoSQL (driver) module that is mapped to the JNDI name.
+     *
+     * @param jndiName
+     * @return
+     */
     String moduleName(String jndiName);
 
 }

@@ -48,8 +48,7 @@ final class CassandraDriverSubsystemParser extends PersistentResourceXMLParser {
                                 )
                                 .addChild(builder(HostDefinition.INSTANCE)
                                                 .addAttributes(
-                                                        HostDefinition.HOST,
-                                                        HostDefinition.PORT
+                                                        HostDefinition.OUTBOUND_SOCKET_BINDING_REF
                                                 )
                                 )
                 )

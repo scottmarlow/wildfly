@@ -22,6 +22,9 @@
 
 package org.jboss.as.nosql.subsystem.cassandra;
 
+import static org.jboss.as.nosql.subsystem.cassandra.CassandraDriverDefinition.DRIVER_SERVICE_CAPABILITY;
+import static org.jboss.as.nosql.subsystem.cassandra.CassandraDriverDefinition.OUTBOUND_SOCKET_BINDING_CAPABILITY_NAME;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -36,7 +39,8 @@ import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
-import org.jboss.as.controller.registry.AttributeAccess;
+import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraintDefinition;
+import org.jboss.as.controller.operations.validation.StringLengthValidator;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 
@@ -47,22 +51,17 @@ import org.jboss.dmr.ModelType;
  */
 public class HostDefinition extends PersistentResourceDefinition {
 
-    protected static final SimpleAttributeDefinition HOST =
-            new SimpleAttributeDefinitionBuilder(CommonAttributes.HOST, ModelType.STRING, true)
-                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
-                    .setAllowExpression(true)
-                    .build();
+    public static final SimpleAttributeDefinition OUTBOUND_SOCKET_BINDING_REF = new SimpleAttributeDefinitionBuilder(CommonAttributes.OUTBOUND_SOCKET_BINDING_REF, ModelType.STRING, false)
+            .setAllowExpression(true)
+            .setValidator(new StringLengthValidator(1, Integer.MAX_VALUE, false, true))
+            .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.SOCKET_BINDING_REF)
+            .setCapabilityReference(OUTBOUND_SOCKET_BINDING_CAPABILITY_NAME, DRIVER_SERVICE_CAPABILITY)
+            .build();
 
-    protected static final SimpleAttributeDefinition PORT =
-            new SimpleAttributeDefinitionBuilder(CommonAttributes.PORT, ModelType.INT, true)
-                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
-                    .setAllowExpression(true)
-                    .build();
 
 
     protected static List<SimpleAttributeDefinition> ATTRIBUTES = Arrays.asList(
-            HOST,
-            PORT);
+            OUTBOUND_SOCKET_BINDING_REF);
 
     static final Map<String, AttributeDefinition> ATTRIBUTES_MAP = new HashMap<>();
 
@@ -95,7 +94,7 @@ public class HostDefinition extends PersistentResourceDefinition {
 
         @Override
         protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
-
+            System.out.println("context" + context);
         }
     }
 
