@@ -29,12 +29,10 @@ package org.jboss.as.nosql.subsystem.mongodb;
  */
 public interface CommonAttributes {
     String DATABASE = "database";
-    String HOST = "host-name";
     String OUTBOUND_SOCKET_BINDING_REF = "outbound-socket-binding-ref";
     String HOST_DEF = "host";
     String ID_NAME = "id";
     String JNDI_NAME= "jndi-name";
     String MODULE_NAME = "module";
-    String PORT = "host-port";
     String PROFILE = "mongo";
 }

@@ -24,9 +24,6 @@ package org.jboss.as.nosql.subsystem.common;
 
 import static org.jboss.logging.Logger.Level.ERROR;
 
-import java.net.UnknownHostException;
-
-import org.jboss.as.controller.OperationFailedException;
 import org.jboss.jandex.MethodInfo;
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
@@ -91,15 +88,5 @@ public interface NoSQLLogger extends BasicLogger {
      */
     @Message(id = 4, value = "%s annotations must provide a %s.")
     IllegalArgumentException annotationAttributeMissing(String annotation, String attribute);
-
-    /**
-     * Handle UnknownHostException error.
-     *
-     * @param unknownHostException
-     *
-     * @return an {@link OperationFailedException} for the exception
-     */
-    @Message(id = 5, value = "Unknown host name")
-    OperationFailedException unknownHost(@Cause UnknownHostException unknownHostException);
 
 }

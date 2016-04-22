@@ -48,8 +48,6 @@ final class MongoDriverSubsystemParser extends PersistentResourceXMLParser {
                                 )
                                 .addChild(builder(HostDefinition.INSTANCE)
                                                 .addAttributes(
-                                                        HostDefinition.HOST,
-                                                        HostDefinition.PORT,
                                                         HostDefinition.OUTBOUND_SOCKET_BINDING_REF
                                                 )
                                 )

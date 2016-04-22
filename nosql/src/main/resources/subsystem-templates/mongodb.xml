@@ -26,7 +26,7 @@
    <extension-module>org.jboss.as.nosql</extension-module>
     <subsystem xmlns="urn:jboss:domain:mongodb:1.0">
         <mongo id="mongodbtestprofile" jndi-name="java:jboss/mongodb/test" database="mongotestdb">
-            <host outbound-socket-binding-ref="mongotesthost" host-name="localhost" host-port="27017" />
+            <host outbound-socket-binding-ref="mongotesthost"/>
         </mongo>
     </subsystem>
     <outbound-socket-binding name="mongotesthost">

@@ -24,21 +24,26 @@ package org.jboss.as.nosql.driver.mongodb;
 
 import static org.jboss.as.nosql.subsystem.common.NoSQLLogger.ROOT_LOGGER;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.jboss.as.network.OutboundSocketBinding;
+import org.jboss.msc.inject.Injector;
+import org.jboss.msc.inject.MapInjector;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 
 /**
- * MongoDriverService
+ * MongoDriverService represents the connections into a MongoDB server
  *
  * @author Scott Marlow
  */
 public class MongoDriverService implements Service<MongoDriverService> {
     final ConfigurationBuilder configurationBuilder;
-
+    // standard application server way to obtain target hostname + port for target NoSQL database server(s)
+    private Map<String, OutboundSocketBinding> outboundSocketBindings = new HashMap<String, OutboundSocketBinding>();
     private Object client;
     private Object database;
     private MongoInteraction mongoInteraction;
@@ -48,12 +53,14 @@ public class MongoDriverService implements Service<MongoDriverService> {
         mongoInteraction = new MongoInteraction(configurationBuilder);
     }
 
+    public Injector<OutboundSocketBinding> getOutboundSocketBindingInjector(String name) {
+        return new MapInjector<String, OutboundSocketBinding>(outboundSocketBindings, name);
+    }
+
     @Override
     public void start(StartContext startContext) throws StartException {
-        List<HostPortPair> targets = configurationBuilder.getTargets();
-        for(HostPortPair target : targets) {
-            // serverAddressArrayList.add(new ServerAddress(target.getHost(),target.getPort()));
-            mongoInteraction.hostPort(target.getHost(),target.getPort());
+        for( OutboundSocketBinding target: outboundSocketBindings.values()) {
+            mongoInteraction.hostPort(target.getUnresolvedDestinationAddress(),target.getDestinationPort());
         }
         client = mongoInteraction.mongoClient();
         if(configurationBuilder.getDatabase() != null) {

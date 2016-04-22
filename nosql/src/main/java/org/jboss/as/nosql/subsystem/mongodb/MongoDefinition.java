@@ -43,7 +43,7 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 
 /**
- * MongoDefinition
+ * MongoDefinition represents a target MongoDB database.
  *
  * @author Scott Marlow
  */

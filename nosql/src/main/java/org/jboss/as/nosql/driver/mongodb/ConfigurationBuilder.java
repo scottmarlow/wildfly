@@ -22,10 +22,6 @@
 
 package org.jboss.as.nosql.driver.mongodb;
 
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * ConfigurationBuilder
  *
@@ -33,23 +29,11 @@ import java.util.List;
  */
 public class ConfigurationBuilder {
 
-    private ArrayList<HostPortPair> targets = new ArrayList<>();
-
     private String JNDIName;
     private String database;
     private String description;
     private String moduleName = // name of MongoDB module
             "org.mongodb.driver";
-
-    public ConfigurationBuilder addTarget(String hostname) throws UnknownHostException {
-        targets.add(new HostPortPair(hostname));
-        return this;
-    }
-
-    public ConfigurationBuilder addTarget(String hostname, int port) throws UnknownHostException {
-        targets.add(new HostPortPair(hostname, port));
-        return this;
-    }
 
     public ConfigurationBuilder setDescription(String description) {
         this.description = description;
@@ -59,10 +43,6 @@ public class ConfigurationBuilder {
     public String getDescription() {
         return description;
     }
-
-    public List<HostPortPair> getTargets() {
-            return targets;
-        }
 
     public void setJNDIName(String JNDIName) {
         this.JNDIName = JNDIName;

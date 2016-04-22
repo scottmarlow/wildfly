@@ -49,13 +49,13 @@ public class CassandraDriverService implements Service<CassandraDriverService> {
     private Object cluster;  // represents connection into Cassandra
     private Object session;  // only set if keyspaceName is specified
 
-    public Injector<OutboundSocketBinding> getOutboundSocketBindingInjector(String name) {
-        return new MapInjector<String, OutboundSocketBinding>(outboundSocketBindings, name);
-    }
-
     public CassandraDriverService(ConfigurationBuilder configurationBuilder) {
         this.configurationBuilder = configurationBuilder;
         cassandraInteraction = new CassandraInteraction(configurationBuilder);
+    }
+
+    public Injector<OutboundSocketBinding> getOutboundSocketBindingInjector(String name) {
+        return new MapInjector<String, OutboundSocketBinding>(outboundSocketBindings, name);
     }
 
     @Override

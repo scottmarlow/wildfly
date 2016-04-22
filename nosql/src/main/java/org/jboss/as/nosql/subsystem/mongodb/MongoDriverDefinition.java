@@ -31,13 +31,21 @@ import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
+import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
+import org.jboss.as.nosql.subsystem.common.DriverService;
 
 /**
- * MongoDriverDefinition top level resource definition
+ * MongoDriverDefinition client driver subsystem ResourceDefinition
  *
  */
 public class MongoDriverDefinition extends PersistentResourceDefinition {
+
+    static final String DRIVER_SERVICE_CAPABILITY_NAME = "org.wildfly.nosql.mongo.driver-service";
+    static final String OUTBOUND_SOCKET_BINDING_CAPABILITY_NAME = "org.wildfly.network.outbound-socket-binding";
+    static final RuntimeCapability<Void> DRIVER_SERVICE_CAPABILITY =
+            RuntimeCapability.Builder.of(DRIVER_SERVICE_CAPABILITY_NAME, DriverService.class)
+                    .build();
 
     public static final MongoDriverDefinition INSTANCE = new MongoDriverDefinition();
 

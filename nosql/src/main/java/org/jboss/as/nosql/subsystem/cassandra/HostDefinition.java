@@ -94,7 +94,6 @@ public class HostDefinition extends PersistentResourceDefinition {
 
         @Override
         protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
-            System.out.println("context" + context);
         }
     }
 
