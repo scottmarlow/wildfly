@@ -33,7 +33,6 @@ import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
 import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
-import org.jboss.as.nosql.subsystem.common.DriverService;
 
 /**
  * Cassandra client driver subsystem ResourceDefinition
@@ -44,7 +43,7 @@ public class CassandraDriverDefinition extends PersistentResourceDefinition {
     static final String DRIVER_SERVICE_CAPABILITY_NAME = "org.wildfly.nosql.cassandra.driver-service";
     static final String OUTBOUND_SOCKET_BINDING_CAPABILITY_NAME = "org.wildfly.network.outbound-socket-binding";
     static final RuntimeCapability<Void> DRIVER_SERVICE_CAPABILITY =
-            RuntimeCapability.Builder.of(DRIVER_SERVICE_CAPABILITY_NAME, DriverService.class)
+            RuntimeCapability.Builder.of(DRIVER_SERVICE_CAPABILITY_NAME)
                     .build();
 
     public static final CassandraDriverDefinition INSTANCE = new CassandraDriverDefinition();
