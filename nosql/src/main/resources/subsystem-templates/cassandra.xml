@@ -25,8 +25,8 @@
 <config>
    <extension-module>org.jboss.as.nosql</extension-module>
       <subsystem xmlns="urn:jboss:domain:cassandra:1.0">
-          <cassandra id="cassandratestprofile" jndi-name="java:jboss/cassandradriver/test">
-              <host outbound-socket-binding-ref="casstesthost"/>
+          <cassandra name="default" id="cassandratestprofile" jndi-name="java:jboss/cassandradriver/test">
+              <host name="default" outbound-socket-binding-ref="casstesthost"/>
           </cassandra>
     </subsystem>
     <outbound-socket-binding name="casstesthost">

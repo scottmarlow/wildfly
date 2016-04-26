@@ -42,8 +42,8 @@ public class CassandraDriverExtension implements Extension {
 
     public static final String SUBSYSTEM_NAME = "cassandra";
 
-    protected static final PathElement PROFILE_PATH = PathElement.pathElement(CommonAttributes.PROFILE,CommonAttributes.PROFILE);
-    protected static final PathElement HOST_PATH = PathElement.pathElement(CommonAttributes.HOST_DEF,CommonAttributes.HOST_DEF);
+    protected static final PathElement PROFILE_PATH = PathElement.pathElement(CommonAttributes.PROFILE);
+    protected static final PathElement HOST_PATH = PathElement.pathElement(CommonAttributes.HOST_DEF);
 
     public static final String NAMESPACE = "urn:jboss:domain:cassandra:1.0";
     public static final Namespace CURRENT = Namespace.CASSANDRA_1_0;
