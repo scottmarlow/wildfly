@@ -35,7 +35,15 @@
     <groupId>org.wildfly</groupId>
     <artifactId>wildfly-nosql</artifactId>
 
+    <packaging>pom</packaging>
+
     <name>WildFly: NoSQL</name>
+
+    <modules>
+        <module>mongodb</module>
+        <module>cassandra</module>
+        <module>common</module>
+    </modules>
 
     <dependencies>
         <dependency>
