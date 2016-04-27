@@ -104,6 +104,11 @@
             <groupId>com.datastax.cassandra</groupId>
             <artifactId>cassandra-driver-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.wildfly</groupId>
+            <artifactId>wildfly-nosql-common</artifactId>
+            <version>10.1.0.Final-SNAPSHOT</version>
+        </dependency>
 
     </dependencies>
 </project>
