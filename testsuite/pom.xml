@@ -528,6 +528,17 @@
         </profile>
 
         <profile>
+            <id>nosql.module.profile</id>
+            <activation><property><name>nosql.module</name></property></activation>
+            <modules><module>nosql</module></modules>
+        </profile>
+        <profile>
+            <id>nosql_.module.profile</id>
+            <activation><property><name>ts.nosql</name></property></activation>
+            <modules><module>nosql</module></modules>
+        </profile>
+
+        <profile>
             <id>domain.module.profile</id>
             <activation><property><name>domain.module</name></property></activation>
             <modules><module>domain</module></modules>
