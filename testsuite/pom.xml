@@ -28,6 +28,7 @@
     integration - holds all integration tests for Wildfly.
     compat      - holds all compatibility management tests for Wildfly.
     domain      - holds all domain management tests for Wildfly.
+    nosql       - NoSQL tests for Wildfly.
 
     All tests should fit into one of these four categories.
 
@@ -459,6 +460,7 @@
                 <module>integration</module>
                 <module>compat</module>
                 <module>domain</module>
+                <module>nosql</module>
             </modules>
         </profile>
 
