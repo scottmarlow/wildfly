@@ -22,22 +22,52 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="urn:jboss:domain:mongodb:1.0" xmlns:ns1="urn:jboss:domain:mongodb:1.0">
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="config">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="extension-module" type="xs:string"/>
+        <xs:element ref="subsystem"/>
+        <xs:element ref="outbound-socket-binding"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
   <xs:element name="subsystem">
     <xs:complexType>
       <xs:sequence>
-        <xs:element ref="ns1:mongo"  minOccurs="0" maxOccurs="unbounded"/>
+        <xs:element ref="mongo"/>
       </xs:sequence>
     </xs:complexType>
   </xs:element>
   <xs:element name="mongo">
     <xs:complexType>
-      <xs:attribute name="id" use="required" type="xs:NCName"/>
-      <xs:attribute name="module" use="optional" type="xs:NCName"/>
-      <xs:attribute name="host-name" use="required" type="xs:NCName"/>
-      <xs:attribute name="host-port" use="optional" type="xs:integer"/>
-      <xs:attribute name="jndi-name" use="required" type="xs:anyURI"/>
-      <xs:attribute name="database" use="optional" type="xs:NCName"/>
+      <xs:sequence>
+        <xs:element ref="host"/>
+      </xs:sequence>
+      <xs:attribute name="database" type="xs:string" use="required"/>
+      <xs:attribute name="id" type="xs:string" use="required"/>
+      <xs:attribute name="jndi-name" type="xs:string" use="required"/>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="host">
+    <xs:complexType>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="outbound-socket-binding-ref" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="outbound-socket-binding">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="remote-destination"/>
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="remote-destination">
+    <xs:complexType>
+      <xs:attribute name="host" type="xs:string" use="required"/>
+      <xs:attribute name="port" type="xs:string" use="required"/>
     </xs:complexType>
   </xs:element>
 </xs:schema>
