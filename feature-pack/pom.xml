@@ -873,15 +873,38 @@
         </dependency>
 
         <dependency>
-            <groupId>org.wildfly</groupId>
-            <artifactId>wildfly-nosql</artifactId>
-	    <exclusions>
+                <groupId>org.wildfly</groupId>
+                <artifactId>wildfly-nosql-common</artifactId>
+            <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
+
+        <dependency>
+                <groupId>org.wildfly</groupId>
+                <artifactId>wildfly-cassandrasubsystem</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+                <groupId>org.wildfly</groupId>
+                <artifactId>wildfly-mongodbsubsystem</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
 
         <dependency>
             <groupId>org.jboss</groupId>

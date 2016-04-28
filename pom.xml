@@ -1172,10 +1172,21 @@
                 <version>${project.version}</version>
             </dependency>
 
+           <dependency>
+                <groupId>org.wildfly</groupId>
+                <artifactId>wildfly-nosql-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+           <dependency>
+                <groupId>org.wildfly</groupId>
+                <artifactId>wildfly-cassandrasubsystem</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <dependency>
 	        <groupId>org.wildfly</groupId>
-                <artifactId>wildfly-nosql</artifactId>
+                <artifactId>wildfly-mongodbsubsystem</artifactId>
                 <version>${project.version}</version>
             </dependency>
  
