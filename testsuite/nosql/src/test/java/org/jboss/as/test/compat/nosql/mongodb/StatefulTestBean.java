@@ -6,11 +6,10 @@ import javax.json.Json;
 import javax.json.JsonObject;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.util.JSON;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import org.bson.Document;
 
 /**
  * StatefulTestBean for the MongoDB document database
@@ -21,15 +20,15 @@ import com.mongodb.util.JSON;
 public class StatefulTestBean {
 
     @Resource(lookup = "java:jboss/mongodb/test")
-    DB database;
+    MongoDatabase database;
 
     public void addUserComment() {
-        DBCollection collection = null;
-        DBObject query = null;
+        MongoCollection collection = null;
+        Document query = null;
         try {
             // add a comment from user Melanie
             String who = "Melanie";
-            DBObject comment = new BasicDBObject("_id", who)
+            Document comment = new Document("_id", who)
                     .append("name", who)
                     .append("address", new BasicDBObject("street", "123 Main Street")
                             .append("city", "Fastville")
@@ -39,22 +38,21 @@ public class StatefulTestBean {
                         "I would like to sign up for your 'Mongo DB Is Web Scale' training session.");
             // save the comment
             collection = database.getCollection("comments");
-            collection.insert(comment);
+            collection.insertOne(comment);
 
             // look up the comment from Melanie
-            query = new BasicDBObject("_id", who);
-            DBCursor cursor = collection.find(query);
-            DBObject userComment = cursor.next();
+            query = new Document("_id", who);
+            FindIterable cursor = collection.find(query);
+            Object userComment = cursor.first();
             System.out.println("DBObject.toString() = " + userComment.toString());
         } finally {
-            collection.remove(query);
+            collection.drop();
         }
     }
 
     public void addProduct() {
-        DBCollection collection = null;
-        database.getMongo();
-        DBObject query = null;
+        MongoCollection collection = null;
+        Document query = null;
         try {
             collection = database.getCollection("company");
             String companyName = "Acme products";
@@ -64,18 +62,16 @@ public class StatefulTestBean {
                     .add("city", "Indiville")
                     .add("_id", companyName)
                     .build();
-
-            collection.insert((DBObject) JSON.parse(object.toString()));
-            query = new BasicDBObject("_id",companyName);
-            DBCursor cursor = collection.find(query);
-            DBObject dbObject = cursor.next();
+            Document document = Document.parse(object.toString());
+            collection.insertOne(document);
+            query = new Document("_id",companyName);
+            FindIterable cursor = collection.find(query);
+            Object dbObject = cursor.first();
             System.out.println("DBObject.toString() = " + dbObject.toString());
         } finally {
             if (query != null) {
-                collection.remove(query);
+                collection.drop();
             }
         }
     }
-
-
 }

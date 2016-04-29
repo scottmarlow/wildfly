@@ -7,7 +7,7 @@ import javax.naming.NameClassPair;
 import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 
-import com.mongodb.DB;
+import com.mongodb.client.MongoDatabase;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
@@ -63,7 +63,7 @@ public class MongoDBTestCase {
             dumpJndi("java:jboss/mongodb");
         }
 
-        assertTrue(value instanceof DB);
+        assertTrue(value instanceof MongoDatabase);
     }
 
     @Test

@@ -211,7 +211,7 @@
         <version.org.jgroups>3.6.8.Final</version.org.jgroups>
         <version.org.jgroups.azure>1.0.0.Final</version.org.jgroups.azure>
         <version.org.jipijapa>1.0.1.Final</version.org.jipijapa>
-        <version.mongodb.driver>3.0.4</version.mongodb.driver>
+        <version.mongodb.driver>3.2.2</version.mongodb.driver>
         <version.cassandra.driver>2.1.4</version.cassandra.driver>
         <version.org.opensaml.opensaml>3.1.1</version.org.opensaml.opensaml>
         <version.org.picketbox.picketbox-commons>1.0.0.final</version.org.picketbox.picketbox-commons>
