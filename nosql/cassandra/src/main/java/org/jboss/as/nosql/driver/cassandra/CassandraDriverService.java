@@ -27,6 +27,8 @@ import static org.jboss.as.nosql.subsystem.common.NoSQLLogger.ROOT_LOGGER;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Session;
 import org.jboss.as.network.OutboundSocketBinding;
 import org.jboss.msc.inject.Injector;
 import org.jboss.msc.inject.MapInjector;
@@ -46,12 +48,12 @@ public class CassandraDriverService implements Service<CassandraDriverService> {
     // standard application server way to obtain target hostname + port for target NoSQL database server(s)
     private Map<String, OutboundSocketBinding> outboundSocketBindings = new HashMap<String, OutboundSocketBinding>();
     private final CassandraInteraction cassandraInteraction;
-    private Object cluster;  // represents connection into Cassandra
-    private Object session;  // only set if keyspaceName is specified
+    private Cluster cluster;  // represents connection into Cassandra
+    private Session session;  // only set if keyspaceName is specified
 
     public CassandraDriverService(ConfigurationBuilder configurationBuilder) {
         this.configurationBuilder = configurationBuilder;
-        cassandraInteraction = new CassandraInteraction(configurationBuilder);
+        cassandraInteraction = new CassandraInteraction();
     }
 
     public Injector<OutboundSocketBinding> getOutboundSocketBindingInjector(String name) {
