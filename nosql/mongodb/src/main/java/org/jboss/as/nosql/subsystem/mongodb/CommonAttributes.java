@@ -32,7 +32,7 @@ public interface CommonAttributes {
     String OUTBOUND_SOCKET_BINDING_REF = "outbound-socket-binding-ref";
     String HOST_DEF = "host";
     String ID_NAME = "id";
-    String JNDI_NAME= "jndi-name";
+    String JNDI_NAME = "jndi-name";
     String MODULE_NAME = "module";
     String PROFILE = "mongo";
 }

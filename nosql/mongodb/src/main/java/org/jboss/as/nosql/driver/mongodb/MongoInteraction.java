@@ -34,7 +34,6 @@ import org.jboss.msc.service.StartException;
  * MongoInteraction
  *
  * @author Scott Marlow
- *
  */
 public class MongoInteraction {
 
@@ -46,10 +45,9 @@ public class MongoInteraction {
     }
 
     public void hostPort(String host, int port) throws StartException {
-        if( port > 0) {
+        if (port > 0) {
             serverAddressArrayList.add(new ServerAddress(host, port));
-        }
-        else {
+        } else {
             serverAddressArrayList.add(new ServerAddress(host));
         }
     }
@@ -58,7 +56,7 @@ public class MongoInteraction {
         MongoClientOptions.Builder builder = new MongoClientOptions.Builder();
         builder.description(configurationBuilder.getDescription());
         MongoClientOptions mongoClientOptions = builder.build();
-        return new MongoClient(serverAddressArrayList,mongoClientOptions);
+        return new MongoClient(serverAddressArrayList, mongoClientOptions);
     }
 
     public MongoDatabase getDB(MongoClient client) throws StartException {
@@ -67,7 +65,7 @@ public class MongoInteraction {
 
 
     public void close(MongoClient client) throws Throwable {
-        if( client != null) {
+        if (client != null) {
             client.close();
         }
     }

@@ -61,11 +61,11 @@ public class MongoDriverService implements Service<MongoDriverService> {
 
     @Override
     public void start(StartContext startContext) throws StartException {
-        for( OutboundSocketBinding target: outboundSocketBindings.values()) {
-            mongoInteraction.hostPort(target.getUnresolvedDestinationAddress(),target.getDestinationPort());
+        for (OutboundSocketBinding target : outboundSocketBindings.values()) {
+            mongoInteraction.hostPort(target.getUnresolvedDestinationAddress(), target.getDestinationPort());
         }
         client = mongoInteraction.mongoClient();
-        if(configurationBuilder.getDatabase() != null) {
+        if (configurationBuilder.getDatabase() != null) {
             database = mongoInteraction.getDB(client);
         }
     }

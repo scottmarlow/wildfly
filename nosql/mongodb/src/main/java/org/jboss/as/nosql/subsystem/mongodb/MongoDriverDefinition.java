@@ -36,7 +36,6 @@ import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 
 /**
  * MongoDriverDefinition client driver subsystem ResourceDefinition
- *
  */
 public class MongoDriverDefinition extends PersistentResourceDefinition {
 
@@ -50,7 +49,7 @@ public class MongoDriverDefinition extends PersistentResourceDefinition {
 
     static final PersistentResourceDefinition[] CHILDREN = {
             MongoDefinition.INSTANCE
-        };
+    };
 
     private MongoDriverDefinition() {
         super(PathElement.pathElement(ModelDescriptionConstants.SUBSYSTEM, MongoDriverExtension.SUBSYSTEM_NAME),

@@ -139,8 +139,7 @@ public class DriverScanDependencyProcessor implements DeploymentUnitProcessor {
             // saved if not already set by another thread
             if (currentValue == null) {
                 deploymentUnit.putAttachment(perModuleNameKey, module);
-            }
-            else if(!module.equals(currentValue)) {
+            } else if (!module.equals(currentValue)) {
                 throw ROOT_LOGGER.cannotAddReferenceToModule(module, currentValue, deploymentUnit.getName());
             }
         }

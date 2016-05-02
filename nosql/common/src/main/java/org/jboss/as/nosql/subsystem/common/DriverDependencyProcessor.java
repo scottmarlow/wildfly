@@ -53,7 +53,7 @@ public class DriverDependencyProcessor implements DeploymentUnitProcessor {
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
         final String moduleName = DriverScanDependencyProcessor.getPerDeploymentDeploymentModuleName(deploymentUnit);
 
-        if( moduleName != null) {
+        if (moduleName != null) {
             final ModuleSpecification moduleSpecification = deploymentUnit.getAttachment(Attachments.MODULE_SPECIFICATION);
             final ModuleLoader moduleLoader = Module.getBootModuleLoader();
 
@@ -64,7 +64,7 @@ public class DriverDependencyProcessor implements DeploymentUnitProcessor {
 
     private void addDependency(ModuleSpecification moduleSpecification, ModuleLoader moduleLoader,
                                ModuleIdentifier... moduleIdentifiers) {
-        for ( ModuleIdentifier moduleIdentifier : moduleIdentifiers) {
+        for (ModuleIdentifier moduleIdentifier : moduleIdentifiers) {
             moduleSpecification.addSystemDependency(new ModuleDependency(moduleLoader, moduleIdentifier, false, false, true, false));
         }
     }

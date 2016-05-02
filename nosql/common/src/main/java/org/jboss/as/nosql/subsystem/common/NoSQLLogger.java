@@ -47,7 +47,7 @@ public interface NoSQLLogger extends BasicLogger {
     /**
      * Logs an error message indicating the driver failed to stop
      *
-     * @param cause       the cause of the error.
+     * @param cause the cause of the error.
      */
     @LogMessage(level = ERROR)
     @Message(id = 1, value = "Failed to stop")
@@ -72,7 +72,6 @@ public interface NoSQLLogger extends BasicLogger {
      *
      * @param annotation the annotation.
      * @param methodInfo the method information.
-     *
      * @return an {@link IllegalArgumentException} for the error.
      */
     @Message(id = 3, value = "%s injection target is invalid.  Only setter methods are allowed: %s")
@@ -83,7 +82,6 @@ public interface NoSQLLogger extends BasicLogger {
      *
      * @param annotation the annotation.
      * @param attribute  the attribute.
-     *
      * @return an {@link IllegalArgumentException} for the exception.
      */
     @Message(id = 4, value = "%s annotations must provide a %s.")

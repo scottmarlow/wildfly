@@ -88,6 +88,7 @@ public class HostDefinition extends PersistentResourceDefinition {
 
     private static class HostAdd extends AbstractAddStepHandler {
         private static final HostAdd INSTANCE = new HostAdd();
+
         private HostAdd() {
             super(ATTRIBUTES);
         }

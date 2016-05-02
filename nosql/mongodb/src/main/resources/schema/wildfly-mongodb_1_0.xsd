@@ -23,51 +23,51 @@
   -->
 
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
-  <xs:element name="config">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element name="extension-module" type="xs:string"/>
-        <xs:element ref="subsystem"/>
-        <xs:element ref="outbound-socket-binding"/>
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="subsystem">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element ref="mongo"/>
-      </xs:sequence>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="mongo">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element ref="host"/>
-      </xs:sequence>
-      <xs:attribute name="database" type="xs:string" use="required"/>
-      <xs:attribute name="id" type="xs:string" use="required"/>
-      <xs:attribute name="jndi-name" type="xs:string" use="required"/>
-      <xs:attribute name="name" type="xs:string" use="required"/>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="host">
-    <xs:complexType>
-      <xs:attribute name="name" type="xs:string" use="required"/>
-      <xs:attribute name="outbound-socket-binding-ref" type="xs:string" use="required"/>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="outbound-socket-binding">
-    <xs:complexType>
-      <xs:sequence>
-        <xs:element ref="remote-destination"/>
-      </xs:sequence>
-      <xs:attribute name="name" type="xs:string" use="required"/>
-    </xs:complexType>
-  </xs:element>
-  <xs:element name="remote-destination">
-    <xs:complexType>
-      <xs:attribute name="host" type="xs:string" use="required"/>
-      <xs:attribute name="port" type="xs:string" use="required"/>
-    </xs:complexType>
-  </xs:element>
+    <xs:element name="config">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="extension-module" type="xs:string"/>
+                <xs:element ref="subsystem"/>
+                <xs:element ref="outbound-socket-binding"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="subsystem">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="mongo"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="mongo">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="host"/>
+            </xs:sequence>
+            <xs:attribute name="database" type="xs:string" use="required"/>
+            <xs:attribute name="id" type="xs:string" use="required"/>
+            <xs:attribute name="jndi-name" type="xs:string" use="required"/>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="host">
+        <xs:complexType>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+            <xs:attribute name="outbound-socket-binding-ref" type="xs:string" use="required"/>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="outbound-socket-binding">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="remote-destination"/>
+            </xs:sequence>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="remote-destination">
+        <xs:complexType>
+            <xs:attribute name="host" type="xs:string" use="required"/>
+            <xs:attribute name="port" type="xs:string" use="required"/>
+        </xs:complexType>
+    </xs:element>
 </xs:schema>

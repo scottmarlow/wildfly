@@ -63,22 +63,22 @@ public class CassandraDriverService implements Service<CassandraDriverService> {
     @Override
     public void start(StartContext startContext) throws StartException {
 
-        for( OutboundSocketBinding target: outboundSocketBindings.values()) {
-            if(target.getDestinationPort() > 0) {
+        for (OutboundSocketBinding target : outboundSocketBindings.values()) {
+            if (target.getDestinationPort() > 0) {
                 cassandraInteraction.withPort(target.getDestinationPort());
             }
-            if(target.getUnresolvedDestinationAddress() != null) {
+            if (target.getUnresolvedDestinationAddress() != null) {
                 cassandraInteraction.addContactPoint(target.getUnresolvedDestinationAddress());
             }
         }
 
-        if(configurationBuilder.getDescription() != null) {
+        if (configurationBuilder.getDescription() != null) {
             cassandraInteraction.withClusterName(configurationBuilder.getDescription());
         }
         cluster = cassandraInteraction.build();
 
         String keySpace = configurationBuilder.getKeySpace();
-        if(keySpace != null) {
+        if (keySpace != null) {
             session = cassandraInteraction.connect(cluster, keySpace);
         }
     }
@@ -92,7 +92,7 @@ public class CassandraDriverService implements Service<CassandraDriverService> {
             }
             cassandraInteraction.clusterClose(cluster);
             cluster = null;
-        } catch( Throwable throwable) {
+        } catch (Throwable throwable) {
             ROOT_LOGGER.driverFailedToStop(throwable);
         }
     }

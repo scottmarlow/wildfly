@@ -32,7 +32,7 @@ public interface CommonAttributes {
     String DATABASE = "database";
     String HOST_DEF = "host";
     String ID_NAME = "id";
-    String JNDI_NAME= "jndi-name";
+    String JNDI_NAME = "jndi-name";
     String MODULE_NAME = "module";
     String PROFILE = "cassandra";
 }

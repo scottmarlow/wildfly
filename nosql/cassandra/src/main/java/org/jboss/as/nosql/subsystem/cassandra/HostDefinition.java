@@ -59,7 +59,6 @@ public class HostDefinition extends PersistentResourceDefinition {
             .build();
 
 
-
     protected static List<SimpleAttributeDefinition> ATTRIBUTES = Arrays.asList(
             OUTBOUND_SOCKET_BINDING_REF);
 
@@ -88,6 +87,7 @@ public class HostDefinition extends PersistentResourceDefinition {
 
     private static class HostAdd extends AbstractAddStepHandler {
         private static final HostAdd INSTANCE = new HostAdd();
+
         private HostAdd() {
             super(ATTRIBUTES);
         }

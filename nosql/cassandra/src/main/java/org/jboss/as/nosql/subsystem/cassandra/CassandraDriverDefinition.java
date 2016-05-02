@@ -36,7 +36,6 @@ import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 
 /**
  * Cassandra client driver subsystem ResourceDefinition
- *
  */
 public class CassandraDriverDefinition extends PersistentResourceDefinition {
 
@@ -50,7 +49,7 @@ public class CassandraDriverDefinition extends PersistentResourceDefinition {
 
     static final PersistentResourceDefinition[] CHILDREN = {
             CassandraDefinition.INSTANCE
-        };
+    };
 
     private CassandraDriverDefinition() {
         super(PathElement.pathElement(ModelDescriptionConstants.SUBSYSTEM, CassandraDriverExtension.SUBSYSTEM_NAME),

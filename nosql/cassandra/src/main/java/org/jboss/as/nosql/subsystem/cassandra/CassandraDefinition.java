@@ -52,7 +52,7 @@ public class CassandraDefinition extends PersistentResourceDefinition {
     private static final List<? extends PersistentResourceDefinition> CHILDREN;
 
     static {
-        List<PersistentResourceDefinition>  children = new ArrayList<>();
+        List<PersistentResourceDefinition> children = new ArrayList<>();
         children.add(HostDefinition.INSTANCE);
         CHILDREN = Collections.unmodifiableList(children);
     }
