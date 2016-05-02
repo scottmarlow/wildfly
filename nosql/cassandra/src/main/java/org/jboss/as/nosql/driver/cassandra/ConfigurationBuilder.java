@@ -32,8 +32,9 @@ public class ConfigurationBuilder {
     private String JNDIName;    // required global jndi name
     private String keyspace;    // optional Cassandra keyspace
 
-    private String moduleName = // name of Cassandra module
-            "com.datastax.cassandra.driver-core";
+    private static final String defaultModuleName = "com.datastax.cassandra.driver-core";
+    private String moduleName = // name of Cassandra static module
+            defaultModuleName;
 
     public void setDescription(String description) {
         this.description = description;

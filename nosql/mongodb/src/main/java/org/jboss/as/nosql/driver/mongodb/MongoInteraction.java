@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoDatabase;
 import org.jboss.msc.service.StartException;
 
 /**
@@ -53,21 +54,21 @@ public class MongoInteraction {
         }
     }
 
-    public Object mongoClient() throws StartException {
+    public MongoClient mongoClient() throws StartException {
         MongoClientOptions.Builder builder = new MongoClientOptions.Builder();
         builder.description(configurationBuilder.getDescription());
         MongoClientOptions mongoClientOptions = builder.build();
         return new MongoClient(serverAddressArrayList,mongoClientOptions);
     }
 
-    public Object getDB(Object client) throws StartException {
-        return ((MongoClient) client).getDatabase(configurationBuilder.getDatabase());
+    public MongoDatabase getDB(MongoClient client) throws StartException {
+        return client.getDatabase(configurationBuilder.getDatabase());
     }
 
 
-    public void close(Object client) throws Throwable {
+    public void close(MongoClient client) throws Throwable {
         if( client != null) {
-            ((MongoClient) client).close();
+            client.close();
         }
     }
 

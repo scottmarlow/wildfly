@@ -32,8 +32,9 @@ public class ConfigurationBuilder {
     private String JNDIName;
     private String database;
     private String description;
+    private static final String defaultModuleName = "org.mongodb.driver";
     private String moduleName = // name of MongoDB module
-            "org.mongodb.driver";
+            defaultModuleName;
 
     public ConfigurationBuilder setDescription(String description) {
         this.description = description;

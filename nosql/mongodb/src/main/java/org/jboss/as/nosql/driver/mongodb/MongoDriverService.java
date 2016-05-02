@@ -27,6 +27,8 @@ import static org.jboss.as.nosql.subsystem.common.NoSQLLogger.ROOT_LOGGER;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoDatabase;
 import org.jboss.as.network.OutboundSocketBinding;
 import org.jboss.msc.inject.Injector;
 import org.jboss.msc.inject.MapInjector;
@@ -44,8 +46,8 @@ public class MongoDriverService implements Service<MongoDriverService> {
     final ConfigurationBuilder configurationBuilder;
     // standard application server way to obtain target hostname + port for target NoSQL database server(s)
     private Map<String, OutboundSocketBinding> outboundSocketBindings = new HashMap<String, OutboundSocketBinding>();
-    private Object client;
-    private Object database;
+    private MongoClient client;
+    private MongoDatabase database;
     private MongoInteraction mongoInteraction;
 
     public MongoDriverService(ConfigurationBuilder configurationBuilder) {
