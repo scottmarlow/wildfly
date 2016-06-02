@@ -51,6 +51,13 @@ final class MongoDriverSubsystemParser extends PersistentResourceXMLParser {
                                                 HostDefinition.OUTBOUND_SOCKET_BINDING_REF
                                         )
                                 )
+                                .addChild(builder(WriteConcernDefinition.INSTANCE)
+                                        .addAttributes(
+                                                WriteConcernDefinition.W,
+                                                WriteConcernDefinition.J,
+                                                WriteConcernDefinition.WTIMEOUT
+                                        )
+                                )
                 )
                 .build();
     }

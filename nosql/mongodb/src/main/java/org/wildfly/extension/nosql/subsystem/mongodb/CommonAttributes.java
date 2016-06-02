@@ -35,4 +35,8 @@ public interface CommonAttributes {
     String JNDI_NAME = "jndi-name";
     String MODULE_NAME = "module";
     String PROFILE = "mongo";
+    String WRITE_CONCERN = "write-concern";
+    String W = "w";
+    String J = "j";
+    String WTIMEOUT = "wtimeout";
 }

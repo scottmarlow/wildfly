@@ -43,6 +43,7 @@
         <xs:complexType>
             <xs:sequence>
                 <xs:element ref="host"/>
+                <xs:element ref="write-concern" maxOccurs="1"/>
             </xs:sequence>
             <xs:attribute name="database" type="xs:string" use="required"/>
             <xs:attribute name="id" type="xs:string" use="required"/>
@@ -54,6 +55,13 @@
         <xs:complexType>
             <xs:attribute name="name" type="xs:string" use="required"/>
             <xs:attribute name="outbound-socket-binding-ref" type="xs:string" use="required"/>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="write-concern">
+        <xs:complexType>
+            <xs:attribute name="w" type="xs:string"/>
+            <xs:attribute name="j" type="xs:boolean"/>
+            <xs:attribute name="wtimeout" type="xs:integer"/>
         </xs:complexType>
     </xs:element>
     <xs:element name="outbound-socket-binding">
