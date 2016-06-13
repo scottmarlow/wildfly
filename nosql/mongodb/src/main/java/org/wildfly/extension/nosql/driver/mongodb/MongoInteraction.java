@@ -23,10 +23,12 @@
 package org.wildfly.extension.nosql.driver.mongodb;
 
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.ServerAddress;
+import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoDatabase;
 import org.jboss.msc.service.StartException;
 
@@ -55,6 +57,7 @@ public class MongoInteraction {
     public MongoClient mongoClient() throws StartException {
         MongoClientOptions.Builder builder = new MongoClientOptions.Builder();
         builder.description(configurationBuilder.getDescription());
+        setWriteConcern(builder);
         MongoClientOptions mongoClientOptions = builder.build();
         return new MongoClient(serverAddressArrayList, mongoClientOptions);
     }
@@ -68,6 +71,23 @@ public class MongoInteraction {
         if (client != null) {
             client.close();
         }
+    }
+
+    private void setWriteConcern(MongoClientOptions.Builder builder) {
+        if (configurationBuilder.getW() == null) {
+            return;
+        }
+        WriteConcern writeConcern = new WriteConcern(configurationBuilder.getW());
+
+        if (configurationBuilder.getWtimeout() != null) {
+            writeConcern = writeConcern.withWTimeout(configurationBuilder.getWtimeout(), TimeUnit.MILLISECONDS);
+        }
+
+        if (configurationBuilder.getJ() != null) {
+            writeConcern = writeConcern.withJournal(configurationBuilder.getJ());
+        }
+
+        builder.writeConcern(writeConcern);
     }
 
 }

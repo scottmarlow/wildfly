@@ -35,6 +35,9 @@ public class ConfigurationBuilder {
     private static final String defaultModuleName = "org.mongodb.driver";
     private String moduleName = // name of MongoDB module
             defaultModuleName;
+    private String w;
+    private Boolean j;
+    private Integer wtimeout;
 
     public ConfigurationBuilder setDescription(String description) {
         this.description = description;
@@ -67,5 +70,29 @@ public class ConfigurationBuilder {
 
     public String getModuleName() {
         return moduleName;
+    }
+
+    public String getW() {
+        return w;
+    }
+
+    public void setW(String w) {
+        this.w = w;
+    }
+
+    public Boolean getJ() {
+        return j;
+    }
+
+    public void setJ(Boolean j) {
+        this.j = j;
+    }
+
+    public Integer getWtimeout() {
+        return wtimeout;
+    }
+
+    public void setWtimeout(Integer wtimeout) {
+        this.wtimeout = wtimeout;
     }
 }

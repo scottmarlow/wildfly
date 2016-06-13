@@ -117,6 +117,18 @@ public class MongoDriverSubsystemAdd extends AbstractBoottimeAddStepHandler {
                                 }
                             }
                         }
+                    } else if (profileEntry.hasDefined(CommonAttributes.WRITE_CONCERN)) {
+                        for (ModelNode writeConcerns : profileEntry.get(CommonAttributes.WRITE_CONCERN).asList()) {
+                            for (ModelNode writeConcernEntry : writeConcerns.get(0).asList()) {
+                                if (writeConcernEntry.hasDefined(CommonAttributes.W)) {
+                                    builder.setW(writeConcernEntry.get(CommonAttributes.W).asString());
+                                } else if (writeConcernEntry.hasDefined(CommonAttributes.J)) {
+                                    builder.setJ(writeConcernEntry.get(CommonAttributes.J).asBoolean());
+                                } else if (writeConcernEntry.hasDefined(CommonAttributes.WTIMEOUT)) {
+                                    builder.setWtimeout(writeConcernEntry.get(CommonAttributes.WTIMEOUT).asInt());
+                                }
+                            }
+                        }
                     }
                 }
                 startMongoDriverService(context, builder, jndiNameToModuleName, profileNameToModuleName, outboundSocketBindings);
