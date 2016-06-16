@@ -24,10 +24,12 @@ package org.wildfly.extension.nosql.subsystem.mongodb;
 
 import static org.wildfly.extension.nosql.subsystem.mongodb.MongoDriverDefinition.OUTBOUND_SOCKET_BINDING_CAPABILITY_NAME;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.jboss.as.controller.AbstractBoottimeAddStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
@@ -41,6 +43,7 @@ import org.jboss.as.naming.ValueManagedReferenceFactory;
 import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.as.naming.service.BinderService;
 import org.jboss.as.network.OutboundSocketBinding;
+import org.jboss.as.server.CurrentServiceContainer;
 import org.wildfly.extension.nosql.driver.mongodb.ConfigurationBuilder;
 import org.wildfly.extension.nosql.driver.mongodb.MongoClientConnectionsService;
 import org.wildfly.nosql.common.ConnectionServiceAccess;
@@ -56,6 +59,7 @@ import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.value.ImmediateValue;
+import org.wildfly.nosql.common.SubsystemService;
 
 /**
  * MongoDriverSubsystemAdd
@@ -84,8 +88,10 @@ public class MongoDriverSubsystemAdd extends AbstractBoottimeAddStepHandler {
         runtimeValidator.validate(operation.resolve());
         context.addStep(new AbstractDeploymentChainStep() {
             protected void execute(DeploymentProcessorTarget processorTarget) {
+                Supplier<Collection<String>> profileList = () -> getService().profileNames();
                 // TODO: create Phase.PARSE_MONGO_DRIVER to use instead of phase.PARSE_PERSISTENCE_UNIT + 10 hack
-                processorTarget.addDeploymentProcessor(MongoDriverExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_PERSISTENCE_UNIT + 10, new DriverScanDependencyProcessor("mongodbsubsystem"));
+                processorTarget.addDeploymentProcessor(MongoDriverExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_PERSISTENCE_UNIT + 10,
+                        new DriverScanDependencyProcessor("mongodbsubsystem", profileList));
                 // TODO: create Phase.DEPENDENCIES_MONGO_DRIVER to use instead of phase.DEPENDENCIES_PERSISTENCE_ANNOTATION+10 hack
                 processorTarget.addDeploymentProcessor(MongoDriverExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_PERSISTENCE_ANNOTATION + 10, DriverDependencyProcessor.getInstance());
             }
@@ -124,6 +130,10 @@ public class MongoDriverSubsystemAdd extends AbstractBoottimeAddStepHandler {
             startMongoDriverSubsysteService(context, jndiNameToModuleName, profileNameToModuleName);
 
         }
+    }
+
+    private SubsystemService getService() {
+        return (SubsystemService) CurrentServiceContainer.getServiceContainer().getService(MongoSubsystemService.serviceName()).getValue();
     }
 
     private void startMongoDriverSubsysteService(OperationContext context, Map<String, String> jndiNameToModuleName, Map<String, String> profileNameToModuleName) {

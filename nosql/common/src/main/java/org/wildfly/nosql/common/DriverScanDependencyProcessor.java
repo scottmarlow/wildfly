@@ -24,10 +24,14 @@ package org.wildfly.nosql.common;
 
 import static org.wildfly.nosql.common.NoSQLLogger.ROOT_LOGGER;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.function.Supplier;
 
 import javax.annotation.Resource;
 import javax.annotation.Resources;
+import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.jboss.as.server.CurrentServiceContainer;
@@ -56,15 +60,17 @@ public class DriverScanDependencyProcessor implements DeploymentUnitProcessor {
 
     private static final DotName RESOURCE_ANNOTATION_NAME = DotName.createSimple(Resource.class.getName());
     private static final DotName RESOURCES_ANNOTATION_NAME = DotName.createSimple(Resources.class.getName());
-    private static final DotName NAMED_ANNOTATION_NAME = DotName.createSimple(Named.class.getName());
+    private static final DotName INJECT_ANNOTATION_NAME = DotName.createSimple(Inject.class.getName());
     // there should be no more than one NoSQL module referenced (there can be many references to that module but only
     // one version of NoSQL should be included per application deployment).
     private static final AttachmentKey<String> perModuleNameKey = AttachmentKey.create(String.class);
 
-    private ServiceName serviceName;
+    private final ServiceName serviceName;
+    private final Supplier<Collection<String>> profilelist;
 
-    public DriverScanDependencyProcessor(String serviceName) {
+    public DriverScanDependencyProcessor(String serviceName, Supplier<Collection<String>> profilelist) {
         this.serviceName = ServiceName.JBOSS.append(serviceName);
+        this.profilelist = profilelist;
     }
 
     /**
@@ -106,12 +112,10 @@ public class DriverScanDependencyProcessor implements DeploymentUnitProcessor {
         }
 
         // handle CDI @Named for @Inject, look for any @Named value that matches a NoSQL profile name
-        final List<AnnotationInstance> namedAnnotations = index.getAnnotations(NAMED_ANNOTATION_NAME);
-        for (AnnotationInstance annotation : namedAnnotations) {
+        final List<AnnotationInstance> injectAnnotations = index.getAnnotations(INJECT_ANNOTATION_NAME);
+        for (AnnotationInstance annotation : injectAnnotations) {
             final AnnotationTarget annotationTarget = annotation.target();
-            final AnnotationValue profileValue = annotation.value("value");
-            final String profile = profileValue != null ? profileValue.asString() : null;
-
+            final String profile = getProfileName(annotationTarget);
             if (annotationTarget instanceof FieldInfo) {
                 processFieldNamedQualifier(deploymentUnit, profile);
             } else if (annotationTarget instanceof MethodInfo) {
@@ -121,6 +125,46 @@ public class DriverScanDependencyProcessor implements DeploymentUnitProcessor {
                 processClassNamedQualifier(deploymentUnit, profile);
             }
         }
+    }
+
+    private String getProfileName(AnnotationTarget annotationTarget) {
+        String result=null;
+        Collection<AnnotationInstance> annotations=null;
+        if (annotationTarget instanceof FieldInfo) {
+            annotations = ((FieldInfo) annotationTarget).annotations();
+
+        } else if (annotationTarget instanceof MethodInfo) {
+            annotations = ((MethodInfo) annotationTarget).annotations();
+
+        } else if (annotationTarget instanceof ClassInfo) {
+            ArrayList<AnnotationInstance> flatList = new ArrayList<>();
+            for(List<AnnotationInstance> list:((ClassInfo)annotationTarget).annotations().values()) {
+                flatList.addAll(list);
+            }
+            annotations = flatList;
+        }
+
+        for(AnnotationInstance annotationInstance:annotations) {
+            if(annotationInstance.name().toString().equals(Named.class.getName())) {
+                final AnnotationValue profileValue = annotationInstance.value("value");
+                if (result != null) {
+                    throw ROOT_LOGGER.moreThanOneNamedProfile();
+                }
+                result = profileValue != null ? profileValue.asString() : null;
+            }
+        }
+
+        if (result == null) {
+            Collection<String> profiles = profilelist.get();
+            if ( profiles.size() == 1) { // use the one profile if only one profile is defined
+                result = profiles.iterator().next();
+            }
+            else {  // TODO: search for profile marked as default
+
+            }
+        }
+
+        return result;
     }
 
     private void processClassNamedQualifier(DeploymentUnit deploymentUnit, String profile) {

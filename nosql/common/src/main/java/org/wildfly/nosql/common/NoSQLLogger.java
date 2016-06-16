@@ -89,4 +89,7 @@ public interface NoSQLLogger extends BasicLogger {
 
     @Message(id = 5, value = "Cannot unwrap class '%s'.")
     IllegalArgumentException unassignable(Class clazz);
+
+    @Message(id = 6, value = "More than one @Named annotation specified, only one may be specified")
+    RuntimeException moreThanOneNamedProfile();
 }

@@ -22,10 +22,12 @@
 
 package org.wildfly.extension.nosql.subsystem.neo4j;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.jboss.as.controller.AbstractBoottimeAddStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
@@ -39,6 +41,7 @@ import org.jboss.as.naming.ValueManagedReferenceFactory;
 import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.as.naming.service.BinderService;
 import org.jboss.as.network.OutboundSocketBinding;
+import org.jboss.as.server.CurrentServiceContainer;
 import org.wildfly.extension.nosql.driver.neo4j.ConfigurationBuilder;
 import org.wildfly.extension.nosql.driver.neo4j.Neo4jClientConnectionService;
 import org.wildfly.nosql.common.ConnectionServiceAccess;
@@ -54,6 +57,7 @@ import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.value.ImmediateValue;
+import org.wildfly.nosql.common.SubsystemService;
 
 /**
  * Neo4jDriverSubsystemAdd
@@ -81,8 +85,10 @@ public class Neo4jDriverSubsystemAdd extends AbstractBoottimeAddStepHandler {
         runtimeValidator.validate(operation.resolve());
         context.addStep(new AbstractDeploymentChainStep() {
             protected void execute(DeploymentProcessorTarget processorTarget) {
+                Supplier<Collection<String>> profileList = () -> getService().profileNames();
                 // TODO: create Phase.PARSE_NEO4J_DRIVER to use instead of phase.PARSE_PERSISTENCE_UNIT + 4 hack
-                processorTarget.addDeploymentProcessor(Neo4jDriverExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_PERSISTENCE_UNIT + 4, new DriverScanDependencyProcessor("neo4jsubsystem"));
+                processorTarget.addDeploymentProcessor(Neo4jDriverExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_PERSISTENCE_UNIT + 4,
+                        new DriverScanDependencyProcessor("neo4jsubsystem", profileList));
                 // TODO: create Phase.DEPENDENCIES_NEO4J_DRIVER to use instead of phase.PARSE_PERSISTENCE_UNIT + 4 hack
                 processorTarget.addDeploymentProcessor(Neo4jDriverExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_PERSISTENCE_ANNOTATION + 4, DriverDependencyProcessor.getInstance());
             }
@@ -118,6 +124,10 @@ public class Neo4jDriverSubsystemAdd extends AbstractBoottimeAddStepHandler {
             }
             startNeo4jDriverSubsysteService(context, jndiNameToModuleName, profileNameToModuleName);
         }
+    }
+
+    private SubsystemService getService() {
+        return (SubsystemService) CurrentServiceContainer.getServiceContainer().getService(Neo4jSubsystemService.serviceName()).getValue();
     }
 
     private void startNeo4jDriverSubsysteService(final OperationContext context, final Map<String, String> jndiNameToModuleName, Map<String, String> profileNameToModuleName) {
