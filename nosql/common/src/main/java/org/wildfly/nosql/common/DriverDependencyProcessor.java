@@ -61,6 +61,7 @@ public class DriverDependencyProcessor implements DeploymentUnitProcessor {
             addMongoCDIDependency(moduleSpecification, moduleLoader, moduleName);
             addCassandraCDIDependency(moduleSpecification, moduleLoader, moduleName);
             addNeo4jCDIDependency(moduleSpecification, moduleLoader, moduleName);
+            addOrientCDIDependency(moduleSpecification, moduleLoader, moduleName);
         }
 
     }
@@ -83,6 +84,14 @@ public class DriverDependencyProcessor implements DeploymentUnitProcessor {
         if ("com.datastax.cassandra.driver-core".equals(moduleName)) { // temp hack for cdi extension loading
                                                                        // TODO: instead try loading a Cassandra class from modululeName
             addDependency(moduleSpecification, moduleLoader, ModuleIdentifier.create("org.wildfly.extension.nosql.cassandra"));
+        }
+    }
+
+    private void addOrientCDIDependency(ModuleSpecification moduleSpecification, ModuleLoader moduleLoader, String moduleName) {
+        if ("com.orientechnologies".equals(moduleName)) {
+            // temp hack for cdi extension loading
+            // TODO: instead try loading a OrientDB class from modululeName
+            addDependency(moduleSpecification, moduleLoader, ModuleIdentifier.create("org.wildfly.extension.nosql.orientdb"));
         }
     }
 
