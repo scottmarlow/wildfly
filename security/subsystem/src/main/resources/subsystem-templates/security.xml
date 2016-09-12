@@ -14,6 +14,15 @@
                    </login-module>
                </authentication>
            </security-domain>
+           <security-domain name="mongoRealm" cache-type="default">  
+               <authentication>  
+                   <login-module code="ConfiguredIdentity" flag="required">  
+                       <module-option name="userName" value="devuser"/>  
+                       <module-option name="principal" value="devuser"/>  
+                       <module-option name="password" value="changethis"/>  
+                   </login-module>  
+               </authentication>  
+           </security-domain>  
            <?ADDITIONAL_SECURITY_DOMAINS?>
            <?messaging-domain?>
            <?picketlink-security-domains?>
