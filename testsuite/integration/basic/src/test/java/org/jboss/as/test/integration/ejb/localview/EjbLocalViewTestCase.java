@@ -24,9 +24,12 @@ package org.jboss.as.test.integration.ejb.localview;
 import static org.junit.Assert.fail;
 
 import java.io.Serializable;
+
+import javax.annotation.Resource;
 import javax.naming.InitialContext;
 import javax.naming.NameNotFoundException;
 import javax.naming.NamingException;
+import javax.transaction.UserTransaction;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -95,6 +98,26 @@ public class EjbLocalViewTestCase {
         ensureDoesNotExist(TwoLocalsDeclaredOnInterface.class);
         ensureDoesNotExist(TwoLocalsDeclaredOnInterface.class,NotViewInterface.class);
         ensureDoesNotExist(TwoLocalsDeclaredOnInterface.class,Serializable.class);
+    }
+
+    @Resource UserTransaction tx1;
+
+    @Test
+    public void testUserTxRollback() throws Exception {
+
+        try {
+            tx1.begin();
+            InitialContext ctx = new InitialContext();
+            Class<?> bean = TwoLocalsDeclaredOnInterface.class;
+            Class<?> iface = LocalInterface.class;
+            LocalInterface twoLocalsDeclaredOnInterface = (LocalInterface) ctx.lookup("java:global/testlocal/" + bean.getSimpleName() + "!" + iface.getName());
+            twoLocalsDeclaredOnInterface.localOperation();
+        }
+        catch(Exception e) {
+            fail(e.getMessage());
+        } finally {
+            tx1.rollback();
+        }
     }
 
     private void ensureExists(Class<?> bean, Class<?> iface, boolean single) throws NamingException {

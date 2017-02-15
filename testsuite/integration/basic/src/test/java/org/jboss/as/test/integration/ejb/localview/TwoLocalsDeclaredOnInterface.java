@@ -22,16 +22,35 @@
 package org.jboss.as.test.integration.ejb.localview;
 
 import java.io.Serializable;
+
+import javax.annotation.Resource;
 import javax.ejb.Stateless;
+import javax.ejb.TransactionManagement;
+import javax.ejb.TransactionManagementType;
+import javax.transaction.SystemException;
+import javax.transaction.UserTransaction;
 
 /**
  * Bean with a two local interfaces, declared on the interface
  * @author Stuart Douglas
  */
 @Stateless
+@TransactionManagement(TransactionManagementType.BEAN)
 public class TwoLocalsDeclaredOnInterface implements NotViewInterface, LocalInterface, OtherLocalInterface, Serializable {
+    @Resource UserTransaction tx1;
+
     @Override
     public void localOperation() {
+
+        if (tx1 != null) {
+            try {
+                if (tx1.getStatus() == 0) { // if transaction is active, mark it as rollback only
+                    tx1.setRollbackOnly();
+                }
+            } catch (SystemException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     @Override
