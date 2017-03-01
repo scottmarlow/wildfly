@@ -48,7 +48,6 @@ import org.junit.runner.RunWith;
  *
  * @author Scott Marlow
  */
-@Ignore // WFLY-5319 is for fixing this test (see failure https://gist.github.com/scottmarlow/6409290362f35f2d1320)
 @RunWith(Arquillian.class)
 public class TxTimeoutTestCase {
 
@@ -158,6 +157,7 @@ public class TxTimeoutTestCase {
      *
      * @throws Exception
      */
+    // @Ignore // WFLY-5319 is for fixing this test (see failure https://gist.github.com/scottmarlow/6409290362f35f2d1320)
     @Test
     @InSequence(3)
     public void test_negativeTxTimeoutVerifyReaperThreadCanceledTxTest() throws Exception {
@@ -170,8 +170,10 @@ public class TxTimeoutTestCase {
         } catch (Exception e) { // ignore the tx rolled back exception
             //
         }
-        assertFalse("entity manager should not of been closed by the reaper thread", TestEntityManager.getClosedByReaperThread());
-        assertTrue("transaction was canceled by reaper thread", SFSB1.isAfterCompletionCalledByTMTimeoutThread());
+        assertFalse("entity manager should not of been closed by the reaper thread (afterCompletion called in thread:" + SFSB1.afterCompletionCalledInThreadName()+")",
+                TestEntityManager.getClosedByReaperThread());
+        assertTrue("transaction was canceled by reaper thread (afterCompletion called in thread:" + SFSB1.afterCompletionCalledInThreadName()+")",
+                SFSB1.isAfterCompletionCalledByTMTimeoutThread());
     }
 
 }

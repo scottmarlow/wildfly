@@ -48,6 +48,7 @@ public class SFSB1 {
     EntityManager entityManager;
 
     private static boolean afterCompletionCalledByTMTimeoutThread = false;
+    private static String  afterCompletionCalledInThreadName = null;
 
     @Resource
     TransactionSynchronizationRegistry transactionSynchronizationRegistry;
@@ -80,6 +81,7 @@ public class SFSB1 {
 
                         @Override
                         public void afterCompletion(int status) {
+                            afterCompletionCalledInThreadName = Thread.currentThread().getName();
                             afterCompletionCalledByTMTimeoutThread =
                                     TxUtils.isTransactionManagerTimeoutThread();
                         }
@@ -126,5 +128,9 @@ public class SFSB1 {
      */
     public static boolean isAfterCompletionCalledByTMTimeoutThread() {
         return afterCompletionCalledByTMTimeoutThread;
+    }
+
+    public static String afterCompletionCalledInThreadName() {
+        return afterCompletionCalledInThreadName;
     }
 }
