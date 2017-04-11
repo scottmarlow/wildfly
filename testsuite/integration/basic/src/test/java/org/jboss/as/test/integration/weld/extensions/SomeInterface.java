@@ -27,4 +27,5 @@ package org.jboss.as.test.integration.weld.extensions;
 public interface SomeInterface {
 
     void testInjectionWorked();
+    void testAfterDeploymentValidation();
 }

@@ -85,4 +85,10 @@ public class ExtensionsInEarDiscoveredTestCase {
         bean.testInjectionWorked();
     }
 
+    @Test
+    public void testAfterDeploymentValidation() throws NamingException {
+        SomeInterface bean = (SomeInterface) new InitialContext().lookup("java:global/testExtensions/testWar/WarSLSB");
+        bean.testAfterDeploymentValidation();
+    }
+
 }
