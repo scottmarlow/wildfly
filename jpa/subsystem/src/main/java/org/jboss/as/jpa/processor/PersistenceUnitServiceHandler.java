@@ -1065,8 +1065,8 @@ public class PersistenceUnitServiceHandler {
 
                     final PersistenceProviderAdaptor adaptor = getPersistenceProviderAdaptor(pu, persistenceProviderDeploymentHolder, phaseContext.getDeploymentUnit(), provider, platform);
                     final boolean twoPhaseBootStrapCapable = (adaptor instanceof TwoPhaseBootstrapCapable) && Configuration.allowTwoPhaseBootstrap(pu);
-                    // only add the next phase dependency, if the persistence unit service is starting early.
-                    if( Configuration.needClassFileTransformer(pu)) {
+                    // if class file transformer is needed and not using two phase bootstrap, need to wait for pu to start before starting next deployment phase
+                    if( Configuration.needClassFileTransformer(pu) && !twoPhaseBootStrapCapable) {
                         // wait until the persistence unit service is started before starting the next deployment phase
                         phaseContext.addToAttachmentList(Attachments.NEXT_PHASE_DEPS, twoPhaseBootStrapCapable ? puServiceName.append(FIRST_PHASE) : puServiceName);
                     }

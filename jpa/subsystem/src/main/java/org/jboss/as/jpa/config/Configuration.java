@@ -257,12 +257,13 @@ public class Configuration {
     public static boolean allowTwoPhaseBootstrap(PersistenceUnitMetadata pu) {
         boolean result = true;
 
-        if (EE_DEFAULT_DATASOURCE.equals(pu.getJtaDataSourceName())) {
-            result = false;
-        }
         if (pu.getProperties().containsKey(Configuration.JPA_ALLOW_TWO_PHASE_BOOTSTRAP)) {
             result = Boolean.parseBoolean(pu.getProperties().getProperty(Configuration.JPA_ALLOW_TWO_PHASE_BOOTSTRAP));
         }
+        if (!result && EE_DEFAULT_DATASOURCE.equals(pu.getJtaDataSourceName()) && allowDefaultDataSourceUse(pu)) {
+            result = false;
+        }
+
         return result;
     }
 
