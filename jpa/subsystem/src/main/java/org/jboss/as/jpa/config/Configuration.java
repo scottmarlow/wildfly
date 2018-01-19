@@ -182,7 +182,10 @@ public class Configuration {
      */
     public static final String PROVIDER_MODULE_HIBERNATE_SEARCH = "org.hibernate.search.orm:main";
 
-    private static final String EE_DEFAULT_DATASOURCE = "java:comp/DefaultDataSource";
+    private static final String JAVACOMPONENT = "java:comp";
+    private static final String JAVAMODULE = "java:module";
+    private static final String JAVAAPPLICATION = "java:app";
+
     // key = provider class name, value = module name
     private static final Map<String, String> providerClassToModuleName = new HashMap<String, String>();
 
@@ -233,17 +236,6 @@ public class Configuration {
         return result;
     }
 
-    // key = provider class name, value = adapter module name
-    private static final Map<String, String> providerClassToAdapterModuleName = new HashMap<String, String>();
-
-    static {
-        providerClassToAdapterModuleName.put(PROVIDER_CLASS_OPENJPA, ADAPTER_MODULE_OPENJPA);
-    }
-
-    public static String getProviderAdapterModuleNameFromProviderClassName(final String providerClassName) {
-        return providerClassToAdapterModuleName.get(providerClassName);
-    }
-
     public static String getDefaultProviderModuleName() {
         return PROVIDER_MODULE_DEFAULT;
     }
@@ -260,11 +252,36 @@ public class Configuration {
         if (pu.getProperties().containsKey(Configuration.JPA_ALLOW_TWO_PHASE_BOOTSTRAP)) {
             result = Boolean.parseBoolean(pu.getProperties().getProperty(Configuration.JPA_ALLOW_TWO_PHASE_BOOTSTRAP));
         }
-        if (!result && EE_DEFAULT_DATASOURCE.equals(pu.getJtaDataSourceName()) && allowDefaultDataSourceUse(pu)) {
+        if (result && dataSourceAvailableDuringInstallPhase(pu)) {
             result = false;
         }
 
         return result;
+    }
+
+    /**
+     * determine if we need to wait until the INSTALL deployment phase for app specific datasource references to be bound to JNDI
+     * @param pu
+     * @return
+     */
+    public static boolean dataSourceAvailableDuringInstallPhase(PersistenceUnitMetadata pu) {
+        final String jtaDataSource = pu.getJtaDataSourceName();
+        final String nonJtaDataSource = pu.getNonJtaDataSourceName();
+        String datasource = null;
+
+        if (jtaDataSource != null && jtaDataSource.length() > 0) {
+            datasource = jtaDataSource;
+        }
+        else if (nonJtaDataSource != null && nonJtaDataSource.length() > 0) {
+            datasource = nonJtaDataSource;
+        }
+        if(datasource != null &&
+                (datasource.startsWith(JAVACOMPONENT) ||
+                 datasource.startsWith(JAVAAPPLICATION) ||
+                 datasource.startsWith(JAVAMODULE))) {
+            return true;
+        }
+    return false;
     }
 
     /**
