@@ -12,6 +12,7 @@
             -->
             <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
             <property name="hibernate.search.default.directory_provider" value="ram"/>
+            <property name="jboss.as.jpa.providerModule" value="org.hibernate:main"/>
         </properties>
     </persistence-unit>
 </persistence>
