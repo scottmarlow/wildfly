@@ -44,7 +44,7 @@ public class Configuration {
     /**
      * Hibernate (default) persistence provider
      */
-    public static final String PROVIDER_MODULE_HIBERNATE = "org.hibernate";
+    public static final String PROVIDER_MODULE_HIBERNATE = "org.hibernate.orm:5.3";
 
     /**
      * Hibernate OGM persistence provider
