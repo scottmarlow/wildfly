@@ -22,6 +22,7 @@
 
 package org.jboss.as.test.integration.jpa.basic;
 
+import java.jboss.as.test.integration.jpa.basic.Employee;
 import javax.annotation.Resource;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateful;

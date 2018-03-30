@@ -20,7 +20,7 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.test.integration.jpa.basic;
+package java.jboss.as.test.integration.jpa.basic;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;

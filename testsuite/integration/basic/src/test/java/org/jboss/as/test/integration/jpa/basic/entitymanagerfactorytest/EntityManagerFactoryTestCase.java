@@ -33,7 +33,7 @@ import javax.persistence.EntityManagerFactory;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
-import org.jboss.as.test.integration.jpa.basic.Employee;
+import java.jboss.as.test.integration.jpa.basic.Employee;
 import org.jboss.as.test.integration.jpa.basic.SFSB1;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
