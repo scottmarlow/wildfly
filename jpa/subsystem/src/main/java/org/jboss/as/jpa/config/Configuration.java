@@ -69,7 +69,7 @@ public class Configuration {
     /**
      * default if no PROVIDER_MODULE is specified.
      */
-    public static final String PROVIDER_MODULE_DEFAULT = PROVIDER_MODULE_HIBERNATE4_3;
+    public static final String PROVIDER_MODULE_DEFAULT = PROVIDER_MODULE_ECLIPSELINK;
 
     /**
      * Hibernate 4.1.x persistence provider class
@@ -112,7 +112,7 @@ public class Configuration {
     /**
      * default provider class
      */
-    public static final String PROVIDER_CLASS_DEFAULT = PROVIDER_CLASS_HIBERNATE;
+    public static final String PROVIDER_CLASS_DEFAULT = PROVIDER_CLASS_ECLIPSELINK;
 
     /**
      * if the PROVIDER_MODULE is this value, it is expected that the application has its own provider
