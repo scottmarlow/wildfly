@@ -48,14 +48,15 @@ import org.junit.runner.RunWith;
  */
 @RunWith(Arquillian.class)
 public class Hibernate4NativeAPIProviderTestCase {
-
     private static final String ARCHIVE_NAME = "hibernate4native_test";
 
     public static final String hibernate_cfg = "<?xml version='1.0' encoding='utf-8'?>"
             + "<!DOCTYPE hibernate-configuration PUBLIC " + "\"//Hibernate/Hibernate Configuration DTD 3.0//EN\" "
             + "\"http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd\">"
             + "<hibernate-configuration><session-factory>" + "<property name=\"show_sql\">false</property>"
+            + "<property name=\"hibernate.cache.use_second_level_cache\">false</property>"
             + "<property name=\"current_session_context_class\">thread</property>"
+            + "<property name=\"hibernate.allow_update_outside_transaction\">true</property>"
             + "<mapping resource=\"testmapping.hbm.xml\"/>" + "</session-factory></hibernate-configuration>";
 
     public static final String testmapping = "<?xml version=\"1.0\"?>" + "<!DOCTYPE hibernate-mapping PUBLIC "
