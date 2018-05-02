@@ -17,7 +17,7 @@
 
 package org.jboss.as.jpa.hibernate5.infinispan;
 
-import java.util.Properties;
+import java.util.Map;
 
 import org.hibernate.boot.spi.SessionFactoryOptions;
 import org.hibernate.cache.CacheException;
@@ -29,15 +29,15 @@ import org.hibernate.cache.CacheException;
  *
  * @author Paul Ferraro
  * @author Scott Marlow
- * @deprecated Use {@link org.infinispan.hibernate.cache.v51.InfinispanRegionFactory} instead.
+ * @deprecated Use {@link org.infinispan.hibernate.cache.v53.InfinispanRegionFactory} instead.
  */
 @Deprecated
-public class SharedInfinispanRegionFactory extends org.infinispan.hibernate.cache.v51.InfinispanRegionFactory {
+public class SharedInfinispanRegionFactory extends org.infinispan.hibernate.cache.v53.InfinispanRegionFactory {
     private static final long serialVersionUID = -3277051412715973863L;
 
     @Override
-    public void start(SessionFactoryOptions settings, Properties properties) throws CacheException {
-        properties.setProperty("hibernate.cache.infinispan.shared", "true");
+    public void start(SessionFactoryOptions settings, Map properties) throws CacheException {
+        properties.put("hibernate.cache.infinispan.shared", "true");
         super.start(settings, properties);
     }
 }

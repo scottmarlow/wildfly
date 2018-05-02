@@ -43,7 +43,7 @@ import org.jipijapa.event.impl.internal.Notification;
  */
 public class HibernateSecondLevelCache {
 
-    private static final String DEFAULT_REGION_FACTORY = "org.infinispan.hibernate.cache.v51.InfinispanRegionFactory";
+    private static final String DEFAULT_REGION_FACTORY = "org.infinispan.hibernate.cache.v53.InfinispanRegionFactory";
 
     public static final String CACHE_TYPE = "cachetype";    // shared (jpa) or private (for native applications)
     public static final String CACHE_PRIVATE = "private";

@@ -2024,6 +2024,11 @@
         </dependency>
 
         <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-core</artifactId>
             <exclusions>
@@ -2068,8 +2073,8 @@
         </dependency>
 
         <dependency>
-            <groupId>org.hibernate</groupId>
-            <artifactId>hibernate-infinispan</artifactId>
+            <groupId>org.infinispan</groupId>
+            <artifactId>infinispan-hibernate-cache-v53</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
@@ -2251,7 +2256,7 @@
         </dependency>
         <dependency>
             <groupId>org.infinispan</groupId>
-            <artifactId>infinispan-hibernate-cache-v51</artifactId>
+            <artifactId>infinispan-hibernate-cache-v53</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
@@ -2259,11 +2264,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <dependency>
-            <groupId>org.infinispan</groupId>
-            <artifactId>infinispan-hibernate-cache-spi</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>org.javassist</groupId>
             <artifactId>javassist</artifactId>

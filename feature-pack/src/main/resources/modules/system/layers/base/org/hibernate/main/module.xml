@@ -22,7 +22,7 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<!-- Represents the Hibernate 5.0.x module-->
+<!-- Represents the Hibernate 5.3 module-->
 <module xmlns="urn:jboss:module:1.5" name="org.hibernate">
     <resources>
         <artifact name="${org.hibernate:hibernate-core}"/>
@@ -50,5 +50,6 @@
         <module name="org.hibernate.commons-annotations"/>
         <module name="org.hibernate.jipijapa-hibernate5" services="import"/>
         <module name="org.infinispan.hibernate-cache" services="import" optional="true"/>
+        <module name="net.bytebuddy"/>
     </dependencies>
 </module>
