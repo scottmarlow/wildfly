@@ -46,7 +46,6 @@ import org.jipijapa.plugin.spi.TwoPhaseBootstrapCapable;
 public class HibernatePersistenceProviderAdaptor implements PersistenceProviderAdaptor, TwoPhaseBootstrapCapable {
 
     public static final String NAMING_STRATEGY_JPA_COMPLIANT_IMPL = "org.hibernate.boot.model.naming.ImplicitNamingStrategyJpaCompliantImpl";
-    private volatile JtaManager jtaManager;
     private volatile Platform platform;
     private static final String SHARED_CACHE_MODE = "javax.persistence.sharedCache.mode";
     private static final String NONE = SharedCacheMode.NONE.name();
@@ -54,8 +53,16 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
 
     @Override
     public void injectJtaManager(JtaManager jtaManager) {
-        if (this.jtaManager != jtaManager) {
-            this.jtaManager = jtaManager;
+        if (DefaultJtaPlatform.getDelegate() == null ||
+                DefaultJtaPlatform.getDelegate().getJtaManager() == null ||
+                DefaultJtaPlatform.getDelegate().getJtaManager().locateTransactionManager() != jtaManager.locateTransactionManager()) {
+            synchronized (DefaultJtaPlatform.class) {
+                if (DefaultJtaPlatform.getDelegate() == null ||
+                        DefaultJtaPlatform.getDelegate().getJtaManager() == null ||
+                        DefaultJtaPlatform.getDelegate().getJtaManager().locateTransactionManager() != jtaManager.locateTransactionManager()) {
+                    DefaultJtaPlatform.setDelegate(new JBossAppServerJtaPlatform(jtaManager));
+                }
+            }
         }
     }
 
@@ -75,12 +82,21 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
         putPropertyIfAbsent(pu, properties, AvailableSettings.IMPLICIT_NAMING_STRATEGY, NAMING_STRATEGY_JPA_COMPLIANT_IMPL);
         putPropertyIfAbsent(pu, properties, AvailableSettings.SCANNER, HibernateArchiveScanner.class);
         properties.put(AvailableSettings.APP_CLASSLOADER, pu.getClassLoader());
-        putPropertyIfAbsent(pu, properties, AvailableSettings.JTA_PLATFORM,  new JBossAppServerJtaPlatform(jtaManager));
         putPropertyIfAbsent(pu,properties, org.hibernate.ejb.AvailableSettings.ENTITY_MANAGER_FACTORY_NAME, pu.getScopedPersistenceUnitName());
         putPropertyIfAbsent(pu, properties, AvailableSettings.SESSION_FACTORY_NAME, pu.getScopedPersistenceUnitName());
         if (!pu.getProperties().containsKey(AvailableSettings.SESSION_FACTORY_NAME)) {
             putPropertyIfAbsent(pu, properties, AvailableSettings.SESSION_FACTORY_NAME_IS_JNDI, Boolean.FALSE);
         }
+        // the following properties were added to Hibernate ORM 5.3, for JPA 2.2 spec compliance.
+        putPropertyIfAbsent( pu, properties, AvailableSettings.PREFER_GENERATOR_NAME_AS_DEFAULT_SEQUENCE_NAME, true );
+        putPropertyIfAbsent( pu, properties, AvailableSettings.JPA_TRANSACTION_COMPLIANCE, true );
+        putPropertyIfAbsent( pu, properties, AvailableSettings.JPA_CLOSED_COMPLIANCE, true );
+        putPropertyIfAbsent( pu, properties, AvailableSettings.JPA_QUERY_COMPLIANCE, true );
+        putPropertyIfAbsent( pu, properties, AvailableSettings.JPA_LIST_COMPLIANCE, true );
+        putPropertyIfAbsent( pu, properties, AvailableSettings.JPA_CACHING_COMPLIANCE, true );
+        putPropertyIfAbsent( pu, properties, AvailableSettings.JPA_PROXY_COMPLIANCE, true );
+        putPropertyIfAbsent( pu, properties, AvailableSettings.ENABLE_LAZY_LOAD_NO_TRANS, false );
+        putPropertyIfAbsent( pu, properties, AvailableSettings.JPA_ID_GENERATOR_GLOBAL_SCOPE_COMPLIANCE, true);
     }
 
     @Override
