@@ -54,6 +54,7 @@ public class Hibernate4NativeAPIEnversTestCase {
             + "<!DOCTYPE hibernate-configuration PUBLIC " + "\"//Hibernate/Hibernate Configuration DTD 3.0//EN\" "
             + "\"http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd\">"
             + "<hibernate-configuration><session-factory>" + "<property name=\"show_sql\">false</property>"
+            + "<property name=\"hibernate.cache.use_second_level_cache\">false</property>"
             + "<property name=\"current_session_context_class\">thread</property>"
             + "<mapping resource=\"testmapping.hbm.xml\"/>" + "</session-factory></hibernate-configuration>";
 
