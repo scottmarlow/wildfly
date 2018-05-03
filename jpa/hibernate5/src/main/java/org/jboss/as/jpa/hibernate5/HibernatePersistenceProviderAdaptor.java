@@ -115,11 +115,8 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
                 ||
                 NONE.equals(sharedCacheMode);
 
-        if (!sharedCacheDisabled &&
-                Boolean.parseBoolean(properties.getProperty(AvailableSettings.USE_SECOND_LEVEL_CACHE))
-                ||
-                (sharedCacheMode != null && (!NONE.equals(sharedCacheMode)))
-                || (!SharedCacheMode.NONE.equals(pu.getSharedCacheMode()) && (!SharedCacheMode.UNSPECIFIED.equals(pu.getSharedCacheMode())))) {
+        if (!sharedCacheDisabled)
+                {
             HibernateSecondLevelCache.addSecondLevelCacheDependencies(pu.getProperties(), pu.getScopedPersistenceUnitName());
             JPA_LOGGER.tracef("second level cache enabled for %s", pu.getScopedPersistenceUnitName());
         } else {
