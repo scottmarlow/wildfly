@@ -22,7 +22,7 @@
 
 package org.jboss.as.jpa.hibernate5.infinispan;
 
-import java.util.Properties;
+import java.util.Map;
 
 import org.hibernate.boot.spi.SessionFactoryOptions;
 import org.hibernate.cache.CacheException;
@@ -31,7 +31,7 @@ import org.hibernate.cache.CacheException;
  * Common implementation class for deprecated region factory implementations.
  * @author Paul Ferraro
  */
-class DeprecatedInfinispanRegionFactory extends org.infinispan.hibernate.cache.v51.InfinispanRegionFactory {
+class DeprecatedInfinispanRegionFactory extends org.infinispan.hibernate.cache.v53.InfinispanRegionFactory {
     private static final long serialVersionUID = 6795961780643120068L;
     private static final String SHARED = "hibernate.cache.infinispan.shared";
     private final String shared;
@@ -41,9 +41,9 @@ class DeprecatedInfinispanRegionFactory extends org.infinispan.hibernate.cache.v
     }
 
     @Override
-    public void start(SessionFactoryOptions settings, Properties properties) throws CacheException {
+    public void start(SessionFactoryOptions settings, Map properties) throws CacheException {
         Logger.LOGGER.deprecatedRegionFactory(this.getClass().getName(), this.getClass().getSuperclass().getSuperclass().getName(), SHARED, this.shared);
-        properties.setProperty(SHARED, this.shared);
+        properties.put(SHARED, this.shared);
         super.start(settings, properties);
     }
 }
