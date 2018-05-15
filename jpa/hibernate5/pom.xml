@@ -36,7 +36,7 @@
 
     <name>jipijapa Hibernate 5.1.x (JPA 2.1) integration</name>
     <properties>
-        <version.org.hibernate5_3>5.1.13.Final</version.org.hibernate5_3>
+        <version.org.hibernate5_1>5.1.14.Final</version.org.hibernate5_1>
     </properties>
 
     <dependencies>
@@ -98,7 +98,7 @@
         <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-core</artifactId>
-            <!-- <version>${version.org.hibernate5_3}</version> --> 
+            <!-- <version>${version.org.hibernate5_1}</version> --> 
             <scope>provided</scope>
             <exclusions>
               <exclusion>
@@ -112,7 +112,7 @@
         <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-entitymanager</artifactId>
-            <version>${version.org.hibernate5_3}</version>
+            <version>${version.org.hibernate5_1}</version>
             <scope>provided</scope>
             <exclusions>
               <exclusion>
