@@ -28,9 +28,9 @@ import org.hibernate.service.spi.ServiceRegistryImplementor;
  *
  * @author Steve Ebersole
  */
-public class CustomJtaPlatformInitiator extends JtaPlatformInitiator {
+public class WildFlyCustomJtaPlatformInitiator extends JtaPlatformInitiator {
     @Override
-    protected JtaPlatform getFallbackProvider(Map configurationValues, ServiceRegistryImplementor registry) {
+    public JtaPlatform initiateService(Map configurationValues, ServiceRegistryImplementor registry) {
         return new org.hibernate.engine.transaction.jta.platform.internal.JBossAppServerJtaPlatform();
     }
 }
