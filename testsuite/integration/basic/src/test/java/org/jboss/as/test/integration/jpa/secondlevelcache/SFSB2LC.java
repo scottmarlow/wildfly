@@ -36,8 +36,8 @@ import javax.persistence.PersistenceUnit;
 import javax.persistence.Query;
 
 import org.hibernate.Session;
-import org.hibernate.stat.CacheRegionStatistics;
 import org.hibernate.stat.QueryStatistics;
+import org.hibernate.stat.SecondLevelCacheStatistics;
 import org.hibernate.stat.Statistics;
 
 /**
@@ -93,12 +93,11 @@ public class SFSB2LC {
      * Checking entity 2LC in one EntityManager session
      */
     public String sameSessionCheck(String CACHE_REGION_NAME) {
-        emf.getCache().evictAll();
+
         EntityManager em = emf.createEntityManager();
         Statistics stats = em.unwrap(Session.class).getSessionFactory().getStatistics();
         stats.clear();
-        CacheRegionStatistics emp2LCStats = stats.getCacheRegionStatistics( Employee.class.getName());
-        assertEquals("There are 0 entities in the 2LC" + generateEntityCacheStats(emp2LCStats), 0,emp2LCStats.getElementCountInMemory());
+        SecondLevelCacheStatistics emp2LCStats = stats.getSecondLevelCacheStatistics(CACHE_REGION_NAME + "Employee");
 
         try {
             // add new entities and check if they are put in 2LC
@@ -109,7 +108,7 @@ public class SFSB2LC {
             // loading all Employee entities should put in 2LC all Employee
             List<?> empList = getAllEmployeesQuery(em);
             assertEquals("There are 2 entities.", empList.size(), 2);
-            assertEquals("There are 2 entities in the 2LC" + generateEntityCacheStats(emp2LCStats), 2,emp2LCStats.getElementCountInMemory());
+            assertEquals("There are 2 entities in the 2LC" + generateEntityCacheStats(emp2LCStats), 2, emp2LCStats.getElementCountInMemory());
 
             // clear session
             em.clear();
@@ -133,11 +132,10 @@ public class SFSB2LC {
      */
     public String secondSessionCheck(String CACHE_REGION_NAME) {
 
-        emf.getCache().evictAll();
         EntityManager em = emf.createEntityManager();
         Statistics stats = em.unwrap(Session.class).getSessionFactory().getStatistics();
         stats.clear();
-        CacheRegionStatistics emp2LCStats = stats.getCacheRegionStatistics(Employee.class.getName());
+        SecondLevelCacheStatistics emp2LCStats = stats.getSecondLevelCacheStatistics(CACHE_REGION_NAME + "Employee");
 
         try {
             // add new entity
@@ -172,11 +170,11 @@ public class SFSB2LC {
      * Insert 2 entities and put them into the 2LC and then evicts entity cache.
      */
     public String addEntitiesAndEvictAll(String CACHE_REGION_NAME) {
-        emf.getCache().evictAll();
+
         EntityManager em = emf.createEntityManager();
         Statistics stats = em.unwrap(Session.class).getSessionFactory().getStatistics();
         stats.clear();
-        CacheRegionStatistics emp2LCStats = stats.getCacheRegionStatistics(Employee.class.getName());
+        SecondLevelCacheStatistics emp2LCStats = stats.getSecondLevelCacheStatistics(CACHE_REGION_NAME + "Employee");
 
         try {
             createEmployee(em, "Jan", "Ostrava", 20);
@@ -202,11 +200,11 @@ public class SFSB2LC {
      * Checks if entity 2LC is empty.
      */
     public String evictedEntityCacheCheck(String CACHE_REGION_NAME) {
-        emf.getCache().evictAll();
+
         EntityManager em = emf.createEntityManager();
         Statistics stats = em.unwrap(Session.class).getSessionFactory().getStatistics();
         stats.clear();
-        CacheRegionStatistics emp2LCStats = stats.getCacheRegionStatistics(Employee.class.getName());
+        SecondLevelCacheStatistics emp2LCStats = stats.getSecondLevelCacheStatistics(CACHE_REGION_NAME + "Employee");
 
         try {
             assertEquals("Expected no entities stored in the cache" + emp2LCStats, 0, emp2LCStats.getElementCountInMemory());
@@ -232,7 +230,7 @@ public class SFSB2LC {
      * @param id Employee's id in the query
      */
     public String queryCacheCheck(String id) {
-        emf.getCache().evictAll();
+
         // the nextTimestamp from infinispan is "return System.currentTimeMillis()"
         try {
             Thread.sleep(1000);
@@ -275,7 +273,7 @@ public class SFSB2LC {
      * Evicts all query cache regions
      */
     public void evictQueryCache() {
-        emf.getCache().evictAll();
+
         EntityManager em = emf.createEntityManager();
 
         try {
@@ -297,7 +295,7 @@ public class SFSB2LC {
      * @param id Employee's id in the query
      */
     public String queryCacheCheckIfEmpty(String id) {
-        emf.getCache().evictAll();
+
         EntityManager em = emf.createEntityManager();
         Statistics stats = em.unwrap(Session.class).getSessionFactory().getStatistics();
         stats.clear();
@@ -344,7 +342,7 @@ public class SFSB2LC {
     /**
      * Generate entity cache statistics for put, hit and miss count as one String
      */
-    public String generateEntityCacheStats(CacheRegionStatistics stats) {
+    public String generateEntityCacheStats(SecondLevelCacheStatistics stats) {
         String result = "(hitCount=" + stats.getHitCount()
                 + ", missCount=" + stats.getMissCount()
                 + ", putCount=" + stats.getPutCount() + ").";

@@ -31,6 +31,7 @@ import javax.ejb.TransactionManagementType;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
@@ -88,7 +89,8 @@ public class SFSB {
 
         try {
             Session session = sessionFactory.openSession();
-            TransactionStatus status = session.getTransaction().getStatus();
+            Transaction ormTransaction = session.beginTransaction(); // join the current JTA transaction
+            TransactionStatus status = ormTransaction.getStatus();
             if(status.isNotOneOf(TransactionStatus.ACTIVE)) {
                 throw new RuntimeException("Hibernate Transaction is not active after joining Hibernate to JTA transaction: " + status.name());
             }
@@ -110,7 +112,8 @@ public class SFSB {
 
         try {
             Session session = sessionFactory.openSession();
-            TransactionStatus status = session.getTransaction().getStatus();
+            Transaction ormTransaction = session.beginTransaction(); // join the current JTA transaction
+            TransactionStatus status = ormTransaction.getStatus();
             if(status.isNotOneOf(TransactionStatus.ACTIVE)) {
                 throw new RuntimeException("Hibernate Transaction is not active after joining Hibernate to JTA transaction: " + status.name());
             }

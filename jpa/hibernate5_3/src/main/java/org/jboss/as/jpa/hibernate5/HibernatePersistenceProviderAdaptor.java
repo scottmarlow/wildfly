@@ -53,17 +53,6 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
 
     @Override
     public void injectJtaManager(JtaManager jtaManager) {
-        if (DefaultJtaPlatform.getDelegate() == null ||
-                DefaultJtaPlatform.getDelegate().getJtaManager() == null ||
-                DefaultJtaPlatform.getDelegate().getJtaManager().locateTransactionManager() != jtaManager.locateTransactionManager()) {
-            synchronized (DefaultJtaPlatform.class) {
-                if (DefaultJtaPlatform.getDelegate() == null ||
-                        DefaultJtaPlatform.getDelegate().getJtaManager() == null ||
-                        DefaultJtaPlatform.getDelegate().getJtaManager().locateTransactionManager() != jtaManager.locateTransactionManager()) {
-                    DefaultJtaPlatform.setDelegate(new JBossAppServerJtaPlatform(jtaManager));
-                }
-            }
-        }
     }
 
     @Override
