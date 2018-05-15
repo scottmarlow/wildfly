@@ -47,11 +47,6 @@ public class Configuration {
     public static final String PROVIDER_MODULE_HIBERNATE = "org.hibernate";
 
     /**
-     * Hibernate main module (default) persistence provider
-     */
-    public static final String PROVIDER_MODULE_HIBERNATE5_3 = "org.hibernate:5.3";
-
-    /**
      * Hibernate 4.1.x persistence provider, note that Hibernate 4.1.x is expected to be in the 4.1 slot
      */
     public static final String PROVIDER_MODULE_HIBERNATE4_1 = "org.hibernate:4.1";
@@ -74,7 +69,7 @@ public class Configuration {
     /**
      * default if no PROVIDER_MODULE is specified.
      */
-    public static final String PROVIDER_MODULE_DEFAULT = Boolean.getBoolean("ee8.preview.mode") ? PROVIDER_MODULE_HIBERNATE5_3 : PROVIDER_MODULE_HIBERNATE;
+    public static final String PROVIDER_MODULE_DEFAULT = PROVIDER_MODULE_HIBERNATE;
 
     /**
      * Hibernate 4.1.x persistence provider class
