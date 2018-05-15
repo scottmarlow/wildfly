@@ -33,14 +33,13 @@ import org.hibernate.service.spi.ServiceRegistryImplementor;
 public class WildFlyCustomRegionFactoryInitiator extends RegionFactoryInitiator {
     @Override
     protected RegionFactory resolveRegionFactory(Map configurationValues, ServiceRegistryImplementor registry) {
-        // Object cache_region_prefix = configurationValues.get(CACHE_REGION_PREFIX);
         Object use_second_level_cache = configurationValues.get(USE_SECOND_LEVEL_CACHE);
         Object jpa_shared_code_mode = configurationValues.get(JPA_SHARED_CACHE_MODE);
 
-        // treat Hibernate 2lc as on, if not specified.
+        // treat Hibernate 2lc as off, if not specified.
         // Note that Hibernate 2lc in 5.1.x, defaults to disabled, so this code is only needed in 5.3.x+.
         if(Boolean.parseBoolean((String)use_second_level_cache) ||
-                (jpa_shared_code_mode == null || !"NONE".equals(jpa_shared_code_mode.toString()))) {
+                (jpa_shared_code_mode != null || !"NONE".equals(jpa_shared_code_mode.toString()))) {
             configurationValues.put("hibernate.cache.region.factory_class", "org.infinispan.hibernate.cache.v53.InfinispanRegionFactory");
             return super.resolveRegionFactory(configurationValues, registry);
         }
@@ -48,10 +47,5 @@ public class WildFlyCustomRegionFactoryInitiator extends RegionFactoryInitiator 
             // explicitly disable 2lc cache
             return NoCachingRegionFactory.INSTANCE;
         }
-    }
-
-    @Override
-    protected RegionFactory getFallback(Map configurationValues, ServiceRegistryImplementor registry) {
-        return resolveRegionFactory(configurationValues, registry);
     }
 }
