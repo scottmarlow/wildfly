@@ -47,11 +47,6 @@ public class Configuration {
     public static final String PROVIDER_MODULE_HIBERNATE = "org.hibernate";
 
     /**
-     * Hibernate main module (default) persistence provider
-     */
-    public static final String PROVIDER_MODULE_HIBERNATE5_3 = "org.hibernate:5.3";
-
-    /**
      * Hibernate 4.1.x persistence provider, note that Hibernate 4.1.x is expected to be in the 4.1 slot
      */
     public static final String PROVIDER_MODULE_HIBERNATE4_1 = "org.hibernate:4.1";
@@ -74,7 +69,7 @@ public class Configuration {
     /**
      * default if no PROVIDER_MODULE is specified.
      */
-    public static final String PROVIDER_MODULE_DEFAULT = Boolean.getBoolean("ee8.preview.mode") ? PROVIDER_MODULE_HIBERNATE5_3 : PROVIDER_MODULE_HIBERNATE;
+    public static final String PROVIDER_MODULE_DEFAULT = PROVIDER_MODULE_HIBERNATE;
 
     /**
      * Hibernate 4.1.x persistence provider class
@@ -188,9 +183,15 @@ public class Configuration {
     public static final String HIBERNATE_SEARCH_MODULE = "wildfly.jpa.hibernate.search.module";
 
     /**
-     * name of the Hibernate Search module name
+     * name of the Hibernate Search module name used in EE7 mode
      */
-    public static final String PROVIDER_MODULE_HIBERNATE_SEARCH = "org.hibernate.search.orm:main";
+    public static final String PROVIDER_MODULE_HIBERNATE_SEARCH_EE7 = "org.hibernate.search.orm:main";
+
+    /**
+     * name of the Hibernate Search module name used in EE8 mode
+     */
+    public static final String PROVIDER_MODULE_HIBERNATE_SEARCH_EE8 = "org.hibernate.search.orm:5.10";
+
 
     private static final String EE_DEFAULT_DATASOURCE = "java:comp/DefaultDataSource";
     // key = provider class name, value = module name
