@@ -25,6 +25,8 @@ package org.wildfly.test.integration.ee8.hibernate;
 import java.util.stream.Stream;
 
 import javax.ejb.Stateful;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 import javax.persistence.PersistenceContext;
 
 import javax.persistence.EntityManager;
@@ -50,6 +52,7 @@ public class ResultStreamTest {
         return t;
     }
 
+    @TransactionAttribute(TransactionAttributeType.NEVER)
     public Stream getTicketStreamOrderedById() {
         return em.createQuery( "from Ticket t order by t.id" ).getResultStream();
     }
