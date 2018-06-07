@@ -28,6 +28,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import javax.ejb.Stateful;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 import javax.ejb.TransactionManagement;
 import javax.ejb.TransactionManagementType;
 import javax.persistence.EntityManager;
@@ -92,6 +94,9 @@ public class SFSB2LC {
     /**
      * Checking entity 2LC in one EntityManager session
      */
+    // test passes without a JTA tx, need to understand why and what this test should be changed to do and what
+    // the Hibernate ORM migration doc should state about this.
+    @TransactionAttribute(TransactionAttributeType.NEVER)
     public String sameSessionCheck(String CACHE_REGION_NAME) {
 
         EntityManager em = emf.createEntityManager();
@@ -130,6 +135,9 @@ public class SFSB2LC {
     /**
      * Checking entity 2LC in a different EntityManager session
      */
+    // test passes without a JTA tx, need to understand why and what this test should be changed to do and what
+    // the Hibernate ORM migration doc should state about this.
+    @TransactionAttribute(TransactionAttributeType.NEVER)
     public String secondSessionCheck(String CACHE_REGION_NAME) {
 
         EntityManager em = emf.createEntityManager();
