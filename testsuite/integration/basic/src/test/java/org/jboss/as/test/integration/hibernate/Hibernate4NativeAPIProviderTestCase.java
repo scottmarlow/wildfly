@@ -23,6 +23,7 @@
 package org.jboss.as.test.integration.hibernate;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -135,4 +136,21 @@ public class Hibernate4NativeAPIProviderTestCase {
             sfsb.cleanup();
         }
     }
+
+    @Test
+    public void testORA5_3_1_Compatibility() throws Exception {
+        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            assertTrue("Hibernate ORM 5.1 call to Query.getFirstResult() returned Integer " + sfsb.getFirstResultTest(), sfsb.getFirstResultTest() instanceof Integer);
+            assertTrue("Hibernate ORM 5.1 call to Query.getMaxResult() returned Integer " + sfsb.getMaxResultTest(), sfsb.getMaxResultTest() instanceof Integer);
+            assertNotNull("can handle Hibernate ORM 5.1 call to Session.getFlushMode()", sfsb.getFlushModeFromSessionTest());
+            assertNotNull("can handle Hibernate ORM 5.1 call to BasicQueryContract.getFlushMode()", sfsb.getFlushModeFromQueryTest());
+
+        } finally {
+            sfsb.cleanup();
+        }
+    }
+
 }

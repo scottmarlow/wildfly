@@ -27,8 +27,12 @@ import javax.ejb.Stateful;
 import javax.ejb.TransactionManagement;
 import javax.ejb.TransactionManagementType;
 
+import org.hibernate.BasicQueryContract;
+import org.hibernate.FlushMode;
+import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
@@ -103,6 +107,54 @@ public class SFSBHibernateSessionFactory {
     public Student getStudent(int id) {
         Student emp = sessionFactory.openSession().load(Student.class, id);
         return emp;
+    }
+
+    public FlushMode getFlushModeFromQueryTest() {
+        FlushMode result;
+        Session session = sessionFactory.openSession();
+        Transaction transaction = session.beginTransaction();
+        try {
+            BasicQueryContract basicQueryContract = session.createQuery("from Student");
+            result = basicQueryContract.getFlushMode();
+            return result;
+        } finally {
+            transaction.rollback();
+            session.close();
+        }
+    }
+
+    public FlushMode getFlushModeFromSessionTest() {
+        Session session = sessionFactory.openSession();
+        Transaction transaction = session.beginTransaction();
+        try {
+            return session.getFlushMode();
+        } finally {
+            transaction.rollback();
+            session.close();
+        }
+     }
+
+    public Integer getFirstResultTest() {
+
+        Session session = sessionFactory.openSession();
+
+        try {
+            Query query = session.createQuery("from Student");
+            return query.getFirstResult();
+        } finally {
+            session.close();
+        }
+    }
+
+    public Integer getMaxResultTest() {
+
+        Session session = sessionFactory.openSession();
+        try {
+            Query query = session.createQuery("from Student");
+            return query.getMaxResults();
+        } finally {
+            session.close();
+        }
     }
 
 }
