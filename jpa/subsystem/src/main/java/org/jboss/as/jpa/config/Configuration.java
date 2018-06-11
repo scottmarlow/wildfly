@@ -191,7 +191,7 @@ public class Configuration {
     /**
      * name of the Hibernate Search module name
      */
-    public static final String PROVIDER_MODULE_HIBERNATE_SEARCH = "org.hibernate.search.orm:5.10";
+    public static final String PROVIDER_MODULE_HIBERNATE_SEARCH = "org.hibernate.search.orm";
 
 
     private static final String EE_DEFAULT_DATASOURCE = "java:comp/DefaultDataSource";
