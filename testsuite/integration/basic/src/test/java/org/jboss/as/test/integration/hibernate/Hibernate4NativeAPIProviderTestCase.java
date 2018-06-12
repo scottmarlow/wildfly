@@ -22,11 +22,14 @@
 
 package org.jboss.as.test.integration.hibernate;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertNotNull;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+
+import org.hibernate.FlushMode;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -131,55 +134,241 @@ public class Hibernate4NativeAPIProviderTestCase {
             Student s1 = sfsb.createStudent("MADHUMITA", "SADHUKHAN", "99 Purkynova REDHAT BRNO CZ", 1);
             Student s2 = sfsb.createStudent("REDHAT", "LINUX", "Worldwide", 3);
             Student st = sfsb.getStudent(s1.getStudentId());
-            assertTrue("name read from hibernate session is MADHUMITA", "MADHUMITA".equals(st.getFirstName()));
+            assertTrue( "name read from hibernate session is MADHUMITA", "MADHUMITA".equals( st.getFirstName() ) );
         } finally {
             sfsb.cleanup();
         }
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getSessionFlushMode() throws Exception {
+    public void testORA5_3_1_Compatibility_getFlushModeFromSessionUninitialized() throws Exception{
         SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
-            assertNotNull("can handle Hibernate ORM 5.1 call to Session.getFlushMode()", sfsb.getFlushModeFromSessionTest());
+            // Session#getFlushMode returns FlushMode.AUTO by default
+            assertEquals(
+                    "can handle Hibernate ORM 5.1 call to Session.getFlushMode() without setting FlushMode",
+                    FlushMode.AUTO,
+                    sfsb.getFlushModeFromSessionTest( null )
+            );
         } finally {
             sfsb.cleanup();
         }
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getFirstResult() throws Exception {
+    public void testORA5_3_1_Compatibility_getFlushModeFromSession() throws Exception {
         SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
-            assertTrue("Hibernate ORM 5.1 call to Query.getFirstResult() returned Integer " + sfsb.getFirstResultTest(), sfsb.getFirstResultTest() instanceof Integer);
+            assertEquals(
+                    "can handle Hibernate ORM 5.1 call to Session.getFlushMode()",
+                    FlushMode.MANUAL,
+                    sfsb.getFlushModeFromSessionTest( FlushMode.MANUAL)
+            );
         } finally {
             sfsb.cleanup();
         }
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getMaxResult() throws Exception {
+    public void testORA5_3_1_Compatibility_getFlushModeFromSessionNever() throws Exception {
         SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
-            assertTrue("Hibernate ORM 5.1 call to Query.getMaxResult() returned Integer " + sfsb.getMaxResultTest(), sfsb.getMaxResultTest() instanceof Integer);
+            assertEquals(
+                    "can handle Hibernate ORM 5.1 call to Session.getFlushMode() using FlushMode.NEVER",
+                    FlushMode.NEVER,
+                    sfsb.getFlushModeFromSessionTest( FlushMode.NEVER )
+            );
         } finally {
             sfsb.cleanup();
         }
     }
+
     @Test
-    public void testORA5_3_1_Compatibility_QueryFlushMode() throws Exception {
+    public void testORA5_3_1_Compatibility_getFlushModeFromQueryUninitialized() throws Exception {
         SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
-            assertNotNull("can handle Hibernate ORM 5.1 call to BasicQueryContract.getFlushMode()", sfsb.getFlushModeFromQueryTest());
+            assertNull( sfsb.getFlushModeFromQueryTest( null ) );
         } finally {
+            sfsb.cleanup();
+        }
+    }
+
+    @Test
+    public void testORA5_3_1_Compatibility_getFlushModeFromQuery() throws Exception {
+        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            assertEquals(
+                    "can handle Hibernate ORM 5.1 call to Query.getFlushMode()",
+                    FlushMode.MANUAL,
+                    sfsb.getFlushModeFromQueryTest( FlushMode.MANUAL )
+            );
+        } finally {
+            sfsb.cleanup();
+        }
+    }
+
+    @Test
+    public void testORA5_3_1_Compatibility_getFlushModeFromQueryNever() throws Exception {
+        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            assertEquals(
+                    "can handle Hibernate ORM 5.1 call to Query.getFlushMode() using FlushMode.NEVER",
+                    FlushMode.NEVER,
+                    sfsb.getFlushModeFromQueryTest( FlushMode.NEVER )
+            );
+        } finally {
+            sfsb.cleanup();
+        }
+    }
+
+    @Test
+    public void testORA5_3_1_Compatibility_getFirstResultUninitialized() throws Exception {
+        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            // In 5.1, o.h.Query#getFirstResult returns null if no value was set via o.h.Query#setFirstResult
+            assertNull( sfsb.getFirstResultTest( null ) );
+
+        } finally {
+            sfsb.cleanup();
+        }
+    }
+
+    @Test
+    public void testORA5_3_1_Compatibility_getFirstResultZero() throws Exception {
+        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            // In 5.1, o.h.Query#getFirstResult returned 0 if set via o.h.Query#setFirstResult(0)
+            assertTrue(
+                    "Hibernate ORM 5.1 call to Query.getFirstResult() returned Integer " + sfsb.getFirstResultTest(0),
+                    sfsb.getFirstResultTest(0) instanceof Integer
+            );
+            assertEquals( Integer.valueOf( 0 ), sfsb.getFirstResultTest( 0 ) );
+        } finally {
+            sfsb.cleanup();
+        }
+    }
+
+    @Test
+    public void testORA5_3_1_Compatibility_getFirstResultNegative() throws Exception {
+        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            // In 5.1, o.h.Query#getFirstResult returned negative number if set via o.h.Query.setFirstResult( negativeNumber )
+            assertTrue(
+                    "Hibernate ORM 5.1 call to Query.getFirstResult() returned Integer " + sfsb.getFirstResultTest(-1),
+                    sfsb.getFirstResultTest(-1) instanceof Integer
+            );
+            assertEquals( Integer.valueOf( -1 ), sfsb.getFirstResultTest( -1 ) );
+        } finally {
+            sfsb.cleanup();
+        }
+    }
+
+    @Test
+    public void testORA5_3_1_Compatibility_getFirstResultPositive() throws Exception {
+        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            assertTrue(
+                    "Hibernate ORM 5.1 call to Query.getMaxResult() returned Integer " + sfsb.getFirstResultTest( 1 ),
+                    sfsb.getFirstResultTest( 1 ) instanceof Integer
+            );
+            assertEquals( Integer.valueOf(1), sfsb.getFirstResultTest( 1 ) );
+
+        } finally {
+            sfsb.cleanup();
+        }
+    }
+
+    @Test
+    public void testORA5_3_1_Compatibility_getMaxResultsUninitialized() throws Exception {
+        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            // In 5.1, o.h.Query#getMaxResults returns null if no value was set via o.h.Query#setMaxResults
+            assertNull( sfsb.getMaxResultsTest( null ) );
+
+        } finally {
+            sfsb.cleanup();
+        }
+    }
+
+    @Test
+    public void testORA5_3_1_Compatibility_getMaxResultsZero() throws Exception {
+        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            // In 5.1, o.h.Query#getMaxResults returns null if 0 was set via o.h.Query.setMaxResults(0)
+            assertNull( sfsb.getMaxResultsTest( 0 ) );
+        } finally {
+            sfsb.cleanup();
+        }
+    }
+
+    @Test
+    public void testORA5_3_1_Compatibility_getMaxResultsNegative() throws Exception {
+        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            // In 5.1, o.h.Query#getMaxResults returns null if set via o.h.Query.setMaxResults( negativeNumber )
+            assertNull( sfsb.getMaxResultsTest( -1 ) );
+        } finally {
+            sfsb.cleanup();
+        }
+    }
+
+    @Test
+    public void testORA5_3_1_Compatibility_getMaxResultsMaxValue() throws Exception {
+        SFSBHibernateSessionFactory sfsb = lookup( "SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class );
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            // In 5.1, o.h.Query#getMaxResults returns Integer.MAX_VALUE if set via o.h.Query.setMaxResults( Integer.MAX_VALUE )
+            assertTrue(
+                    "Hibernate ORM 5.1 call to Query.getMaxResult() returned Integer " + sfsb.getMaxResultsTest( Integer.MAX_VALUE ),
+                    sfsb.getMaxResultsTest( Integer.MAX_VALUE ) instanceof Integer
+            );
+            assertEquals( Integer.valueOf( Integer.MAX_VALUE ), sfsb.getMaxResultsTest( Integer.MAX_VALUE ) );
+        }
+        finally {
+            sfsb.cleanup();
+        }
+    }
+
+    @Test
+    public void testORA5_3_1_Compatibility_getMaxResultsPositive() throws Exception {
+        SFSBHibernateSessionFactory sfsb = lookup( "SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class );
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            assertTrue(
+                    "Hibernate ORM 5.1 call to Query.getMaxResult() returned Integer " + sfsb.getMaxResultsTest( 1 ),
+                    sfsb.getMaxResultsTest( 1 ) instanceof Integer
+            );
+            assertEquals( Integer.valueOf( 1 ), sfsb.getMaxResultsTest( 1 ) );
+        }
+        finally {
             sfsb.cleanup();
         }
     }
