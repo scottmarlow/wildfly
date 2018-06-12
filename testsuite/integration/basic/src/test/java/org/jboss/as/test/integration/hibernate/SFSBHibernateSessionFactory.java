@@ -70,8 +70,8 @@ public class SFSBHibernateSessionFactory {
             configuration = configuration.configure("hibernate.cfg.xml");
             properties.putAll(configuration.getProperties());
 
-            Environment.verifyProperties(properties);
-            ConfigurationHelper.resolvePlaceHolders(properties);
+            Environment.verifyProperties( properties );
+            ConfigurationHelper.resolvePlaceHolders( properties );
 
             sessionFactory = configuration.buildSessionFactory();
         } catch (Throwable ex) { // Make sure you log the exception, as it might be swallowed
@@ -109,12 +109,15 @@ public class SFSBHibernateSessionFactory {
         return emp;
     }
 
-    public FlushMode getFlushModeFromQueryTest() {
+    public FlushMode getFlushModeFromQueryTest(FlushMode flushMode) {
         FlushMode result;
         Session session = sessionFactory.openSession();
         Transaction transaction = session.beginTransaction();
         try {
             BasicQueryContract basicQueryContract = session.createQuery("from Student");
+            if ( flushMode != null ) {
+                basicQueryContract.setFlushMode(flushMode);
+            }
             result = basicQueryContract.getFlushMode();
             return result;
         } finally {
@@ -123,10 +126,13 @@ public class SFSBHibernateSessionFactory {
         }
     }
 
-    public FlushMode getFlushModeFromSessionTest() {
+    public FlushMode getFlushModeFromSessionTest(FlushMode flushMode) {
         Session session = sessionFactory.openSession();
         Transaction transaction = session.beginTransaction();
         try {
+            if ( flushMode != null ) {
+                session.setFlushMode(flushMode);
+            }
             return session.getFlushMode();
         } finally {
             transaction.rollback();
@@ -134,23 +140,29 @@ public class SFSBHibernateSessionFactory {
         }
      }
 
-    public Integer getFirstResultTest() {
+    public Integer getFirstResultTest(Integer firstValue) {
 
         Session session = sessionFactory.openSession();
 
         try {
             Query query = session.createQuery("from Student");
+            if ( firstValue != null ) {
+                query.setFirstResult( firstValue);
+            }
             return query.getFirstResult();
         } finally {
             session.close();
         }
     }
 
-    public Integer getMaxResultTest() {
+    public Integer getMaxResultsTest(Integer maxResults) {
 
         Session session = sessionFactory.openSession();
         try {
-            Query query = session.createQuery("from Student");
+            Query query = session.createQuery( "from Student" );
+            if ( maxResults != null ) {
+                query.setMaxResults(maxResults);
+            }
             return query.getMaxResults();
         } finally {
             session.close();
