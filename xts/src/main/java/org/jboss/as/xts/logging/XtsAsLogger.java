@@ -22,8 +22,11 @@
 
 package org.jboss.as.xts.logging;
 
+import static org.jboss.logging.Logger.Level.WARN;
+
 import org.jboss.logging.BasicLogger;
 import org.jboss.logging.Logger;
+import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
 import org.jboss.msc.service.StartException;
@@ -73,28 +76,38 @@ public interface XtsAsLogger extends BasicLogger {
     @Message(id = 4, value = "Service not started")
     IllegalStateException xtsServiceIsNotStarted();
 
-    /**
-     * Creates an exception indicating that configuration service is not available.
-     *
-     * @return a {@link IllegalStateException} for the error.
-     */
+//    /**
+//     * Creates an exception indicating that configuration service is not available.
+//     *
+//     * @return a {@link IllegalStateException} for the error.
+//     */
     // @Message(id = 5, value = "Configuration service is not available")
     // IllegalStateException configurationServiceUnavailable();
+//
+//    /**
+//     * Creates an exception indicating that common configuration is not available.
+//     *
+//     * @return a {@link IllegalStateException} for the error.
+//     */
+//    @Message(id = 6, value = "Common configuration is not available")
+//    IllegalStateException commonConfigurationUnavailable();
 
-    /**
-     * Creates an exception indicating that common configuration is not available.
-     *
-     * @return a {@link IllegalStateException} for the error.
-     */
-    @Message(id = 6, value = "Common configuration is not available")
-    IllegalStateException commonConfigurationUnavailable();
-
-    /**
-     * Creates an exception indicating that the CDI extension could not be loaded.
-     *
-     * @return a {@link org.jboss.as.server.deployment.DeploymentUnitProcessingException} for the error.
-     */
+//    /**
+//     * Creates an exception indicating that the CDI extension could not be loaded.
+//     *
+//     * @return a {@link org.jboss.as.server.deployment.DeploymentUnitProcessingException} for the error.
+//     */
     // @Message(id = 7, value = "Cannot load CDI Extension")
     // DeploymentUnitProcessingException cannotLoadCDIExtension();
 
+//    /**
+//     * Warning that coordination context deserialization has failed
+//     */
+//    @LogMessage(level = WARN)
+//    @Message(id = 8, value = "Coordination context deserialization failed")
+//    void coordinationContextDeserializationFailed(@Cause Throwable cause);
+
+    @LogMessage(level = WARN)
+    @Message(id = 9, value = "Rejecting call because it is not part of any XTS transaction")
+    void rejectingCallBecauseNotPartOfXtsTx();
 }

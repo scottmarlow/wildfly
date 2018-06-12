@@ -22,12 +22,9 @@
 
 package org.wildfly.extension.messaging.activemq;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
-
 import org.jboss.as.controller.AbstractRemoveStepHandler;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.PathAddress;
 import org.jboss.dmr.ModelNode;
 
 /**
@@ -39,16 +36,20 @@ public class HTTPAcceptorRemove extends AbstractRemoveStepHandler {
 
     static final HTTPAcceptorRemove INSTANCE = new HTTPAcceptorRemove();
 
-    protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) {
-        final PathAddress address = PathAddress.pathAddress(operation.require(OP_ADDR));
-        final String name = address.getLastElement().getValue();
-        context.removeService(HTTPUpgradeService.UPGRADE_SERVICE_NAME.append(name));
+    protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+        final String acceptorName = context.getCurrentAddressValue();
+        final String serverName = context.getCurrentAddress().getParent().getLastElement().getValue();
+        context.removeService(MessagingServices.getHttpUpgradeServiceName(serverName, acceptorName));
+
+        boolean upgradeLegacy = HTTPAcceptorDefinition.UPGRADE_LEGACY.resolveModelAttribute(context, model).asBoolean();
+        if (upgradeLegacy) {
+            context.removeService(MessagingServices.getLegacyHttpUpgradeServiceName(serverName, acceptorName));
+        }
     }
 
     protected void recoverServices(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
-        final PathAddress address = PathAddress.pathAddress(operation.require(OP_ADDR));
-        String activeMQServerName = address.getElement(address.size() - 2).getValue();
-        String acceptorName = address.getLastElement().getValue();
-        HTTPAcceptorAdd.INSTANCE.launchServices(context, activeMQServerName, acceptorName, model);
+        final String acceptorName = context.getCurrentAddressValue();
+        final String serverName = context.getCurrentAddress().getParent().getLastElement().getValue();
+        HTTPAcceptorAdd.INSTANCE.launchServices(context, serverName, acceptorName, model);
     }
 }

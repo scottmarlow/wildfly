@@ -22,7 +22,7 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<module xmlns="urn:jboss:module:1.3" name="org.jboss.as.jpa.spi">
+<module xmlns="urn:jboss:module:1.5" name="org.jboss.as.jpa.spi">
     <properties>
         <property name="jboss.api" value="private"/>
     </properties>
@@ -32,20 +32,9 @@
     </resources>
 
     <dependencies>
-        <module name="javax.ejb.api"/>
         <module name="javax.persistence.api"/>
         <module name="javax.transaction.api"/>
-        <module name="org.jboss.as.naming"/>
-        <module name="org.jboss.as.server"/>
         <module name="org.jboss.jandex"/>
         <module name="org.jboss.logging"/>
-        <module name="org.jboss.msc"/>
-
-        <!-- TODO WFLY-5966 validate the need for these and remove if not needed.
-             Prior to WFLY-5922 they were exported by javax.ejb.api. -->
-        <module name="javax.api"/>
-        <module name="javax.xml.rpc.api"/>
-        <module name="javax.rmi.api"/>
-        <module name="org.omg.api"/>
     </dependencies>
 </module>

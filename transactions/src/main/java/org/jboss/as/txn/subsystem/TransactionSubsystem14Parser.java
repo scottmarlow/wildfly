@@ -53,14 +53,21 @@ import static org.jboss.as.controller.parsing.ParseUtils.unexpectedElement;
  */
 class TransactionSubsystem14Parser implements XMLStreamConstants, XMLElementReader<List<ModelNode>> {
 
-    public static final TransactionSubsystem14Parser INSTANCE = new TransactionSubsystem14Parser(Namespace.TRANSACTIONS_1_4);
-
     private final Namespace validNamespace;
-    TransactionSubsystem14Parser(Namespace validNamespace) {
+    protected TransactionSubsystem14Parser(Namespace validNamespace) {
         this.validNamespace = validNamespace;
+        this.relativeToHasDefaultValue = true;
+    }
+    TransactionSubsystem14Parser(){
+        this(Namespace.TRANSACTIONS_1_4);
     }
 
+
     protected boolean choiceObjectStoreEncountered;
+
+    protected boolean needsDefaultRelativeTo;
+
+    protected boolean relativeToHasDefaultValue;
 
     protected Namespace getExpectedNamespace() {
         return validNamespace;
@@ -99,6 +106,7 @@ class TransactionSubsystem14Parser implements XMLStreamConstants, XMLElementRead
         final EnumSet<Element> required = EnumSet.of(Element.RECOVERY_ENVIRONMENT, Element.CORE_ENVIRONMENT);
         final EnumSet<Element> encountered = EnumSet.noneOf(Element.class);
         choiceObjectStoreEncountered = false;
+        needsDefaultRelativeTo = true;
         while (reader.hasNext() && reader.nextTag() != END_ELEMENT) {
             if (Namespace.forUri(reader.getNamespaceURI()) != getExpectedNamespace()) {
                 throw unexpectedElement(reader);
@@ -110,6 +118,11 @@ class TransactionSubsystem14Parser implements XMLStreamConstants, XMLElementRead
             }
             readElement(reader, element, list, subsystem, logStoreOperation);
         }
+
+        if(needsDefaultRelativeTo && relativeToHasDefaultValue) {
+            TransactionSubsystemRootResourceDefinition.OBJECT_STORE_RELATIVE_TO.parseAndSetParameter("jboss.server.data.dir", subsystem, reader);
+        }
+
         if (!required.isEmpty()) {
             throw missingRequiredElement(reader, required);
         }
@@ -203,9 +216,13 @@ class TransactionSubsystem14Parser implements XMLStreamConstants, XMLElementRead
             switch (attribute) {
                 case RELATIVE_TO:
                     TransactionSubsystemRootResourceDefinition.OBJECT_STORE_RELATIVE_TO.parseAndSetParameter(value, operation, reader);
+                    needsDefaultRelativeTo = false;
                     break;
                 case PATH:
                     TransactionSubsystemRootResourceDefinition.OBJECT_STORE_PATH.parseAndSetParameter(value, operation, reader);
+                    if (!value.equals(TransactionSubsystemRootResourceDefinition.OBJECT_STORE_PATH.getDefaultValue().asString())) {
+                        needsDefaultRelativeTo = false;
+                    }
                     break;
                 default:
                     throw unexpectedAttribute(reader, i);

@@ -21,10 +21,13 @@
  */
 package org.jboss.as.test.clustering.cluster.web;
 
+import static org.jboss.as.test.shared.IntermittentFailure.thisTestIsFailingIntermittently;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.HttpResponse;
@@ -45,27 +48,40 @@ import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ReplicationForNegotiationAuthenticatorTestCase extends AbstractWebFailoverTestCase {
-    private static final String DEPLOYMENT_NAME = "negotiationAuthenticator.war";
+
+    @BeforeClass
+    public static void beforeClass() {
+        thisTestIsFailingIntermittently("WFLY-10532");
+    }
+
+    private static final String MODULE_NAME = ReplicationForNegotiationAuthenticatorTestCase.class.getSimpleName();
+    private static final String DEPLOYMENT_NAME = MODULE_NAME + ".war";
 
     public ReplicationForNegotiationAuthenticatorTestCase() {
         super(DEPLOYMENT_NAME, TransactionMode.TRANSACTIONAL);
     }
 
     @Deployment(name = DEPLOYMENT_1, managed = false, testable = false)
-    @TargetsContainer(CONTAINER_1)
-    public static Archive<?> deployment0() {
-        return getDeployment();
-    }
-
-    @Deployment(name = DEPLOYMENT_2, managed = false, testable = false)
-    @TargetsContainer(CONTAINER_2)
+    @TargetsContainer(NODE_1)
     public static Archive<?> deployment1() {
         return getDeployment();
     }
 
+    @Deployment(name = DEPLOYMENT_2, managed = false, testable = false)
+    @TargetsContainer(NODE_2)
+    public static Archive<?> deployment2() {
+        return getDeployment();
+    }
+
+    @Deployment(name = DEPLOYMENT_3, managed = false, testable = false)
+    @TargetsContainer(NODE_3)
+    public static Archive<?> deployment3() {
+        return getDeployment();
+    }
     private static Archive<?> getDeployment() {
         WebArchive war = ShrinkWrap.create(WebArchive.class, DEPLOYMENT_NAME);
         war.addClasses(SimpleServlet.class, Mutable.class);
@@ -90,7 +106,7 @@ public class ReplicationForNegotiationAuthenticatorTestCase extends AbstractWebF
 
             HttpResponse response = client.execute(new HttpGet(uri1));
             try {
-                log.info("Requested " + uri1 + ", got " + response.getFirstHeader("value").getValue() + ".");
+                log.trace("Requested " + uri1 + ", got " + response.getFirstHeader("value").getValue() + ".");
                 Assert.assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
                 Assert.assertEquals(1, Integer.parseInt(response.getFirstHeader("value").getValue()));
             } finally {
@@ -101,7 +117,7 @@ public class ReplicationForNegotiationAuthenticatorTestCase extends AbstractWebF
 
             response = client.execute(new HttpGet(uri2));
             try {
-                log.info("Requested " + uri2 + ", got " + response.getFirstHeader("value").getValue() + ".");
+                log.trace("Requested " + uri2 + ", got " + response.getFirstHeader("value").getValue() + ".");
                 Assert.assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
                 Assert.assertEquals("Session failed to replicate after container 1 was shutdown.", 2, Integer.parseInt(response.getFirstHeader("value").getValue()));
             } finally {
@@ -111,7 +127,7 @@ public class ReplicationForNegotiationAuthenticatorTestCase extends AbstractWebF
             //and back on the 1st server
             response = client.execute(new HttpGet(uri1));
             try {
-                log.info("Requested " + uri1 + ", got " + response.getFirstHeader("value").getValue() + ".");
+                log.trace("Requested " + uri1 + ", got " + response.getFirstHeader("value").getValue() + ".");
                 Assert.assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
                 Assert.assertEquals("Session failed to replicate after container 1 was brough up.", 3, Integer.parseInt(response.getFirstHeader("value").getValue()));
             } finally {

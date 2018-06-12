@@ -30,12 +30,12 @@ import org.jboss.as.ee.component.Component;
 import org.jboss.as.ee.component.deployers.StartupCountdown;
 import org.jboss.as.ee.component.interceptors.InvocationType;
 import org.jboss.as.ejb3.component.session.SessionBeanComponent;
+import org.jboss.as.security.remoting.RemoteConnection;
 import org.jboss.as.security.remoting.RemotingContext;
 import org.jboss.invocation.Interceptor;
 import org.jboss.invocation.InterceptorContext;
 import org.jboss.invocation.InterceptorFactory;
 import org.jboss.invocation.InterceptorFactoryContext;
-import org.jboss.remoting3.Connection;
 import org.jboss.security.SecurityContext;
 import org.jboss.security.SecurityContextAssociation;
 import org.jboss.security.plugins.JBossSecurityContext;
@@ -82,24 +82,27 @@ public final class AsyncFutureInterceptorFactory implements InterceptorFactory {
 
                     final SecurityDomain securityDomain = context.getPrivateData(SecurityDomain.class);
                     final StartupCountdown.Frame frame = StartupCountdown.current();
-                    final SecurityIdentity currentIdentity = securityDomain.getCurrentSecurityIdentity();
+                    final SecurityIdentity currentIdentity = securityDomain == null ? null : securityDomain.getCurrentSecurityIdentity();
 
-                    final Connection remoteConnection = getConnection();
+                    final RemoteConnection remoteConnection = getConnection();
+                    Callable<Object> invocationTask = () -> {
+                        setConnection(remoteConnection);
+                        StartupCountdown.restore(frame);
+                        try {
+                            return asyncInterceptorContext.proceed();
+                        } finally {
+                            StartupCountdown.restore(null);
+                            clearConnection();
+                        }
+                    };
                     final AsyncInvocationTask task = new AsyncInvocationTask(flag) {
                         @Override
                         protected Object runInvocation() throws Exception {
-                            return currentIdentity.runAs(new Callable<Object>() {
-                                public Object call() throws Exception {
-                                    setConnection(remoteConnection);
-                                    StartupCountdown.restore(frame);
-                                    try {
-                                        return asyncInterceptorContext.proceed();
-                                    } finally {
-                                        StartupCountdown.restore(null);
-                                        clearConnection();
-                                    }
-                                }
-                            });
+                            if(currentIdentity != null) {
+                                return currentIdentity.runAs(invocationTask);
+                            } else {
+                                return invocationTask.call();
+                            }
                         }
                     };
                     asyncInterceptorContext.putPrivateData(CancellationFlag.class, flag);
@@ -137,7 +140,7 @@ public final class AsyncFutureInterceptorFactory implements InterceptorFactory {
                         // we can't do anything if it isn't a JBossSecurityContext so just use the original one
                         clonedSecurityContext = securityContext;
                     }
-                    final Connection remoteConnection = getConnection();
+                    final RemoteConnection remoteConnection = getConnection();
                     final StartupCountdown.Frame frame = StartupCountdown.current();
                     final AsyncInvocationTask task = new AsyncInvocationTask(flag) {
                         @Override
@@ -165,7 +168,7 @@ public final class AsyncFutureInterceptorFactory implements InterceptorFactory {
         }
     }
 
-    private void setConnection(final Connection remoteConnection) {
+    private void setConnection(final RemoteConnection remoteConnection) {
         if (WildFlySecurityManager.isChecking()) {
             WildFlySecurityManager.doUnchecked(new PrivilegedAction<Void>() {
                 @Override
@@ -192,16 +195,11 @@ public final class AsyncFutureInterceptorFactory implements InterceptorFactory {
             RemotingContext.clear();
         }
     }
-    private Connection getConnection() {
+    private RemoteConnection getConnection() {
         if(WildFlySecurityManager.isChecking()) {
-            return WildFlySecurityManager.doUnchecked(new PrivilegedAction<Connection>() {
-                @Override
-                public Connection run() {
-                    return RemotingContext.getConnection();
-                }
-            });
+            return WildFlySecurityManager.doUnchecked((PrivilegedAction<RemoteConnection>) () -> RemotingContext.getRemoteConnection());
         } else {
-            return RemotingContext.getConnection();
+            return RemotingContext.getRemoteConnection();
         }
     }
 

@@ -22,12 +22,18 @@
 
 package org.jboss.as.connector.services.workmanager;
 
-import org.jboss.as.connector.services.workmanager.transport.ForkChannelTransport;
+import static org.jboss.as.connector.logging.ConnectorLogger.ROOT_LOGGER;
+
+import java.util.concurrent.Executor;
+
+import org.jboss.as.connector.security.ElytronSecurityIntegration;
+import org.jboss.as.connector.services.workmanager.transport.CommandDispatcherTransport;
 import org.jboss.as.connector.util.ConnectorServices;
-import org.jboss.jca.core.api.workmanager.DistributedWorkManager;
+import org.jboss.as.txn.integration.JBossContextXATerminator;
+import org.jboss.jca.core.security.picketbox.PicketBoxSecurityIntegration;
+import org.jboss.jca.core.spi.workmanager.Address;
 import org.jboss.jca.core.tx.jbossts.XATerminatorImpl;
 import org.jboss.jca.core.workmanager.WorkManagerCoordinator;
-import org.jboss.jca.core.workmanager.transport.remote.jgroups.JGroupsTransport;
 import org.jboss.msc.inject.Injector;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.StartContext;
@@ -35,12 +41,7 @@ import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
 import org.jboss.threads.BlockingExecutor;
-import org.jboss.tm.JBossXATerminator;
-import org.wildfly.clustering.jgroups.spi.ChannelFactory;
-
-import java.util.concurrent.Executor;
-
-import static org.jboss.as.connector.logging.ConnectorLogger.ROOT_LOGGER;
+import org.wildfly.clustering.dispatcher.CommandDispatcherFactory;
 
 /**
  * A WorkManager Service.
@@ -48,31 +49,31 @@ import static org.jboss.as.connector.logging.ConnectorLogger.ROOT_LOGGER;
  * @author <a href="mailto:stefano.maestri@redhat.com">Stefano Maestri</a>
  * @author <a href="mailto:jesper.pedersen@jboss.org">Jesper Pedersen</a>
  */
-public final class DistributedWorkManagerService implements Service<DistributedWorkManager> {
+public final class DistributedWorkManagerService implements Service<NamedDistributedWorkManager> {
 
-    private final DistributedWorkManager value;
+    private final NamedDistributedWorkManager value;
 
     private final InjectedValue<Executor> executorShort = new InjectedValue<Executor>();
 
     private final InjectedValue<Executor> executorLong = new InjectedValue<Executor>();
 
-    private final InjectedValue<JBossXATerminator> xaTerminator = new InjectedValue<JBossXATerminator>();
+    private final InjectedValue<JBossContextXATerminator> xaTerminator = new InjectedValue<JBossContextXATerminator>();
 
-    private final InjectedValue<ChannelFactory> jGroupsChannelFactory = new InjectedValue<ChannelFactory>();
+    private final InjectedValue<CommandDispatcherFactory> dispatcherFactory = new InjectedValue<>();
 
     /**
      * create an instance
      *
      * @param value the work manager
      */
-    public DistributedWorkManagerService(DistributedWorkManager value) {
+    public DistributedWorkManagerService(NamedDistributedWorkManager value) {
         super();
         ROOT_LOGGER.debugf("Building DistributedWorkManager");
         this.value = value;
     }
 
     @Override
-    public DistributedWorkManager getValue() throws IllegalStateException {
+    public NamedDistributedWorkManager getValue() throws IllegalStateException {
         return ConnectorServices.notNull(value);
     }
 
@@ -80,31 +81,28 @@ public final class DistributedWorkManagerService implements Service<DistributedW
     public void start(StartContext context) throws StartException {
         ROOT_LOGGER.debugf("Starting JCA DistributedWorkManager: ", value.getName());
 
-        ChannelFactory factory = this.jGroupsChannelFactory.getValue();
-        JGroupsTransport transport = new ForkChannelTransport(factory);
-        try {
-            transport.setChannel(factory.createChannel(this.value.getName()));
-            transport.setClusterName(this.value.getName());
+        CommandDispatcherTransport transport = new CommandDispatcherTransport(this.dispatcherFactory.getValue(), this.value.getName());
 
-            this.value.setTransport(transport);
-        } catch (Exception e) {
-            ROOT_LOGGER.trace("failed to start JGroups channel", e);
-            throw ROOT_LOGGER.failedToStartJGroupsChannel(this.value.getName(), this.value.getName());
-        }
+        this.value.setTransport(transport);
 
         BlockingExecutor longRunning = (BlockingExecutor) executorLong.getOptionalValue();
         if (longRunning != null) {
             this.value.setLongRunningThreadPool(longRunning);
-            this.value.setShortRunningThreadPool((BlockingExecutor) executorShort.getValue());
+            this.value.setShortRunningThreadPool(new StatisticsExecutorImpl((BlockingExecutor) executorShort.getValue()));
         } else {
-            this.value.setLongRunningThreadPool((BlockingExecutor) executorShort.getValue());
-            this.value.setShortRunningThreadPool((BlockingExecutor) executorShort.getValue());
+            this.value.setLongRunningThreadPool(new StatisticsExecutorImpl((BlockingExecutor) executorShort.getValue()));
+            this.value.setShortRunningThreadPool(new StatisticsExecutorImpl((BlockingExecutor) executorShort.getValue()));
 
         }
 
         this.value.setXATerminator(new XATerminatorImpl(xaTerminator.getValue()));
 
-        WorkManagerCoordinator.getInstance().registerWorkManager(value);
+
+        if (this.value.isElytronEnabled()) {
+            this.value.setSecurityIntegration(new ElytronSecurityIntegration());
+        } else {
+            this.value.setSecurityIntegration(new PicketBoxSecurityIntegration());
+        }
 
         try {
             transport.startup();
@@ -112,6 +110,10 @@ public final class DistributedWorkManagerService implements Service<DistributedW
             ROOT_LOGGER.trace("failed to start DWM transport:", throwable);
             throw ROOT_LOGGER.failedToStartDWMTransport(this.value.getName());
         }
+        transport.register(new Address(value.getId(), value.getName(), transport.getId()));
+
+        WorkManagerCoordinator.getInstance().registerWorkManager(value);
+
 
         ROOT_LOGGER.debugf("Started JCA DistributedWorkManager: ", value.getName());
     }
@@ -144,12 +146,11 @@ public final class DistributedWorkManagerService implements Service<DistributedW
         return executorLong;
     }
 
-    public Injector<JBossXATerminator> getXaTerminatorInjector() {
+    public Injector<JBossContextXATerminator> getXaTerminatorInjector() {
         return xaTerminator;
     }
 
-    public Injector<ChannelFactory> getJGroupsChannelFactoryInjector() {
-        return jGroupsChannelFactory;
+    public Injector<CommandDispatcherFactory> getCommandDispatcherFactoryInjector() {
+        return this.dispatcherFactory;
     }
-
 }

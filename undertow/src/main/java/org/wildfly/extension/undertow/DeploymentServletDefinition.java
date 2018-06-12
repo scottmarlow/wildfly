@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -57,8 +57,8 @@ public class DeploymentServletDefinition extends SimpleResourceDefinition {
     static final SimpleAttributeDefinition MIN_REQUEST_TIME = new SimpleAttributeDefinitionBuilder("min-request-time", ModelType.LONG, true).setStorageRuntime().build();
     static final SimpleAttributeDefinition TOTAL_REQUEST_TIME = new SimpleAttributeDefinitionBuilder("total-request-time", ModelType.LONG, true).setStorageRuntime().build();
     static final SimpleAttributeDefinition REQUEST_COUNT = new SimpleAttributeDefinitionBuilder("request-count", ModelType.LONG, true).setStorageRuntime().build();
-    static final SimpleListAttributeDefinition SERVLET_MAPPINGS = new SimpleListAttributeDefinition.Builder("mappings", new SimpleAttributeDefinitionBuilder("mapping", ModelType.STRING).setAllowNull(true).build())
-            .setAllowNull(true)
+    static final SimpleListAttributeDefinition SERVLET_MAPPINGS = new SimpleListAttributeDefinition.Builder("mappings", new SimpleAttributeDefinitionBuilder("mapping", ModelType.STRING).setRequired(false).build())
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
@@ -75,13 +75,13 @@ public class DeploymentServletDefinition extends SimpleResourceDefinition {
         registration.registerMetric(MAX_REQUEST_TIME, new AbstractMetricsHandler() {
             @Override
             void handle(final ModelNode response, final String name, final MetricsHandler.MetricResult metricResult, final ServletInfo servlet) {
-                response.set(metricResult.getMaxRequestTime());
+                response.set((long) metricResult.getMaxRequestTime());
             }
         });
         registration.registerMetric(MIN_REQUEST_TIME, new AbstractMetricsHandler() {
             @Override
             void handle(final ModelNode response, final String name, final MetricsHandler.MetricResult metricResult, final ServletInfo servlet) {
-                response.set(metricResult.getMinRequestTime());
+                response.set((long) metricResult.getMinRequestTime());
             }
         });
         registration.registerMetric(TOTAL_REQUEST_TIME, new AbstractMetricsHandler() {
@@ -103,12 +103,21 @@ public class DeploymentServletDefinition extends SimpleResourceDefinition {
                     response.add(mapping);
                 }
             }
+
+            @Override
+            void putDefault(ModelNode response) {
+                response.setEmptyList();
+            }
         });
     }
 
     abstract static class AbstractMetricsHandler implements OperationStepHandler {
 
         abstract void handle(ModelNode response, String name, MetricsHandler.MetricResult metricResult, ServletInfo infos);
+
+        void putDefault(ModelNode response) {
+            response.set(0L);
+        }
 
         @Override
         public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
@@ -137,7 +146,7 @@ public class DeploymentServletDefinition extends SimpleResourceDefinition {
                     final ModelNode response = new ModelNode();
                     MetricsHandler.MetricResult result = collector != null ? collector.getMetrics(name) : null;
                     if (result == null) {
-                        response.set(0);
+                        putDefault(response);
                     } else {
                         handle(response, name, result, servlet);
                     }

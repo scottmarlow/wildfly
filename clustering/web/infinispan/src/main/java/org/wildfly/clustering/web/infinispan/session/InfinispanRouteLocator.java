@@ -27,9 +27,9 @@ import org.infinispan.Cache;
 import org.infinispan.distribution.DistributionManager;
 import org.infinispan.remoting.transport.Address;
 import org.wildfly.clustering.group.Node;
-import org.wildfly.clustering.group.NodeFactory;
 import org.wildfly.clustering.infinispan.spi.distribution.Key;
 import org.wildfly.clustering.registry.Registry;
+import org.wildfly.clustering.spi.NodeFactory;
 import org.wildfly.clustering.web.session.RouteLocator;
 
 /**
@@ -46,22 +46,15 @@ public class InfinispanRouteLocator implements RouteLocator {
     public InfinispanRouteLocator(InfinispanRouteLocatorConfiguration config) {
         this.cache = config.getCache();
         this.registry = config.getRegistry();
-        this.factory = config.getNodeFactory();
+        this.factory = config.getMemberFactory();
     }
 
     @Override
     public String locate(String sessionId) {
-        Map.Entry<String, Void> entry = null;
-        Address location = this.locatePrimaryOwner(sessionId);
-        if (location != null) {
-            Node node = this.factory.createNode(location);
-            entry = this.registry.getEntry(node);
-        }
-        return (entry != null) ? entry.getKey() : null;
-    }
-
-    private Address locatePrimaryOwner(String sessionId) {
         DistributionManager dist = this.cache.getAdvancedCache().getDistributionManager();
-        return (dist != null) ? dist.getPrimaryLocation(new Key<>(sessionId)) : this.cache.getCacheManager().getAddress();
+        Address address = (dist != null) && !this.cache.getCacheConfiguration().clustering().cacheMode().isScattered() ? dist.getCacheTopology().getDistribution(new Key<>(sessionId)).primary() : this.cache.getCacheManager().getAddress();
+        Node node = (address != null) ? this.factory.createNode(address) : null;
+        Map.Entry<String, Void> entry = this.registry.getEntry((node != null) ? node : this.registry.getGroup().getLocalMember());
+        return (entry != null) ? entry.getKey() : null;
     }
 }

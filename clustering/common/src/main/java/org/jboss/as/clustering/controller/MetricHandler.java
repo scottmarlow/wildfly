@@ -45,12 +45,14 @@ public class MetricHandler<C> extends ExecutionHandler<C, Metric<C>> implements 
     }
 
     public MetricHandler(MetricExecutor<C> executor, Collection<? extends Metric<C>> metrics) {
-        super(executor, metrics, metric -> metric.getDefinition().getName());
+        super(executor, metrics, Metric::getName, Operations::getAttributeName);
         this.metrics = metrics;
     }
 
     @Override
     public void register(ManagementResourceRegistration registration) {
-        this.metrics.forEach(metric -> registration.registerReadOnlyAttribute(metric.getDefinition(), this));
+        for (Metric<C> metric : this.metrics) {
+            registration.registerReadOnlyAttribute(metric.getDefinition(), this);
+        }
     }
 }

@@ -23,6 +23,7 @@
 package org.jboss.as.test.integration.ejb.mapbased;
 
 import java.util.Properties;
+
 import javax.naming.Context;
 import javax.naming.InitialContext;
 

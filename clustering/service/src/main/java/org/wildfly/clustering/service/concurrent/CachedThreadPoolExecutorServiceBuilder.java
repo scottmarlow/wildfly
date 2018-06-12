@@ -21,60 +21,30 @@
  */
 package org.wildfly.clustering.service.concurrent;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
-import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
-import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceTarget;
-import org.jboss.msc.service.StartContext;
-import org.jboss.msc.service.StopContext;
-import org.jboss.threads.JBossExecutors;
-import org.wildfly.clustering.service.AsynchronousServiceBuilder;
 import org.wildfly.clustering.service.Builder;
 
 /**
  * Service that provides an {@link Executor} that uses a cached thread pool.
  * @author Paul Ferraro
+ * @deprecated Replaced by {@link CachedThreadPoolExecutorServiceConfigurator}.
  */
-public class CachedThreadPoolExecutorServiceBuilder implements Builder<ExecutorService>, Service<ExecutorService> {
-
-    private final ServiceName name;
-    private final ThreadFactory factory;
-
-    private volatile ExecutorService executor;
+@Deprecated
+public class CachedThreadPoolExecutorServiceBuilder extends CachedThreadPoolExecutorServiceConfigurator implements Builder<ExecutorService> {
 
     public CachedThreadPoolExecutorServiceBuilder(ServiceName name, ThreadFactory factory) {
-        this.name = name;
-        this.factory = factory;
+        super(name, factory);
     }
 
-    @Override
-    public ServiceName getServiceName() {
-        return this.name;
-    }
-
+    @SuppressWarnings("unchecked")
     @Override
     public ServiceBuilder<ExecutorService> build(ServiceTarget target) {
-        return new AsynchronousServiceBuilder<>(this.name, this).startSynchronously().build(target).setInitialMode(ServiceController.Mode.ON_DEMAND);
-    }
-
-    @Override
-    public ExecutorService getValue() {
-        return JBossExecutors.protectedExecutorService(this.executor);
-    }
-
-    @Override
-    public void start(StartContext context) {
-        this.executor = Executors.newCachedThreadPool(this.factory);
-    }
-
-    @Override
-    public void stop(StopContext context) {
-        this.executor.shutdown();
-        this.executor = null;
+        return (ServiceBuilder<ExecutorService>) super.build(target);
     }
 }

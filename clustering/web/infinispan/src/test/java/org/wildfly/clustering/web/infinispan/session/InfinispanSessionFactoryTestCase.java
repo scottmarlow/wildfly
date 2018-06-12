@@ -112,16 +112,6 @@ public class InfinispanSessionFactoryTestCase {
     }
 
     @Test
-    public void evict() {
-        String id = "id";
-
-        this.factory.evict(id);
-
-        verify(this.metaDataFactory).evict(id);
-        verify(this.attributesFactory).evict(id);
-    }
-
-    @Test
     public void getMetaDataFactory() {
         assertSame(this.metaDataFactory, this.factory.getMetaDataFactory());
     }

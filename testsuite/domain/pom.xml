@@ -27,9 +27,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>wildfly-testsuite</artifactId>
         <groupId>org.wildfly</groupId>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <artifactId>wildfly-testsuite</artifactId>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-testsuite-integration-domain</artifactId>
@@ -44,11 +48,10 @@
              ts.copy-jbossas.groups execution assumes it's the same as jboss.dist -->
         <jboss.home>${jboss.dist}</jboss.home>
 
-        <!-- Used to provide an absolute location for the XSLT scripts. -->
-        <!-- This value is overridden in submodules with the correct relative path. -->
-        <xslt.scripts.dir>${basedir}/../integration/src/test/xslt</xslt.scripts.dir>
         <enforcer.skip>true</enforcer.skip>
         <jbossas.ts.dir>${basedir}/..</jbossas.ts.dir>
+
+        <ts.elytron.cli>../shared/enable-elytron-domain.cli</ts.elytron.cli>
     </properties>
 
     <!--
@@ -69,7 +72,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.wildfly</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>wildfly-testsuite-shared</artifactId>
             <scope>compile</scope>
             <exclusions>
@@ -81,7 +84,7 @@
         </dependency>
         <dependency>
             <groupId>org.jboss.spec.javax.servlet</groupId>
-            <artifactId>jboss-servlet-api_3.1_spec</artifactId>
+            <artifactId>jboss-servlet-api_4.0_spec</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -106,7 +109,7 @@
             <artifactId>wildfly-cli</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.wildfly</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>wildfly-messaging-activemq</artifactId>
             <exclusions>
                 <exclusion>
@@ -152,7 +155,7 @@
             <artifactId>wildfly-network</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.wildfly</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>wildfly-security</artifactId>
             <exclusions>
                 <exclusion>
@@ -166,8 +169,8 @@
             <artifactId>picketbox</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jcl-over-slf4j</artifactId>
+            <groupId>org.jboss.logmanager</groupId>
+            <artifactId>commons-logging-jboss-logmanager</artifactId>
         </dependency>
         <dependency>
             <groupId>org.jboss.logmanager</groupId>
@@ -178,44 +181,13 @@
             <artifactId>xom</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.woodstox</groupId>
-            <artifactId>woodstox-core-asl</artifactId>
+            <groupId>com.fasterxml.woodstox</groupId>
+            <artifactId>woodstox-core</artifactId>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>xml-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>adjust-default-server-configuration-for-basic-tests</id>
-                        <phase>process-test-resources</phase>
-                        <goals>
-                            <goal>transform</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <transformationSets>
-                        <transformationSet>
-                            <dir>${basedir}/target/test-classes/domain-configs</dir>
-                            <skipDefaultExcludes>true</skipDefaultExcludes>
-                            <includes>
-                                <include>domain*.xml</include>
-                            </includes>
-                            <stylesheet>${basedir}/../integration/src/test/xslt/enableRbac.xsl</stylesheet>
-                            <outputDir>${basedir}/target/test-classes/domain-configs</outputDir>
-                            <fileMappers>
-                                <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
-                                    <targetExtension>.rbac</targetExtension>
-                                </fileMapper>
-                            </fileMappers>
-                        </transformationSet>
-                    </transformationSets>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -225,38 +197,26 @@
                     <redirectTestOutputToFile>${testLogToFile}</redirectTestOutputToFile>
 
                     <!-- System properties to forked surefire JVM which runs clients. -->
-                    <argLine>${jvm.args.ip.client} ${jvm.args.timeouts}</argLine>
+                    <argLine>${jvm.args.ip.client} ${jvm.args.timeouts} ${surefire.system.args}</argLine>
 
                     <systemPropertyVariables>
                         <!-- Disabled assertions until new version of core with fix for WFCORE-1630 is used -->
                         <!--<jboss.options>-ea</jboss.options>-->
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                        <jboss.home>${project.basedir}/target/jbossas</jboss.home>
+                        <jboss.home>${project.basedir}/target/wildfly</jboss.home>
                         <module.path>${jboss.dist}/modules</module.path>
                         <jboss.test.host.master.address>${node0}</jboss.test.host.master.address>
                         <jboss.test.host.slave.address>${node1}</jboss.test.host.slave.address>
-                        <server.jvm.args>${surefire.system.args} ${jvm.args.ip.server} ${jvm.args.jacoco} ${jvm.args.other} ${jvm.args.timeouts} -Djbossas.ts.dir=${jbossas.ts.dir}</server.jvm.args>
+                        <server.jvm.args>${surefire.system.args} ${jvm.args.ip.server} ${jvm.args.other} ${jvm.args.timeouts} -Djbossas.ts.dir=${jbossas.ts.dir} ${extra.server.jvm.args}</server.jvm.args>
                     </systemPropertyVariables>
                     <includes>
-                         <include>org/jboss/as/test/integration/respawn/*TestCase.java</include>
-                         <include>org/jboss/as/test/integration/domain/*TestCase.java</include>
-                         <include>org/jboss/as/test/integration/domain/suites/*TestSuite.java</include>
+                        <include>org/jboss/as/test/integration/respawn/*TestCase.java</include>
+                        <include>org/jboss/as/test/integration/domain/*TestCase.java</include>
+                        <include>org/jboss/as/test/integration/domain/suites/*TestSuite.java</include>
                     </includes>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>check-style</id>
-                        <phase>process-classes</phase>
-                    </execution>
-                </executions>
-                <configuration>
-                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                </configuration>
-            </plugin>
+
         </plugins>
     </build>
 
@@ -283,16 +243,16 @@
                             <redirectTestOutputToFile>${testLogToFile}</redirectTestOutputToFile>
 
                             <!-- System properties to forked surefire JVM which runs clients. -->
-                            <argLine>${jvm.args.ip.client} ${jvm.args.timeouts}</argLine>
+                            <argLine>${jvm.args.ip.client} ${jvm.args.timeouts} ${surefire.system.args}</argLine>
 
                             <systemPropertyVariables>
                                 <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                                 <jboss.options>-ea</jboss.options>
-                                <jboss.home>${project.basedir}/target/jbossas</jboss.home>
+                                <jboss.home>${project.basedir}/target/wildfly</jboss.home>
                                 <module.path>${jboss.dist}/modules</module.path>
                                 <jboss.test.host.master.address>${node0}</jboss.test.host.master.address>
                                 <jboss.test.host.slave.address>${node1}</jboss.test.host.slave.address>
-                                <server.jvm.args>${surefire.system.args} ${jvm.args.ip.server} ${jvm.args.jacoco} ${jvm.args.other} ${jvm.args.timeouts} -Djbossas.ts.dir=${jbossas.ts.dir}</server.jvm.args>
+                                <server.jvm.args>${surefire.system.args} ${jvm.args.ip.server} ${jvm.args.other} ${jvm.args.timeouts} -Djbossas.ts.dir=${jbossas.ts.dir} ${extra.server.jvm.args}</server.jvm.args>
                                 <jboss.test.rbac.soak.clients>${jboss.test.rbac.soak.clients}</jboss.test.rbac.soak.clients>
                                 <jboss.test.rbac.soak.iterations>${jboss.test.rbac.soak.iterations}</jboss.test.rbac.soak.iterations>
                             </systemPropertyVariables>
@@ -300,6 +260,50 @@
                                 <include>org/jboss/as/test/integration/domain/rbac/RbacSoakTest.java</include>
                             </includes>
                             <argLine />
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>elytron.profile</id>
+            <activation>
+                <property>
+                    <name>elytron</name>
+                </property>
+                <file>
+                    <exists>${ts.elytron.cli}</exists>
+                </file>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.wildfly.plugins</groupId>
+                        <artifactId>wildfly-maven-plugin</artifactId>
+                        <version>${version.org.wildfly.plugin}</version>
+                        <executions>
+                            <execution>
+                                <phase>process-test-resources</phase>
+                                <goals>
+                                    <goal>execute-commands</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <offline>true</offline>
+                            <scripts>
+                                <script>${ts.elytron.cli}</script>
+                            </scripts>
+                            <jboss-home>${project.build.directory}/wildfly</jboss-home>
+                            <stdout>none</stdout>
+                            <java-opts>${modular.jdk.args}</java-opts>
+                            <system-properties>
+                                <public.ip>${node0}</public.ip>
+                                <management.ip>${node0}</management.ip>
+                                <maven.repo.local>${settings.localRepository}</maven.repo.local>
+                                <module.path>${jboss.dist}/modules</module.path>
+                            </system-properties>
                         </configuration>
                     </plugin>
                 </plugins>

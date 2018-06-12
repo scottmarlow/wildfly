@@ -27,9 +27,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>wildfly-testsuite</artifactId>
         <groupId>org.wildfly</groupId>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <artifactId>wildfly-testsuite</artifactId>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-testsuite-compat</artifactId>
@@ -39,18 +43,10 @@
         <!-- This project's testsuite dir. To be changed for every submodule (until we figure out how to do it automatically). -->
         <jbossas.ts.dir>${basedir}/..</jbossas.ts.dir>
 
-        <!-- ${jbossas.project.dir} defined in /testsuite. But for separated runs runs, let's duplicate it here. -->
-        <jbossas.project.dir>${jbossas.ts.dir}/..</jbossas.project.dir>
-
         <!-- Used to provide an absolute location for the distribution under test. -->
         <!-- This value is overridden in modules with the correct relative pathname. -->
         <jboss.dist>${jbossas.project.dir}/${wildfly.build.output.dir}</jboss.dist>
-        <jboss.home>${jboss.dist}</jboss.home>
-
-        <!-- Used to provide an absolute location for the XSLT scripts. -->
-        <!-- This value is overridden in submodules with the correct relative path. -->
-        <xslt.scripts.dir>${basedir}/../integration/src/test/xslt</xslt.scripts.dir>
-        <surefire.excludeTests />
+        <ts.elytron.cli>../shared/enable-elytron.cli</ts.elytron.cli>
     </properties>
 
     <!--
@@ -58,28 +54,14 @@
     -->
     <dependencies>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.eclipse.persistence</groupId>
             <artifactId>eclipselink</artifactId>
-            <version>${version.org.eclipselink.version}</version>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.eclipse.persistence</groupId>
-                    <artifactId>javax.persistence</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>
             <groupId>org.apache.openjpa</groupId>
             <artifactId>openjpa-all</artifactId>
-            <version>${version.org.apache.openjpa}</version>
             <scope>test</scope>
         </dependency>
 
@@ -88,10 +70,10 @@
             <artifactId>arquillian-junit-container</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
+      <!--  <dependency>
             <groupId>org.jboss.arquillian.testenricher</groupId>
             <artifactId>arquillian-testenricher-initialcontext</artifactId>
-        </dependency>
+        </dependency>-->
         <dependency>
             <groupId>org.wildfly.arquillian</groupId>
             <artifactId>wildfly-arquillian-container-managed</artifactId>
@@ -108,14 +90,14 @@
         </dependency>
         <dependency>
             <groupId>org.jboss.spec.javax.servlet</groupId>
-            <artifactId>jboss-servlet-api_3.1_spec</artifactId>
+            <artifactId>jboss-servlet-api_4.0_spec</artifactId>
         </dependency>
         <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.wildfly</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>jipijapa-hibernate5</artifactId>
         </dependency>
         <dependency>
@@ -123,37 +105,27 @@
             <artifactId>hibernate-entitymanager</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.wildfly</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>jipijapa-eclipselink</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.wildfly</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>jipijapa-openjpa</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml</groupId>
+            <artifactId>classmate</artifactId>
+       </dependency>
     </dependencies>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.wildfly</groupId>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>jipijapa-eclipselink</artifactId>
                 <version>${project.version}</version>
                 <scope>test</scope>
             </dependency>
-
-            <dependency>
-            <groupId>org.eclipse.persistence</groupId>
-            <artifactId>eclipselink</artifactId>
-            <version>${version.org.eclipselink.version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.eclipse.persistence</groupId>
-                    <artifactId>javax.persistence</artifactId>
-                </exclusion>
-            </exclusions>
-            </dependency>
-
         </dependencies>
     </dependencyManagement>
 
@@ -180,44 +152,20 @@
                 </executions>
             </plugin>
 
-            <!-- Setup standalone server IP and logging configuration -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>xml-maven-plugin</artifactId>
-            </plugin>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <!-- Prevent test and server output appearing in console. -->
-                    <redirectTestOutputToFile>${testLogToFile}</redirectTestOutputToFile>
-                    <enableAssertions>true</enableAssertions>
-                    <!--<basedir>${jbossas.ts.integ.dir}</basedir>  <!- - "The base directory of the project being tested." Sets ${basedir}. -->
                     <workingDirectory>${basedir}/target/workdir</workingDirectory> <!-- Work in submodule's own dir. -->
 
+                    <!-- Forked process timeout -->
+                    <forkedProcessTimeoutInSeconds>${surefire.forked.process.timeout}</forkedProcessTimeoutInSeconds>
                     <!-- System properties to forked surefire JVM which runs clients. -->
-                    <argLine>${jvm.args.ip.client} ${jvm.args.timeouts}</argLine>
-                    <excludes>
-                        <exclude>${surefire.excludeTests}</exclude>
-                    </excludes>
+                    <argLine>${jvm.args.ip.client} ${jvm.args.timeouts} ${surefire.system.args}</argLine>
                     <!-- System properties passed to test cases -->
                     <systemPropertyVariables combine.children="append">
                         <node0>${node0}</node0>
-                        <node1>${node1}</node1>
-                        <mcast>${mcast}</mcast>
-
-                        <jbossas.ts.submodule.dir>${basedir}</jbossas.ts.submodule.dir>
-                        <jbossas.ts.integ.dir>${jbossas.ts.integ.dir}</jbossas.ts.integ.dir>
-                        <jbossas.ts.dir>${jbossas.ts.dir}</jbossas.ts.dir>
-                        <jbossas.project.dir>${jbossas.project.dir}</jbossas.project.dir>
-                        <jboss.dist>${jboss.dist}</jboss.dist>
-
-                        <!--
-                            Used in arquillian.xml - arguments for all JBoss AS instances.
-                            System properties are duplicated here until ARQ-647 is implemented.
-                        -->
-                        <server.jvm.args>${surefire.system.args} ${jvm.args.ip.server} ${jvm.args.timeouts} -Dnode0=${node0} -Dnode1=${node1} -Dmcast=${mcast} -Declipselink.archive.factory=org.jipijapa.eclipselink.JBossArchiveFactoryImpl</server.jvm.args>
+                        <server.jvm.args>${surefire.system.args} ${jvm.args.ip.server} ${jvm.args.timeouts} ${extra.server.jvm.args}</server.jvm.args>
                     </systemPropertyVariables>
 
                 </configuration>
@@ -227,15 +175,47 @@
 
     <profiles>
         <profile>
-            <id>jdk9</id>
+            <id>elytron.profile</id>
             <activation>
-                <jdk>9</jdk>
+                <property>
+                    <name>elytron</name>
+                </property>
+                <file>
+                    <exists>${ts.elytron.cli}</exists>
+                </file>
             </activation>
-            <properties>
-                <!--WFLY-6777 We disable OpenJPA test on JDK9, as openjdk-s serp bytecode enhancer hangs deployment. -->
-                <surefire.excludeTests>**/OpenJPASharedModuleProviderTestCase.java</surefire.excludeTests>
-            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.wildfly.plugins</groupId>
+                        <artifactId>wildfly-maven-plugin</artifactId>
+                        <version>${version.org.wildfly.plugin}</version>
+                        <executions>
+                            <execution>
+                                <phase>process-test-resources</phase>
+                                <goals>
+                                    <goal>execute-commands</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <offline>true</offline>
+                            <scripts>
+                                <script>${ts.elytron.cli}</script>
+                            </scripts>
+                            <jboss-home>${project.build.directory}/wildfly</jboss-home>
+                            <stdout>none</stdout>
+                            <java-opts>${modular.jdk.args}</java-opts>
+                            <system-properties>
+                                <maven.repo.local>${settings.localRepository}</maven.repo.local>
+                                <module.path>${jboss.dist}/modules</module.path>
+                            </system-properties>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
+
     </profiles>
 
 

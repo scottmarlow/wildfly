@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -24,12 +24,12 @@ package org.wildfly.extension.undertow;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.util.function.Supplier;
 
 import javax.net.ssl.SSLContext;
 
 import io.undertow.UndertowOptions;
+import io.undertow.connector.ByteBufferPool;
 import io.undertow.protocols.ssl.UndertowXnioSsl;
 import io.undertow.server.OpenListener;
 import io.undertow.server.protocol.http.AlpnOpenListener;
@@ -45,7 +45,6 @@ import org.xnio.Option;
 import org.xnio.OptionMap;
 import org.xnio.OptionMap.Builder;
 import org.xnio.Options;
-import org.xnio.Pool;
 import org.xnio.Sequence;
 import org.xnio.StreamConnection;
 import org.xnio.XnioWorker;
@@ -65,18 +64,41 @@ public class HttpsListenerService extends HttpListenerService {
     private volatile AcceptingChannel<SslConnection> sslServer;
     static final String PROTOCOL = "https";
     private final String cipherSuites;
+    private final boolean proxyProtocol;
 
-    public HttpsListenerService(final String name, String serverName, OptionMap listenerOptions, String cipherSuites, OptionMap socketOptions) {
-        this(name, serverName, listenerOptions, cipherSuites, socketOptions, false, false);
+    public HttpsListenerService(final String name, String serverName, OptionMap listenerOptions, String cipherSuites, OptionMap socketOptions, boolean proxyProtocol) {
+        this(name, serverName, listenerOptions, cipherSuites, socketOptions, false, false, proxyProtocol);
     }
 
-    HttpsListenerService(final String name, String serverName, OptionMap listenerOptions, String cipherSuites, OptionMap socketOptions, boolean certificateForwarding, boolean proxyAddressForwarding) {
-        super(name, serverName, listenerOptions, socketOptions, certificateForwarding, proxyAddressForwarding);
+    HttpsListenerService(final String name, String serverName, OptionMap listenerOptions, String cipherSuites, OptionMap socketOptions, boolean certificateForwarding, boolean proxyAddressForwarding, boolean proxyProtocol) {
+        super(name, serverName, listenerOptions, socketOptions, certificateForwarding, proxyAddressForwarding, proxyProtocol);
         this.cipherSuites = cipherSuites;
+        this.proxyProtocol = proxyProtocol;
     }
 
     void setSSLContextSupplier(Supplier<SSLContext> sslContextSupplier) {
         this.sslContextSupplier = sslContextSupplier;
+    }
+
+    @Override
+    protected UndertowXnioSsl getSsl() {
+        SSLContext sslContext = sslContextSupplier.get();
+        OptionMap combined = getSSLOptions(sslContext);
+
+        return new UndertowXnioSsl(worker.getValue().getXnio(), combined, sslContext);
+    }
+
+    protected OptionMap getSSLOptions(SSLContext sslContext) {
+        Builder builder = OptionMap.builder().addAll(commonOptions);
+        builder.addAll(socketOptions);
+        builder.set(Options.USE_DIRECT_BUFFERS, true);
+
+        if (cipherSuites != null) {
+            String[] cipherList = CipherSuiteSelector.fromString(cipherSuites).evaluate(sslContext.getSupportedSSLParameters().getCipherSuites());
+            builder.setSequence((Option<Sequence<String>>) HttpsListenerResourceDefinition.ENABLED_CIPHER_SUITES.getOption(), cipherList);
+        }
+
+        return builder.getMap();
     }
 
     @Override
@@ -85,7 +107,7 @@ public class HttpsListenerService extends HttpListenerService {
             try {
                 return createAlpnOpenListener();
             } catch (Throwable e) {
-                UndertowLogger.ROOT_LOGGER.alpnNotFound();
+                UndertowLogger.ROOT_LOGGER.alpnNotFound(getName());
                 UndertowLogger.ROOT_LOGGER.debug("Exception creating ALPN listener", e);
                 return super.createOpenListener();
             }
@@ -96,9 +118,10 @@ public class HttpsListenerService extends HttpListenerService {
 
     private OpenListener createAlpnOpenListener() {
         OptionMap undertowOptions = OptionMap.builder().addAll(commonOptions).addAll(listenerOptions).set(UndertowOptions.ENABLE_CONNECTOR_STATISTICS, getUndertowService().isStatisticsEnabled()).getMap();
-        Pool<ByteBuffer> bufferPool = getBufferPool().getValue();
+        ByteBufferPool bufferPool = getBufferPool().getValue();
         HttpOpenListener http =  new HttpOpenListener(bufferPool, undertowOptions);
         AlpnOpenListener alpn = new AlpnOpenListener(bufferPool, undertowOptions, http);
+
         if(listenerOptions.get(UndertowOptions.ENABLE_HTTP2, false)) {
             Http2OpenListener http2 = new Http2OpenListener(bufferPool, undertowOptions, "h2");
             alpn.addProtocol(Http2OpenListener.HTTP2, http2, 10);
@@ -108,25 +131,21 @@ public class HttpsListenerService extends HttpListenerService {
         return alpn;
     }
 
+
+
     @Override
     protected void startListening(XnioWorker worker, InetSocketAddress socketAddress, ChannelListener<AcceptingChannel<StreamConnection>> acceptListener) throws IOException {
-        SSLContext sslContext = sslContextSupplier.get();
-        Builder builder = OptionMap.builder().addAll(commonOptions);
-        builder.addAll(socketOptions);
-        builder.set(Options.USE_DIRECT_BUFFERS, true);
 
-        if (cipherSuites != null) {
-            String[] cipherList = CipherSuiteSelector.fromString(cipherSuites).evaluate(sslContext.getSupportedSSLParameters().getCipherSuites());
-            builder.setSequence((Option<Sequence<String>>) HttpsListenerResourceDefinition.ENABLED_CIPHER_SUITES.getOption(), cipherList);
+        if(proxyProtocol) {
+            sslServer = worker.createStreamConnectionServer(socketAddress, (ChannelListener) acceptListener, getSSLOptions(sslContextSupplier.get()));
+        } else {
+            XnioSsl ssl = getSsl();
+            sslServer = ssl.createSslConnectionServer(worker, socketAddress, (ChannelListener) acceptListener, getSSLOptions(sslContextSupplier.get()));
         }
-
-        OptionMap combined = builder.getMap();
-
-        XnioSsl xnioSsl = new UndertowXnioSsl(worker.getXnio(), combined, sslContext);
-        sslServer = xnioSsl.createSslConnectionServer(worker, socketAddress, (ChannelListener) acceptListener, combined);
         sslServer.resumeAccepts();
 
-        UndertowLogger.ROOT_LOGGER.listenerStarted("HTTPS", getName(), NetworkUtils.formatIPAddressForURI(socketAddress.getAddress()), socketAddress.getPort());
+        final InetSocketAddress boundAddress = sslServer.getLocalAddress(InetSocketAddress.class);
+        UndertowLogger.ROOT_LOGGER.listenerStarted("HTTPS", getName(), NetworkUtils.formatIPAddressForURI(boundAddress.getAddress()), boundAddress.getPort());
     }
 
     @Override
@@ -136,16 +155,17 @@ public class HttpsListenerService extends HttpListenerService {
 
     @Override
     protected void stopListening() {
+        final InetSocketAddress boundAddress = sslServer.getLocalAddress(InetSocketAddress.class);
         sslServer.suspendAccepts();
         UndertowLogger.ROOT_LOGGER.listenerSuspend("HTTPS", getName());
         IoUtils.safeClose(sslServer);
         sslServer = null;
-        UndertowLogger.ROOT_LOGGER.listenerStopped("HTTPS", getName(), NetworkUtils.formatIPAddressForURI(getBinding().getValue().getSocketAddress().getAddress()), getBinding().getValue().getSocketAddress().getPort());
+        UndertowLogger.ROOT_LOGGER.listenerStopped("HTTPS", getName(), NetworkUtils.formatIPAddressForURI(boundAddress.getAddress()), boundAddress.getPort());
         httpListenerRegistry.getValue().removeListener(getName());
     }
 
     @Override
-    protected String getProtocol() {
+    public String getProtocol() {
         return PROTOCOL;
     }
 }

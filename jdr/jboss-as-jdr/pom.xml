@@ -29,7 +29,11 @@
     <parent>
         <groupId>org.wildfly</groupId>
         <artifactId>jdr</artifactId>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-jdr</artifactId>

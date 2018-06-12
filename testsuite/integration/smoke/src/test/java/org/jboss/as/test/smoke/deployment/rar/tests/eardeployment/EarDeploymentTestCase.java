@@ -45,7 +45,6 @@ import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.ResourceAdapterArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -107,7 +106,6 @@ public class EarDeploymentTestCase extends ContainerResourceMgmtTestBase {
     }
 
     @Test
-    @Ignore
     public void testConfiguration() throws Throwable {
         assertNotNull("Deployment metadata for ear not found", managementClient.getProtocolMetaData(deploymentName));
 
@@ -116,7 +114,7 @@ public class EarDeploymentTestCase extends ContainerResourceMgmtTestBase {
         address.protect();
         final ModelNode snapshot = new ModelNode();
         snapshot.get(OP).set("read-resource");
-        snapshot.get("recursive").set("true");
+        snapshot.get("recursive").set(true);
         snapshot.get(OP_ADDR).set(address);
         executeOperation(snapshot);
     }

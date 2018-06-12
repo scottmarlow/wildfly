@@ -27,8 +27,8 @@ import javax.annotation.Resource;
 import javax.ejb.Stateless;
 import javax.transaction.TransactionManager;
 
-import com.arjuna.ats.jta.transaction.Transaction;
 import org.jboss.ejb3.annotation.TransactionTimeout;
+import org.wildfly.transaction.client.LocalTransaction;
 
 @Stateless
 @TransactionTimeout(value=5, unit=TimeUnit.SECONDS)
@@ -39,8 +39,7 @@ public class BeanWithTimeoutValue implements TimeoutRemoteView, TimeoutLocalView
 
     protected int getTimeout() {
         try {
-            Transaction tx = (Transaction) transactionManager.getTransaction();
-            return tx.getTimeout();
+            return ((LocalTransaction) transactionManager.getTransaction()).getTransactionTimeout();
         } catch (Exception e)
         {
             return -1;
@@ -65,6 +64,7 @@ public class BeanWithTimeoutValue implements TimeoutRemoteView, TimeoutLocalView
     /**
      * This method has method-level timeout specified on remote-view
      */
+    @TransactionTimeout(value=7, unit=TimeUnit.SECONDS)
     public int getRemoteMethodTimeout() {
         return getTimeout();
     }

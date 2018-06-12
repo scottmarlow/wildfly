@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -22,8 +22,6 @@
 
 package org.wildfly.extension.undertow.filters;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
-
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -35,7 +33,7 @@ import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PersistentResourceDefinition;
-import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
+import org.jboss.as.controller.ServiceRemoveStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.operations.validation.IntRangeValidator;
 import org.jboss.dmr.ModelNode;
@@ -43,8 +41,10 @@ import org.jboss.dmr.ModelType;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceTarget;
+import org.wildfly.extension.undertow.Capabilities;
 import org.wildfly.extension.undertow.Constants;
 import org.wildfly.extension.undertow.FilterLocation;
+import org.wildfly.extension.undertow.PredicateValidator;
 import org.wildfly.extension.undertow.UndertowExtension;
 import org.wildfly.extension.undertow.UndertowService;
 
@@ -54,14 +54,17 @@ import org.wildfly.extension.undertow.UndertowService;
 public class FilterRefDefinition extends PersistentResourceDefinition {
 
     public static final AttributeDefinition PREDICATE = new SimpleAttributeDefinitionBuilder("predicate", ModelType.STRING)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
+            .setRestartAllServices()
+            .setValidator(PredicateValidator.INSTANCE)
             .build();
     public static final AttributeDefinition PRIORITY = new SimpleAttributeDefinitionBuilder("priority", ModelType.INT)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setDefaultValue(new ModelNode(1))
             .setValidator(new IntRangeValidator(1, true, true))
+            .setRestartAllServices()
             .build();
 
     public static final FilterRefDefinition INSTANCE = new FilterRefDefinition();
@@ -71,7 +74,12 @@ public class FilterRefDefinition extends PersistentResourceDefinition {
         super(UndertowExtension.PATH_FILTER_REF,
                 UndertowExtension.getResolver(Constants.FILTER_REF),
                 new FilterRefAdd(),
-                ReloadRequiredRemoveStepHandler.INSTANCE);
+                new ServiceRemoveStepHandler(new FilterRefAdd()) {
+                    @Override
+                    protected ServiceName serviceName(String name, PathAddress address) {
+                        return UndertowService.getFilterRefServiceName(address, name);
+                    }
+                });
     }
 
     @Override
@@ -87,27 +95,27 @@ public class FilterRefDefinition extends PersistentResourceDefinition {
 
         @Override
         protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
-            final PathAddress address = PathAddress.pathAddress(operation.get(OP_ADDR));
-            final String name = address.getLastElement().getValue();
+            final PathAddress address = context.getCurrentAddress();
+            final String name = context.getCurrentAddressValue();
 
             final String locationType = address.getElement(address.size() - 2).getKey();
 
             ServiceName locationService;
 
             if(locationType.equals(Constants.HOST)) {
-                final PathAddress hostAddress = address.subAddress(0, address.size() - 1);
-                final PathAddress serverAddress = hostAddress.subAddress(0, hostAddress.size() - 1);
+                final PathAddress hostAddress = address.getParent();
+                final PathAddress serverAddress = hostAddress.getParent();
                 final String serverName = serverAddress.getLastElement().getValue();
                 final String hostName = hostAddress.getLastElement().getValue();
-                locationService = UndertowService.virtualHostName(serverName, hostName);
+                locationService = context.getCapabilityServiceName(Capabilities.CAPABILITY_HOST, FilterLocation.class, serverName, hostName);
             } else {
-                final PathAddress locationAddress = address.subAddress(0, address.size() - 1);
-                final PathAddress hostAddress = locationAddress.subAddress(0, locationAddress.size() - 1);
-                final PathAddress serverAddress = hostAddress.subAddress(0, hostAddress.size() - 1);
+                final PathAddress locationAddress = address.getParent();
+                final PathAddress hostAddress = locationAddress.getParent();
+                final PathAddress serverAddress = hostAddress.getParent();
                 final String locationName = locationAddress.getLastElement().getValue();
                 final String serverName = serverAddress.getLastElement().getValue();
                 final String hostName = hostAddress.getLastElement().getValue();
-                locationService = UndertowService.locationServiceName(serverName, hostName, locationName);
+                locationService = context.getCapabilityServiceName(Capabilities.CAPABILITY_LOCATION, FilterLocation.class, serverName, hostName, locationName);
             }
 
             Predicate predicate = null;

@@ -20,7 +20,7 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<domain xmlns="urn:jboss:domain:5.0">
+<domain xmlns="urn:jboss:domain:7.0">
 
     <extensions>
         <extension module="org.jboss.as.clustering.infinispan"/>
@@ -76,7 +76,7 @@
                 <worker name="default" />
                 <buffer-pool name="default" />
             </subsystem>
-            <subsystem xmlns="urn:jboss:domain:undertow:1.2">
+            <subsystem xmlns="urn:jboss:domain:undertow:6.0">
                 <buffer-cache name="default" />
                 <server name="default-server">
                     <http-listener name="default" socket-binding="http"/>
@@ -98,7 +98,7 @@
                 <worker name="default" />
                 <buffer-pool name="default" />
             </subsystem>
-            <subsystem xmlns="urn:jboss:domain:undertow:1.2">
+            <subsystem xmlns="urn:jboss:domain:undertow:6.0">
                 <buffer-cache name="default" />
                 <server name="default-server">
                     <http-listener name="default" socket-binding="http"/>
@@ -335,7 +335,7 @@
             <subsystem xmlns="urn:jboss:domain:messaging-activemq:1.0">
                 <server name="default"
                         persistence-enabled="false">
-                    <journal file-size="102400"/>
+                    <journal file-size="1024" />
                     <security-setting name="#">
                         <role name="guest" send="true" consume="true" create-non-durable-queue="true" delete-non-durable-queue="true"/>
                     </security-setting>
@@ -375,7 +375,7 @@
                 <worker name="default"/>
                 <buffer-pool name="default"/>
             </subsystem>
-            <subsystem xmlns="urn:jboss:domain:undertow:2.0">
+            <subsystem xmlns="urn:jboss:domain:undertow:6.0">
                 <buffer-cache name="default" />
                 <server name="default-server">
                     <http-listener name="default" socket-binding="http"/>
@@ -407,9 +407,6 @@
                     <file relative-to="jboss.server.log.dir" path="server.log"/>
                     <suffix value=".yyyy-MM-dd"/>
                 </periodic-rotating-file-handler>
-                <logger category="org.jboss.as.controller">
-                    <level name="TRACE"/>
-                </logger>
                 <root-logger>
                     <level name="INFO"/>
                     <handlers>
@@ -603,7 +600,7 @@
             <subsystem xmlns="urn:jboss:domain:messaging-activemq:1.0">
                 <server name="default"
                         persistence-enabled="false">
-                    <journal file-size="102400"/>
+                    <journal file-size="1024" />
                     <security-setting name="#">
                         <role name="guest" send="true" consume="true" create-non-durable-queue="true" delete-non-durable-queue="true"/>
                     </security-setting>
@@ -752,14 +749,17 @@
         </server-group>
 
         <server-group name="ignored-profile" profile="ignored">
+            <jvm name="default" />
             <socket-binding-group ref="standard-sockets"/>
         </server-group>
 
         <server-group name="ignored-sockets" profile="default">
+            <jvm name="default" />
             <socket-binding-group ref="ignored"/>
         </server-group>
 
         <server-group name="minimal" profile="minimal">
+            <jvm name="default" />
             <socket-binding-group ref="standard-sockets"/>
         </server-group>
 

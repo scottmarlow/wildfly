@@ -22,6 +22,12 @@
 
 package org.jboss.as.test.smoke.jms;
 
+import javax.ejb.EJB;
+import javax.enterprise.event.Observes;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.TextMessage;
+
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.arquillian.api.ServerSetup;
@@ -38,12 +44,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import javax.ejb.EJB;
-import javax.enterprise.event.Observes;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.TextMessage;
 
 /**
  * Tests sending JMS messages to a topic within a transaction
@@ -106,7 +106,7 @@ public class SendToTopicFromWithinTransactionTest {
     public void receivedMessage(@Observes Message message) {
         messageReceived = true;
         try {
-            logger.info("caught event... message=" + ((TextMessage) message).getText());
+            logger.trace("caught event... message=" + ((TextMessage) message).getText());
         } catch (JMSException ex) {
             ex.printStackTrace();
             Assert.fail(ex.getMessage());

@@ -48,8 +48,6 @@ import org.jboss.staxmapper.XMLExtendedStreamReader;
  */
 public class EJB3Subsystem13Parser extends EJB3Subsystem12Parser {
 
-    public static final EJB3Subsystem13Parser INSTANCE = new EJB3Subsystem13Parser();
-
     protected EJB3Subsystem13Parser() {
     }
 
@@ -84,7 +82,7 @@ public class EJB3Subsystem13Parser extends EJB3Subsystem12Parser {
             final EJB3SubsystemXMLAttribute attribute = EJB3SubsystemXMLAttribute.forName(reader.getAttributeLocalName(i));
             switch (attribute) {
                 case ENABLED:
-                    EJB3SubsystemRootResourceDefinition.ENABLE_STATISTICS.parseAndSetParameter(value, ejb3SubsystemAddOperation, reader);
+                    EJB3SubsystemRootResourceDefinition.STATISTICS_ENABLED.parseAndSetParameter(value, ejb3SubsystemAddOperation, reader);
                     // found the mandatory attribute
                     missingRequiredAttributes.remove(EJB3SubsystemXMLAttribute.ENABLED);
                     break;

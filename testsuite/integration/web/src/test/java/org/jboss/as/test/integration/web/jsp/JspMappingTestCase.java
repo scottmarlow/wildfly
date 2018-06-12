@@ -20,13 +20,19 @@
  */
 package org.jboss.as.test.integration.web.jsp;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
@@ -37,10 +43,6 @@ import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
 
 /**
  * Test case for JSP pattern declaration in web.xml
@@ -82,49 +84,52 @@ public class JspMappingTestCase {
 
     @Test
     public void testSimpleJSP() throws Exception {
-        log.info("Simple JSP");
-        DefaultHttpClient httpclient = new DefaultHttpClient();
-        HttpResponse response = httpclient.execute(new HttpGet(webappUrl.toURI() + "index.jsp"));
-        try (InputStream in = response.getEntity().getContent()) {
-            String content = getContent(in);
-            assertThat(content, containsString("1 + 1 = 2"));
+        log.trace("Simple JSP");
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpResponse response = httpClient.execute(new HttpGet(webappUrl.toURI() + "index.jsp"));
+            try (InputStream in = response.getEntity().getContent()) {
+                String content = getContent(in);
+                assertThat(content, containsString("1 + 1 = 2"));
+            }
         }
     }
 
     @Test
     public void testFalseCss() throws Exception {
-        log.info("False CSS");
-        DefaultHttpClient httpclient = new DefaultHttpClient();
-        HttpResponse response = httpclient.execute(new HttpGet(webappUrl.toURI() + "test.css"));
-        try (InputStream in = response.getEntity().getContent()) {
-            String content = getContent(in);
-            assertThat(content, containsString("1 + 1 = 2"));
+        log.trace("False CSS");
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpResponse response = httpClient.execute(new HttpGet(webappUrl.toURI() + "test.css"));
+            try (InputStream in = response.getEntity().getContent()) {
+                String content = getContent(in);
+                assertThat(content, containsString("1 + 1 = 2"));
+            }
         }
 
     }
 
     @Test
     public void testFalseHtmlPage() throws Exception {
-        log.info("False HTML");
-        DefaultHttpClient httpclient = new DefaultHttpClient();
-        HttpResponse response = httpclient.execute(new HttpGet(webappUrl.toURI() + "test.html"));
-        try (InputStream in = response.getEntity().getContent()) {
-            String content = getContent(in);
-            assertThat(content, containsString("1 + 1 = 2"));
+        log.trace("False HTML");
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpResponse response = httpClient.execute(new HttpGet(webappUrl.toURI() + "test.html"));
+            try (InputStream in = response.getEntity().getContent()) {
+                String content = getContent(in);
+                assertThat(content, containsString("1 + 1 = 2"));
+            }
         }
 
     }
 
     @Test
     public void testTrueHtmlPage() throws Exception {
-        log.info("True HTML");
-        DefaultHttpClient httpclient = new DefaultHttpClient();
-        HttpResponse response = httpclient.execute(new HttpGet(webappUrl.toURI() + "index.html"));
-        try (InputStream in = response.getEntity().getContent()) {
-            String content = getContent(in);
-            assertThat(content, not(containsString("1 + 1 = 2")));
+        log.trace("True HTML");
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            HttpResponse response = httpClient.execute(new HttpGet(webappUrl.toURI() + "index.html"));
+            try (InputStream in = response.getEntity().getContent()) {
+                String content = getContent(in);
+                assertThat(content, not(containsString("1 + 1 = 2")));
+            }
         }
-
     }
 
     private String getContent(InputStream content) throws Exception {

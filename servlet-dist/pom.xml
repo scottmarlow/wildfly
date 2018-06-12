@@ -30,22 +30,27 @@
     <parent>
         <groupId>org.wildfly</groupId>
         <artifactId>wildfly-parent</artifactId>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-servlet-dist</artifactId>
     <name>WildFly: Servlet Distribution</name>
     <packaging>jar</packaging>
+
     <dependencies>
         <dependency>
-            <groupId>org.wildfly</groupId>
-            <artifactId>wildfly-servlet-feature-pack</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>wildfly-servlet-galleon-pack</artifactId>
             <type>pom</type>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.wildfly</groupId>
-            <artifactId>wildfly-servlet-feature-pack</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>wildfly-servlet-galleon-pack</artifactId>
             <type>zip</type>
             <exclusions>
                 <exclusion>
@@ -56,24 +61,31 @@
         </dependency>
     </dependencies>
 
-    <properties>
-        <product.release.name>WildFly Servlet</product.release.name>
-    </properties>
     <build>
-        <finalName>${server.output.dir.prefix}-servlet-${project.version}</finalName>
+        <finalName>${server.output.dir.prefix}-servlet-${server.output.dir.version}</finalName>
         <plugins>
             <plugin>
-                <groupId>org.wildfly.build</groupId>
-                <artifactId>wildfly-server-provisioning-maven-plugin</artifactId>
+                <groupId>org.jboss.galleon</groupId>
+                <artifactId>galleon-maven-plugins</artifactId>
                 <executions>
                     <execution>
                         <id>server-provisioning</id>
                         <goals>
-                            <goal>build</goal>
+                            <goal>provision</goal>
                         </goals>
-                        <phase>compile</phase>
+                        <phase>prepare-package</phase>
                         <configuration>
-                            <config-file>server-provisioning.xml</config-file>
+                            <install-dir>${basedir}/target/${project.build.finalName}</install-dir>
+                            <plugin-options>
+                                <jboss-fork-embedded/>
+                            </plugin-options>
+                            <feature-packs>
+                                <feature-pack>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>wildfly-servlet-galleon-pack</artifactId>
+                                    <version>${project.version}</version>
+                                </feature-pack>
+                            </feature-packs>
                         </configuration>
                     </execution>
                 </executions>
@@ -83,23 +95,27 @@
                 <artifactId>maven-resources-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>distribution-configuration</id>
+                        <id>verifications-configuration</id>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
                         <phase>process-classes</phase>
                         <configuration>
                             <overwrite>true</overwrite>
-                            <outputDirectory>${basedir}/target/${project.build.finalName}</outputDirectory>
+                            <outputDirectory>${basedir}/target/verifier</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>src/distribution/resources</directory>
+                                    <directory>src/verifier</directory>
                                     <filtering>true</filtering>
                                 </resource>
                             </resources>
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-verifier-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

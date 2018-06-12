@@ -20,9 +20,9 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<subsystem xmlns="urn:jboss:domain:jgroups:4.0">
+<subsystem xmlns="urn:jboss:domain:jgroups:6.0">
     <stacks default="maximal">
-        <stack name="maximal">
+        <stack name="maximal" statistics-enabled="true">
             <transport type="TCP"
                        module="org.jgroups"
                        socket-binding="jgroups-tcp"
@@ -37,16 +37,16 @@
                        site="site1">
                 <property name="enable_bundling">true</property>
             </transport>
-            <protocol type="MPING" module="org.jgroups">
+            <socket-protocol type="MPING" module="org.jgroups" socket-binding="jgroups-mping">
                 <property name="ip_ttl">1</property>
                 <property name="receive_on_all_interfaces">true</property>
-            </protocol>
-            <protocol type="MERGE2"/>
-            <protocol type="FD_SOCK" socket-binding="jgroups-udp-fd"/>
+            </socket-protocol>
+            <protocol type="MERGE3"/>
+            <protocol type="FD_SOCK"/>
             <protocol type="FD"/>
             <protocol type="VERIFY_SUSPECT"/>
             <protocol type="pbcast.NAKACK2"/>
-            <protocol type="UNICAST2"/>
+            <protocol type="UNICAST3"/>
             <protocol type="pbcast.STABLE"/>
             <protocol type="pbcast.GMS"/>
             <protocol type="UFC"/>
@@ -54,8 +54,8 @@
             <protocol type="FRAG2"/>
             <protocol type="RSVP"/>
         </stack>
-        <stack name="minimal">
-            <transport type="UDP"/>
+        <stack name="minimal" statistics-enabled="true">
+            <transport type="UDP" socket-binding="jgroups-udp"/>
         </stack>
     </stacks>
 </subsystem>

@@ -26,7 +26,6 @@ import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map;
 
 import org.wildfly.clustering.web.LocalContextFactory;
-import org.wildfly.clustering.web.infinispan.logging.InfinispanWebLogger;
 import org.wildfly.clustering.web.session.ImmutableSession;
 import org.wildfly.clustering.web.session.ImmutableSessionAttributes;
 import org.wildfly.clustering.web.session.ImmutableSessionMetaData;
@@ -93,16 +92,6 @@ public class InfinispanSessionFactory<V, L> implements SessionFactory<Infinispan
     }
 
     @Override
-    public void evict(String id) {
-        try {
-            this.metaDataFactory.evict(id);
-            this.attributesFactory.evict(id);
-        } catch (Throwable e) {
-            InfinispanWebLogger.ROOT_LOGGER.failedToPassivateSession(e, id);
-        }
-    }
-
-    @Override
     public SessionMetaDataFactory<InfinispanSessionMetaData<L>, L> getMetaDataFactory() {
         return this.metaDataFactory;
     }
@@ -121,9 +110,7 @@ public class InfinispanSessionFactory<V, L> implements SessionFactory<Infinispan
     }
 
     @Override
-    public ImmutableSession createImmutableSession(String id, Map.Entry<InfinispanSessionMetaData<L>, V> entry) {
-        ImmutableSessionMetaData metaData = this.metaDataFactory.createImmutableSessionMetaData(id, entry.getKey());
-        ImmutableSessionAttributes attributes = this.attributesFactory.createImmutableSessionAttributes(id, entry.getValue());
+    public ImmutableSession createImmutableSession(String id, ImmutableSessionMetaData metaData, ImmutableSessionAttributes attributes) {
         return new InfinispanImmutableSession(id, metaData, attributes);
     }
 }

@@ -25,6 +25,8 @@ package org.jboss.as.jpa.config;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.persistence.EntityManagerFactory;
+
 import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
 
 
@@ -40,9 +42,9 @@ public class Configuration {
     public static final String PROVIDER_MODULE = "jboss.as.jpa.providerModule";
 
     /**
-     * Hibernate 4.3.x (default) persistence provider
+     * Hibernate main module (default) persistence provider
      */
-    public static final String PROVIDER_MODULE_HIBERNATE4_3 = "org.hibernate";
+    public static final String PROVIDER_MODULE_HIBERNATE = "org.hibernate";
 
     /**
      * Hibernate 4.1.x persistence provider, note that Hibernate 4.1.x is expected to be in the 4.1 slot
@@ -67,7 +69,7 @@ public class Configuration {
     /**
      * default if no PROVIDER_MODULE is specified.
      */
-    public static final String PROVIDER_MODULE_DEFAULT = PROVIDER_MODULE_HIBERNATE4_3;
+    public static final String PROVIDER_MODULE_DEFAULT = PROVIDER_MODULE_HIBERNATE;
 
     /**
      * Hibernate 4.1.x persistence provider class
@@ -171,15 +173,31 @@ public class Configuration {
      */
     public static final String ADAPTER_CLASS = "jboss.as.jpa.adapterClass";
 
+    public static final String ALLOWJOINEDUNSYNCPC = "wildfly.jpa.allowjoinedunsync";
+
+    public static final String SKIPMIXEDSYNCTYPECHECKING = "wildfly.jpa.skipmixedsynctypechecking";
+
+    /**
+     * Document properties that allow JPA apps to disable WildFly JTA platform/2lc integration for Hibernate ORM 5.3+ (WFLY-10433)
+     * public static final String CONTROLJTAINTEGRATION = "wildfly.jpa.jtaplatform";
+     * public static final String CONTROL2LCINTEGRATION = "wildfly.jpa.regionfactory";
+     */
+
     /**
      * name of the Hibernate Search module name configuration setting in persistence unit definition
      */
     public static final String HIBERNATE_SEARCH_MODULE = "wildfly.jpa.hibernate.search.module";
 
     /**
-     * name of the Hibernate Search module name
+     * name of the Hibernate Search module name used in EE7 mode
      */
-    public static final String PROVIDER_MODULE_HIBERNATE_SEARCH = "org.hibernate.search.orm:main";
+    public static final String PROVIDER_MODULE_HIBERNATE_SEARCH_EE7 = "org.hibernate.search.orm:main";
+
+    /**
+     * name of the Hibernate Search module name used in EE8 mode
+     */
+    public static final String PROVIDER_MODULE_HIBERNATE_SEARCH_EE8 = "org.hibernate.search.orm:5.10";
+
 
     private static final String EE_DEFAULT_DATASOURCE = "java:comp/DefaultDataSource";
     // key = provider class name, value = module name
@@ -188,13 +206,13 @@ public class Configuration {
     static {
         // always choose the default hibernate version for the Hibernate provider class mapping
         // if the user wants a different version. they can specify the provider module name
-        providerClassToModuleName.put(PROVIDER_CLASS_HIBERNATE, PROVIDER_MODULE_HIBERNATE4_3);
+        providerClassToModuleName.put(PROVIDER_CLASS_HIBERNATE, PROVIDER_MODULE_HIBERNATE);
         // WFLY-2136/HHH-8543 to make migration to Hibernate 4.3.x easier, we also map the (now)
         // deprecated PROVIDER_CLASS_HIBERNATE4_1 to the org.hibernate:main module
         // when PROVIDER_CLASS_HIBERNATE4_1 is no longer in a future Hibernate version (5.x?)
         // we can map PROVIDER_CLASS_HIBERNATE4_1 to org.hibernate:4.3 at that time.
         // persistence units can set "jboss.as.jpa.providerModule=org.hibernate:4.1" to use Hibernate 4.1.x/4.2.x
-        providerClassToModuleName.put(PROVIDER_CLASS_HIBERNATE4_1, PROVIDER_MODULE_HIBERNATE4_3);
+        providerClassToModuleName.put(PROVIDER_CLASS_HIBERNATE4_1, PROVIDER_MODULE_HIBERNATE);
         providerClassToModuleName.put(PROVIDER_CLASS_HIBERNATE_OGM, PROVIDER_MODULE_HIBERNATE_OGM);
         providerClassToModuleName.put(PROVIDER_CLASS_TOPLINK_ESSENTIALS, PROVIDER_MODULE_TOPLINK);
         providerClassToModuleName.put(PROVIDER_CLASS_TOPLINK, PROVIDER_MODULE_TOPLINK);
@@ -312,5 +330,46 @@ public class Configuration {
             return (String)name;
         }
         return null;
+    }
+
+    /**
+     * Allow the mixed synchronization checking to be skipped for backward compatibility with WildFly 10.1.0
+     *
+     *
+     * @param emf
+     * @param targetEntityManagerProperties
+     * @return
+     */
+    public static boolean skipMixedSynchronizationTypeCheck(EntityManagerFactory emf, Map targetEntityManagerProperties) {
+        boolean result = false;
+        // EntityManager properties will take priority over persistence.xml level (emf) properties
+        if(targetEntityManagerProperties != null && targetEntityManagerProperties.containsKey(SKIPMIXEDSYNCTYPECHECKING)) {
+            result = Boolean.parseBoolean((String) targetEntityManagerProperties.get(SKIPMIXEDSYNCTYPECHECKING));
+        }
+        else if(emf.getProperties() != null && emf.getProperties().containsKey(SKIPMIXEDSYNCTYPECHECKING)) {
+            result = Boolean.parseBoolean((String) emf.getProperties().get(SKIPMIXEDSYNCTYPECHECKING));
+        }
+        return result;
+    }
+
+    /**
+     * Allow an unsynchronized persistence context that is joined to the transaction, be treated the same as a synchronized
+     * persistence context, with respect to the checking for mixed unsync/sync types.
+     *
+     *
+     * @param emf
+     * @param targetEntityManagerProperties
+     * @return
+     */
+    public static boolean allowJoinedUnsyncPersistenceContext(EntityManagerFactory emf, Map targetEntityManagerProperties) {
+        boolean result = false;
+        // EntityManager properties will take priority over persistence.xml (emf) properties
+        if(targetEntityManagerProperties != null && targetEntityManagerProperties.containsKey(ALLOWJOINEDUNSYNCPC)) {
+            result = Boolean.parseBoolean((String) targetEntityManagerProperties.get(ALLOWJOINEDUNSYNCPC));
+        }
+        else if(emf.getProperties() != null && emf.getProperties().containsKey(ALLOWJOINEDUNSYNCPC)) {
+            result = Boolean.parseBoolean((String) emf.getProperties().get(ALLOWJOINEDUNSYNCPC));
+        }
+        return result;
     }
 }

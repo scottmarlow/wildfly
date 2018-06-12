@@ -34,21 +34,9 @@ public abstract class AbstractParameterValidatorBuilder implements ParameterVali
     boolean allowsExpressions = false;
 
     @Override
-    public ParameterValidatorBuilder allowUndefined(boolean allowsUndefined) {
-        this.allowsUndefined = allowsUndefined;
-        return this;
-    }
-
-    @Override
-    public ParameterValidatorBuilder allowExpression(boolean allowsExpressions) {
-        this.allowsExpressions = allowsExpressions;
-        return this;
-    }
-
-    @Override
     public ParameterValidatorBuilder configure(AttributeDefinition definition) {
         this.allowsExpressions = definition.isAllowExpression();
-        this.allowsUndefined = definition.isAllowNull();
+        this.allowsUndefined = !definition.isRequired();
         return this;
     }
 

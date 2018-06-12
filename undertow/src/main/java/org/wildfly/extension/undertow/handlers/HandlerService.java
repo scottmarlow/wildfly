@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -21,6 +21,8 @@
  */
 
 package org.wildfly.extension.undertow.handlers;
+
+import java.util.Collections;
 
 import io.undertow.server.HttpHandler;
 import org.jboss.msc.service.Service;
@@ -53,7 +55,7 @@ public class HandlerService implements Service<HttpHandler> {
         UndertowLogger.ROOT_LOGGER.tracef("starting handler: %s", httpHandler);
         if(requestControllerInjectedValue.getOptionalValue() != null) {
             controlPoint = requestControllerInjectedValue.getValue().getControlPoint("org.wildfly.extension.undertow.handlers", name);
-            realHandler = new GlobalRequestControllerHandler(httpHandler, controlPoint);
+            realHandler = new GlobalRequestControllerHandler(httpHandler, controlPoint, Collections.emptyList());
         } else {
             realHandler = httpHandler;
         }

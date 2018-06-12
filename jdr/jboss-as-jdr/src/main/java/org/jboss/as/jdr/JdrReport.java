@@ -21,6 +21,8 @@
  */
 package org.jboss.as.jdr;
 
+import static org.jboss.as.jdr.logger.JdrLogger.ROOT_LOGGER;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,9 +30,12 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Properties;
-import static org.jboss.as.jdr.logger.JdrLogger.ROOT_LOGGER;
+
+import org.jboss.dmr.ModelNode;
 
 /**
  * Provides metadata about and access to the data collected by a {@link JdrReportCollector}.
@@ -54,42 +59,70 @@ public class JdrReport {
 
     public static final String DATA_DIR = "data";
 
-    private Date startTime;
-    private Date endTime;
+    private Long startTime;
+    private Long endTime;
     private String location;
     private String jdrUuid;
 
+    private static DateFormat DATE_FORMAT = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy");
+
     public JdrReport() {
+    }
+
+    public JdrReport(ModelNode result) {
+        setStartTime(result.get("start-time").asLong());
+        setEndTime(result.get("end-time").asLong());
+        setLocation(result.get("report-location").asString());
     }
 
     /**
      * Indicates the time the JDR report collection was initiated.
      */
-    public Date getStartTime() {
+    public Long getStartTime() {
         return startTime;
     }
 
-    public void setStartTime(Date time) {
-        startTime = time;
+    public String getFormattedStartTime() {
+        if(startTime == null)
+            return "";
+        return DATE_FORMAT.format(startTime);
+    }
+
+    public void setStartTime(Date date) {
+        startTime = date.getTime();
+    }
+
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
     }
 
     public void setStartTime() {
-        setStartTime(new Date());
+        setStartTime(new Date().getTime());
     }
 
     /**
      * Indicates the time the JDR report collection was complete.
      */
-    public Date getEndTime() {
+    public Long getEndTime() {
         return endTime;
     }
 
-    public void setEndTime(Date time) {
-        endTime = time;
+    public String getFormattedEndTime() {
+        if(endTime == null)
+            return "";
+        return DATE_FORMAT.format(endTime);
+    }
+
+    public void setEndTime(Date date) {
+        endTime = date.getTime();
+    }
+
+    public void setEndTime(long endTime) {
+        this.endTime = endTime;
     }
 
     public void setEndTime() {
-        setEndTime(new Date());
+        setEndTime(new Date().getTime());
     }
 
     /**

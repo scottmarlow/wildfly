@@ -24,7 +24,8 @@ package org.wildfly.mod_cluster.undertow;
 
 import io.undertow.servlet.api.Deployment;
 
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import org.jboss.modcluster.container.Context;
@@ -59,31 +60,14 @@ public class UndertowHost implements Host {
 
     @Override
     public Iterable<Context> getContexts() {
-        final Iterator<Deployment> deployments = this.host.getDeployments().iterator();
-
-        final Iterator<Context> iterator = new Iterator<Context>() {
-            @Override
-            public boolean hasNext() {
-                return deployments.hasNext();
-            }
-
-            @Override
-            public Context next() {
-                return new UndertowContext(deployments.next(), UndertowHost.this);
-            }
-
-            @Override
-            public void remove() {
-                deployments.remove();
-            }
-        };
-
-        return new Iterable<Context>() {
-            @Override
-            public Iterator<Context> iterator() {
-                return iterator;
-            }
-        };
+        List<Context> contexts = new ArrayList<>();
+        for (Deployment deployment : this.host.getDeployments()) {
+            contexts.add(new UndertowContext(deployment, this));
+        }
+        for (String path : this.host.getLocations()) {
+            contexts.add(new LocationContext(path, this));
+        }
+        return contexts;
     }
 
     @Override

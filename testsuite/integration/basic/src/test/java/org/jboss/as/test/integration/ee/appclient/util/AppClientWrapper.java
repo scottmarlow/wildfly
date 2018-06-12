@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2011, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -25,14 +25,13 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.util.Enumeration;
-import java.util.Properties;
 import java.util.Vector;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.jboss.as.test.shared.TestSuiteEnvironment;
+import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 
@@ -42,6 +41,7 @@ import org.jboss.shrinkwrap.api.exporter.ZipExporter;
  * @author Stuart Douglas
  */
 public class AppClientWrapper implements Runnable {
+    private static final Logger LOGGER = Logger.getLogger(AppClientWrapper.class);
 
     private String appClientCommand = null;
 
@@ -178,26 +178,15 @@ public class AppClientWrapper implements Runnable {
             archiveArg = archiveOnDisk.getAbsolutePath() + "#" + clientArchiveName;
         }
 
-        // TODO: Move to a self-test.
-        System.out.println("*** System properties: ***");
-        Properties props = System.getProperties();
-        //props.list( System.out );
-        Enumeration en = props.propertyNames();
-        while( en.hasMoreElements() ){
-            String name = (String) en.nextElement();
-            System.out.println( "\t" + name + " = " + System.getProperty(name) );
-        }
-
-
         // TODO: Move to a shared testsuite lib.
         String asDist = System.getProperty("jboss.dist");
         if( asDist == null ) throw new Exception("'jboss.dist' property is not set.");
         if( ! new File(asDist).exists() ) throw new Exception("AS dir from 'jboss.dist' doesn't exist: " + asDist + " user.dir: " + System.getProperty("user.dir"));
 
         // TODO: Move to a shared testsuite lib.
-        String asInst = System.getProperty("jboss.inst");
-        if( asInst == null ) throw new Exception("'jboss.inst' property is not set. Perhaps this test is in a multi-node tests group but runs outside container?");
-        if( ! new File(asInst).exists() ) throw new Exception("AS dir from 'jboss.inst' doesn't exist: " + asInst + " user.dir: " + System.getProperty("user.dir"));
+        //String asInst = System.getProperty("jboss.inst");
+        //if( asInst == null ) throw new Exception("'jboss.inst' property is not set. Perhaps this test is in a multi-node tests group but runs outside container?");
+        //if( ! new File(asInst).exists() ) throw new Exception("AS dir from 'jboss.inst' doesn't exist: " + asInst + " user.dir: " + System.getProperty("user.dir"));
 
         String java = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
 
@@ -206,11 +195,12 @@ public class AppClientWrapper implements Runnable {
                 " -Djline.WindowsTerminal.directConsole=false" +
                 TestSuiteEnvironment.getIpv6Args() +
                 "-Djboss.bind.address=" + TestSuiteEnvironment.getServerAddress() +
+                " "+System.getProperty("server.jvm.args") +
                 " -jar "+ asDist + "/jboss-modules.jar" +
                 " -mp "+ asDist + "/modules" +
                 " org.jboss.as.appclient" +
-                " -Djboss.server.base.dir="+ asInst + "/appclient" +
-                " -Djboss.home.dir="+ asInst +
+                " -Djboss.server.base.dir="+ asDist + "/appclient" +
+                " -Djboss.home.dir="+ asDist +
                 " " + this.appClientArgs + " " + archiveArg + " " + args;
         return appClientCommand;
     }
@@ -242,12 +232,12 @@ public class AppClientWrapper implements Runnable {
     }
 
     private synchronized void outputLineReceived(String line) {
-        System.out.println("[" + outThreadHame + "] " + line);
+        LOGGER.trace("[" + outThreadHame + "] " + line);
         outputQueue.add(line);
     }
 
     private synchronized void errorLineReceived(String line) {
-        System.out.println("[" + outThreadHame + "] " + line);
+        LOGGER.trace("[" + outThreadHame + "] " + line);
     }
 
 }

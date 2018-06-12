@@ -47,6 +47,7 @@ public enum Attribute {
     EXTENDS("extends"),
     FLAG("flag"),
     IDENTITY_TRUST_MANAGER_CLASS_NAME("identity-trust-manager-class-name"),
+    INITIALIZE_JACC("initialize-jacc"),
     KEY_MANAGER_FACTORY_ALGORITHM("key-manager-factory-algorithm"),
     KEY_MANAGER_FACTORY_PROVIDER("key-manager-factory-provider"),
     KEYSTORE_PASSWORD("keystore-password"),
@@ -73,7 +74,8 @@ public enum Attribute {
     VALUE("value"),
     // ELYTRON INTEGRATION ATTRIBUTES
     LEGACY_JAAS_CONFIG(Constants.LEGACY_JAAS_CONFIG),
-    LEGACY_JSSE_CONFIG(Constants.LEGACY_JSSE_CONFIG);
+    LEGACY_JSSE_CONFIG(Constants.LEGACY_JSSE_CONFIG),
+    APPLY_ROLE_MAPPERS(Constants.APPLY_ROLE_MAPPERS);
 
     private final String name;
 

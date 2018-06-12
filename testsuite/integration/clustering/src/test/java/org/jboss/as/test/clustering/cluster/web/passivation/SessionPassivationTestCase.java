@@ -22,10 +22,7 @@
 
 package org.jboss.as.test.clustering.cluster.web.passivation;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -36,6 +33,7 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.stream.Stream;
+
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.Header;
@@ -44,9 +42,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.jboss.arquillian.container.test.api.OperateOnDeployment;
-import org.jboss.arquillian.junit.InSequence;
 import org.jboss.arquillian.test.api.ArquillianResource;
-import org.jboss.as.test.clustering.cluster.ClusterAbstractTestCase;
+import org.jboss.as.test.clustering.cluster.AbstractClusteringTestCase;
 import org.jboss.as.test.clustering.cluster.web.DistributableTestCase;
 import org.jboss.as.test.http.util.TestHttpClientUtils;
 import org.jboss.as.test.shared.TimeoutUtil;
@@ -54,12 +51,12 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 
-public abstract class SessionPassivationTestCase extends ClusterAbstractTestCase {
+public abstract class SessionPassivationTestCase extends AbstractClusteringTestCase {
 
     private static final int MAX_PASSIVATION_WAIT = TimeoutUtil.adjust(10000);
 
-    static WebArchive getBaseDeployment() {
-        WebArchive war = ShrinkWrap.create(WebArchive.class, "passivation.war");
+    static WebArchive getBaseDeployment(String moduleName) {
+        WebArchive war = ShrinkWrap.create(WebArchive.class, moduleName + ".war");
         war.addClasses(SessionOperationServlet.class);
         // Take web.xml from the managed test.
         war.setWebXML(DistributableTestCase.class.getPackage(), "web.xml");
@@ -67,17 +64,16 @@ public abstract class SessionPassivationTestCase extends ClusterAbstractTestCase
     }
 
     @Test
-    @InSequence(1)
-    public void test(@ArquillianResource(SessionOperationServlet.class) @OperateOnDeployment(DEPLOYMENT_1) URL baseURL1)
+    public void test(@ArquillianResource(SessionOperationServlet.class) @OperateOnDeployment(DEPLOYMENT_1) URL baseURL)
             throws IOException, URISyntaxException {
 
-        String session1 = null;
-        String session2 = null;
+        String session1;
+        String session2;
 
         try (CloseableHttpClient client1 = TestHttpClientUtils.promiscuousCookieHttpClient();
              CloseableHttpClient client2 = TestHttpClientUtils.promiscuousCookieHttpClient()) {
             // This should not trigger any passivation/activation events
-            HttpResponse response = client1.execute(new HttpGet(SessionOperationServlet.createSetURI(baseURL1, "a", "1")));
+            HttpResponse response = client1.execute(new HttpGet(SessionOperationServlet.createSetURI(baseURL, "a", "1")));
             try {
                 assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
                 session1 = getRequiredHeaderValue(response, SessionOperationServlet.SESSION_ID);
@@ -92,16 +88,25 @@ public abstract class SessionPassivationTestCase extends ClusterAbstractTestCase
             events.put(session1, new LinkedList<>());
             expectedEvents.put(session1, SessionOperationServlet.EventType.PASSIVATION);
 
+            // This will trigger passivation of session1
+            response = client2.execute(new HttpGet(SessionOperationServlet.createSetURI(baseURL, "a", "2")));
+            try {
+                assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
+                session2 = getRequiredHeaderValue(response, SessionOperationServlet.SESSION_ID);
+                events.put(session2, new LinkedList<>());
+                expectedEvents.put(session2, SessionOperationServlet.EventType.PASSIVATION);
+                collectEvents(response, events);
+            } finally {
+                HttpClientUtils.closeQuietly(response);
+            }
+
+            // Ensure session1 was passivated
             while (events.get(session1).isEmpty() && ((now - start) < MAX_PASSIVATION_WAIT)) {
-                // This will trigger passivation of session1
-                response = client2.execute(new HttpGet(SessionOperationServlet.createSetURI(baseURL1, "a", "2")));
+                response = client2.execute(new HttpGet(SessionOperationServlet.createGetURI(baseURL, "a")));
                 try {
                     assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
-                    session2 = getRequiredHeaderValue(response, SessionOperationServlet.SESSION_ID);
-                    if (!events.containsKey(session2)) {
-                        events.put(session2, new LinkedList<>());
-                        expectedEvents.put(session2, SessionOperationServlet.EventType.PASSIVATION);
-                    }
+                    assertEquals(session2, getRequiredHeaderValue(response, SessionOperationServlet.SESSION_ID));
+                    assertEquals("2", getRequiredHeaderValue(response, SessionOperationServlet.RESULT));
                     collectEvents(response, events);
                 } finally {
                     HttpClientUtils.closeQuietly(response);
@@ -117,9 +122,10 @@ public abstract class SessionPassivationTestCase extends ClusterAbstractTestCase
             start = now;
 
             // This should trigger activation of session1 and passivation of session2
-            response = client1.execute(new HttpGet(SessionOperationServlet.createGetURI(baseURL1, "a")));
+            response = client1.execute(new HttpGet(SessionOperationServlet.createGetURI(baseURL, "a")));
             try {
                 assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
+                assertEquals(session1, getRequiredHeaderValue(response, SessionOperationServlet.SESSION_ID));
                 assertEquals("1", getRequiredHeaderValue(response, SessionOperationServlet.RESULT));
                 collectEvents(response, events);
                 assertFalse(events.get(session1).isEmpty());
@@ -130,9 +136,10 @@ public abstract class SessionPassivationTestCase extends ClusterAbstractTestCase
 
             // Verify session2 was passivated
             while (events.get(session2).isEmpty() && ((now - start) < MAX_PASSIVATION_WAIT)) {
-                response = client1.execute(new HttpGet(SessionOperationServlet.createGetURI(baseURL1, "a")));
+                response = client1.execute(new HttpGet(SessionOperationServlet.createGetURI(baseURL, "a")));
                 try {
                     assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
+                    assertEquals(session1, getRequiredHeaderValue(response, SessionOperationServlet.SESSION_ID));
                     assertEquals("1", getRequiredHeaderValue(response, SessionOperationServlet.RESULT));
                     collectEvents(response, events);
                 } finally {
@@ -149,9 +156,10 @@ public abstract class SessionPassivationTestCase extends ClusterAbstractTestCase
             start = now;
 
             // This should trigger activation of session2 and passivation of session1
-            response = client2.execute(new HttpGet(SessionOperationServlet.createGetURI(baseURL1, "a")));
+            response = client2.execute(new HttpGet(SessionOperationServlet.createGetURI(baseURL, "a")));
             try {
                 assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
+                assertEquals(session2, getRequiredHeaderValue(response, SessionOperationServlet.SESSION_ID));
                 assertEquals("2", getRequiredHeaderValue(response, SessionOperationServlet.RESULT));
                 collectEvents(response, events);
                 assertFalse(events.get(session2).isEmpty());
@@ -162,9 +170,10 @@ public abstract class SessionPassivationTestCase extends ClusterAbstractTestCase
 
             // Verify session1 was passivated
             while (!events.get(session1).isEmpty() && ((now - start) < MAX_PASSIVATION_WAIT)) {
-                response = client2.execute(new HttpGet(SessionOperationServlet.createGetURI(baseURL1, "a")));
+                response = client2.execute(new HttpGet(SessionOperationServlet.createGetURI(baseURL, "a")));
                 try {
                     assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
+                    assertEquals(session2, getRequiredHeaderValue(response, SessionOperationServlet.SESSION_ID));
                     assertEquals("2", getRequiredHeaderValue(response, SessionOperationServlet.RESULT));
                     collectEvents(response, events);
                 } finally {

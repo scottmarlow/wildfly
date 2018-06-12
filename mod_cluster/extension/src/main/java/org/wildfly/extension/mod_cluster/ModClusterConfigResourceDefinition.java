@@ -22,10 +22,16 @@
 
 package org.wildfly.extension.mod_cluster;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.jboss.as.clustering.controller.CommonUnaryRequirement;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.AttributeMarshaller;
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.OperationDefinition;
+import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
@@ -36,10 +42,13 @@ import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.StringListAttributeDefinition;
 import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraintDefinition;
+import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.client.helpers.MeasurementUnit;
 import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
 import org.jboss.as.controller.operations.validation.EnumValidator;
 import org.jboss.as.controller.operations.validation.IntRangeValidator;
+import org.jboss.as.controller.operations.validation.StringLengthValidator;
+import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.transform.TransformationContext;
 import org.jboss.as.controller.transform.description.AttributeConverter;
@@ -50,10 +59,6 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.jboss.modcluster.config.impl.SessionDrainingStrategyEnum;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * {@link org.jboss.as.controller.ResourceDefinition} implementation for the core mod-cluster configuration resource.
  *
@@ -61,6 +66,11 @@ import java.util.Map;
  * @author Radoslav Husar
  */
 class ModClusterConfigResourceDefinition extends SimpleResourceDefinition {
+
+    static final String UNDERTOW_LISTENER_CAPABILITY_NAME = "org.wildfly.undertow.listener";
+
+    private static final String MOD_CLUSTER_CAPABILITY_NAME = "org.wildfly.mod_cluster";
+    static final RuntimeCapability<Void> MOD_CLUSTER_CAPABILITY = RuntimeCapability.Builder.of(MOD_CLUSTER_CAPABILITY_NAME, false, Void.class).build();
 
     static final PathElement PATH = PathElement.pathElement(CommonAttributes.MOD_CLUSTER_CONFIG, CommonAttributes.CONFIGURATION);
 
@@ -70,6 +80,7 @@ class ModClusterConfigResourceDefinition extends SimpleResourceDefinition {
             .build();
 
     static final SimpleAttributeDefinition CONNECTOR = SimpleAttributeDefinitionBuilder.create(CommonAttributes.CONNECTOR, ModelType.STRING, false)
+            .setCapabilityReference(UNDERTOW_LISTENER_CAPABILITY_NAME)
             .setRestartAllServices()
             .build();
 
@@ -86,7 +97,7 @@ class ModClusterConfigResourceDefinition extends SimpleResourceDefinition {
     static final StringListAttributeDefinition PROXIES = new StringListAttributeDefinition.Builder(CommonAttributes.PROXIES)
             // We don't allow expressions for model references!
             .setAllowExpression(false)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAttributeMarshaller(AttributeMarshaller.STRING_LIST)
             .addAccessConstraint(ModClusterExtension.MOD_CLUSTER_PROXIES_DEF)
             .setRestartAllServices()
@@ -157,6 +168,13 @@ class ModClusterConfigResourceDefinition extends SimpleResourceDefinition {
             .setRestartAllServices()
             .build();
 
+    static final SimpleAttributeDefinition SSL_CONTEXT = new SimpleAttributeDefinitionBuilder(CommonAttributes.SSL_CONTEXT, ModelType.STRING, true)
+            .setCapabilityReference(CommonUnaryRequirement.SSL_CONTEXT.getName())
+            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+            .setValidator(new StringLengthValidator(1))
+            .setAccessConstraints(SensitiveTargetAccessConstraintDefinition.SSL_REF)
+            .build();
+
     static final SimpleAttributeDefinition STICKY_SESSION = SimpleAttributeDefinitionBuilder.create(CommonAttributes.STICKY_SESSION, ModelType.BOOLEAN, true)
             .setAllowExpression(true)
             .setDefaultValue(new ModelNode(true))
@@ -187,7 +205,8 @@ class ModClusterConfigResourceDefinition extends SimpleResourceDefinition {
     static final SimpleAttributeDefinition MAX_ATTEMPTS = SimpleAttributeDefinitionBuilder.create(CommonAttributes.MAX_ATTEMPTS, ModelType.INT, true)
             .setAllowExpression(true)
             .setDefaultValue(new ModelNode(1))
-            .setValidator(new IntRangeValidator(-1, true, true))
+            .setValidator(new IntRangeValidator(0, true, true))
+            .setCorrector((newValue, currentValue) -> (newValue.getType().equals(ModelType.INT) && newValue.asInt() == -1) ? new ModelNode(1) : newValue)
             .setRestartAllServices()
             .build();
 
@@ -247,7 +266,6 @@ class ModClusterConfigResourceDefinition extends SimpleResourceDefinition {
     static final SimpleAttributeDefinition LOAD_BALANCING_GROUP = SimpleAttributeDefinitionBuilder.create(CommonAttributes.LOAD_BALANCING_GROUP, ModelType.STRING, true)
             .setAllowExpression(true)
             .setRestartAllServices()
-            .addAlternatives(CommonAttributes.DOMAIN)
             .build();
 
     static final SimpleAttributeDefinition SIMPLE_LOAD_PROVIDER = SimpleAttributeDefinitionBuilder.create(CommonAttributes.SIMPLE_LOAD_PROVIDER_FACTOR, ModelType.INT, true)
@@ -285,6 +303,7 @@ class ModClusterConfigResourceDefinition extends SimpleResourceDefinition {
             CONNECTOR, // not in the 1.0 xsd
             SESSION_DRAINING_STRATEGY, // not in the 1.1 xsd
             STATUS_INTERVAL, // since 2.0 xsd
+            SSL_CONTEXT, // since 3.0 xsd
     };
 
 
@@ -300,6 +319,13 @@ class ModClusterConfigResourceDefinition extends SimpleResourceDefinition {
 
     public static void buildTransformation(ModelVersion version, ResourceTransformationDescriptionBuilder parent) {
         ResourceTransformationDescriptionBuilder builder = parent.addChildResource(PATH);
+
+        if (ModClusterModel.VERSION_5_0_0.requiresTransformation(version)) {
+            builder.getAttributeBuilder()
+                    .setDiscard(DiscardAttributeChecker.UNDEFINED, SSL_CONTEXT)
+                    .addRejectCheck(RejectAttributeChecker.DEFINED, SSL_CONTEXT)
+                    .end();
+        }
 
         if (ModClusterModel.VERSION_4_0_0.requiresTransformation(version)) {
             builder.getAttributeBuilder()
@@ -339,19 +365,23 @@ class ModClusterConfigResourceDefinition extends SimpleResourceDefinition {
     }
 
     public ModClusterConfigResourceDefinition() {
-        super(PATH,
-                ModClusterExtension.getResourceDescriptionResolver(CommonAttributes.CONFIGURATION),
-                ModClusterConfigAdd.INSTANCE,
-                new ReloadRequiredRemoveStepHandler());
+        super(new Parameters(PATH, ModClusterExtension.getResourceDescriptionResolver(CommonAttributes.CONFIGURATION))
+                .setAddHandler(ModClusterConfigAdd.INSTANCE)
+                .setRemoveHandler(new ReloadRequiredRemoveStepHandler())
+                .setCapabilities(MOD_CLUSTER_CAPABILITY)
+        );
     }
 
     @Override
     public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
+        OperationStepHandler defaultHandler = new ReloadRequiredWriteAttributeHandler(ATTRIBUTES);
         for (AttributeDefinition attr : ATTRIBUTES) {
             if (attr.equals(PROXY_LIST) || attr.equals(PROXIES)) {
                 resourceRegistration.registerReadWriteAttribute(attr, null, new ProxyConfigurationWriteAttributeHandler(attr));
+            } else if (attr.equals(SSL_CONTEXT)) {
+                resourceRegistration.registerReadWriteAttribute(attr, null, new SSLContextWriteAttributeHandler(attr));
             } else {
-                resourceRegistration.registerReadWriteAttribute(attr, null, new ReloadRequiredWriteAttributeHandler(attr));
+                resourceRegistration.registerReadWriteAttribute(attr, null, defaultHandler);
             }
         }
         resourceRegistration.registerReadWriteAttribute(SIMPLE_LOAD_PROVIDER, null, new ReloadRequiredWriteAttributeHandler(SIMPLE_LOAD_PROVIDER));
@@ -365,19 +395,15 @@ class ModClusterConfigResourceDefinition extends SimpleResourceDefinition {
 
         final OperationDefinition addMetricDef = new SimpleOperationDefinitionBuilder(CommonAttributes.ADD_METRIC, rootResolver)
                 .setParameters(LoadMetricDefinition.ATTRIBUTES)
-                .setRuntimeOnly()
                 .build();
         final OperationDefinition addCustomDef = new SimpleOperationDefinitionBuilder(CommonAttributes.ADD_CUSTOM_METRIC, rootResolver)
                 .setParameters(CustomLoadMetricDefinition.ATTRIBUTES)
-                .setRuntimeOnly()
                 .build();
         final OperationDefinition removeMetricDef = new SimpleOperationDefinitionBuilder(CommonAttributes.REMOVE_METRIC, rootResolver)
                 .setParameters(LoadMetricDefinition.TYPE)
-                .setRuntimeOnly()
                 .build();
         final OperationDefinition removeCustomDef = new SimpleOperationDefinitionBuilder(CommonAttributes.REMOVE_CUSTOM_METRIC, rootResolver)
                 .setParameters(CustomLoadMetricDefinition.CLASS)
-                .setRuntimeOnly()
                 .build();
 
         resourceRegistration.registerOperationHandler(addMetricDef, ModClusterAddMetric.INSTANCE);

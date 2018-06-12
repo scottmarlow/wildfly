@@ -22,6 +22,9 @@
 
 package org.jboss.as.jaxrs.deployment;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
@@ -30,9 +33,12 @@ import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.module.ModuleDependency;
 import org.jboss.as.server.deployment.module.ModuleSpecification;
 import org.jboss.as.ee.weld.WeldDeploymentMarker;
+import org.jboss.as.server.deployment.module.ResourceRoot;
 import org.jboss.modules.Module;
 import org.jboss.modules.ModuleIdentifier;
 import org.jboss.modules.ModuleLoader;
+import org.jboss.modules.filter.PathFilters;
+import org.jboss.vfs.VirtualFile;
 
 /**
  * Deployment processor which adds a module dependencies for modules needed for JAX-RS deployments.
@@ -49,10 +55,15 @@ public class JaxrsDependencyProcessor implements DeploymentUnitProcessor {
     public static final ModuleIdentifier RESTEASY_JAXB = ModuleIdentifier.create("org.jboss.resteasy.resteasy-jaxb-provider");
     public static final ModuleIdentifier RESTEASY_JACKSON2 = ModuleIdentifier.create("org.jboss.resteasy.resteasy-jackson2-provider");
     public static final ModuleIdentifier RESTEASY_JSON_P_PROVIDER = ModuleIdentifier.create("org.jboss.resteasy.resteasy-json-p-provider");
-    //public static final ModuleIdentifier RESTEASY_JETTISON = ModuleIdentifier.create("org.jboss.resteasy.resteasy-jettison-provider");
+    public static final ModuleIdentifier RESTEASY_JSON_B_PROVIDER = ModuleIdentifier.create("org.jboss.resteasy.resteasy-json-binding-provider");
     public static final ModuleIdentifier RESTEASY_JSAPI = ModuleIdentifier.create("org.jboss.resteasy.resteasy-jsapi");
     public static final ModuleIdentifier RESTEASY_MULTIPART = ModuleIdentifier.create("org.jboss.resteasy.resteasy-multipart-provider");
     public static final ModuleIdentifier RESTEASY_YAML = ModuleIdentifier.create("org.jboss.resteasy.resteasy-yaml-provider");
+
+
+    public static final ModuleIdentifier JACKSON_DATATYPE_JDK8 = ModuleIdentifier.create("com.fasterxml.jackson.datatype.jackson-datatype-jdk8");
+    public static final ModuleIdentifier JACKSON_DATATYPE_JSR310 = ModuleIdentifier.create("com.fasterxml.jackson.datatype.jackson-datatype-jsr310");
+
     public static final ModuleIdentifier JAXB_API = ModuleIdentifier.create("javax.xml.bind.api");
     public static final ModuleIdentifier JSON_API = ModuleIdentifier.create("javax.json.api");
     public static final ModuleIdentifier JAXRS_API = ModuleIdentifier.create("javax.ws.rs.api");
@@ -63,40 +74,66 @@ public class JaxrsDependencyProcessor implements DeploymentUnitProcessor {
      *
      */
     public static final ModuleIdentifier JACKSON_CORE_ASL = ModuleIdentifier.create("org.codehaus.jackson.jackson-core-asl");
-
+    private static final String CLIENT_BUILDER = "META-INF/services/javax.ws.rs.client.ClientBuilder";
+    private static final boolean JAVA_EE8 = Boolean.getBoolean("ee8.preview.mode");
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
         final ModuleSpecification moduleSpecification = deploymentUnit.getAttachment(Attachments.MODULE_SPECIFICATION);
 
+        boolean deploymentBundlesClientBuilder = isClientBuilderInDeployment(deploymentUnit);
+
         final ModuleLoader moduleLoader = Module.getBootModuleLoader();
-        addDependency(moduleSpecification, moduleLoader, JAXRS_API, false);
-        addDependency(moduleSpecification, moduleLoader, JAXB_API, false);
-        addDependency(moduleSpecification, moduleLoader, JSON_API, false);
+        addDependency(moduleSpecification, moduleLoader, JAXRS_API, false, false);
+        addDependency(moduleSpecification, moduleLoader, JAXB_API, false, false);
+        addDependency(moduleSpecification, moduleLoader, JSON_API, false, false);
 
         //we need to add these from all deployments, as they could be using the JAX-RS client
 
-        addDependency(moduleSpecification, moduleLoader, RESTEASY_ATOM, true);
-        addDependency(moduleSpecification, moduleLoader, RESTEASY_VALIDATOR_11, true);
-        addDependency(moduleSpecification, moduleLoader, RESTEASY_JAXRS, true);
-        addDependency(moduleSpecification, moduleLoader, RESTEASY_JAXB, true);
-        addDependency(moduleSpecification, moduleLoader, RESTEASY_JACKSON2, true);
-        addDependency(moduleSpecification, moduleLoader, RESTEASY_JSON_P_PROVIDER, true);
+        addDependency(moduleSpecification, moduleLoader, RESTEASY_ATOM, true, false);
+        addDependency(moduleSpecification, moduleLoader, RESTEASY_VALIDATOR_11, true, false);
+        addDependency(moduleSpecification, moduleLoader, RESTEASY_JAXRS, true, deploymentBundlesClientBuilder);
+        addDependency(moduleSpecification, moduleLoader, RESTEASY_JAXB, true, false);
+        addDependency(moduleSpecification, moduleLoader, RESTEASY_JACKSON2, true, false);
+        addDependency(moduleSpecification, moduleLoader, RESTEASY_JSON_P_PROVIDER, true, false);
+        if (JAVA_EE8) {
+            addDependency(moduleSpecification, moduleLoader, RESTEASY_JSON_B_PROVIDER, true, false);
+        }
         //addDependency(moduleSpecification, moduleLoader, RESTEASY_JETTISON);
-        addDependency(moduleSpecification, moduleLoader, RESTEASY_JSAPI, true);
-        addDependency(moduleSpecification, moduleLoader, RESTEASY_MULTIPART, true);
-        addDependency(moduleSpecification, moduleLoader, RESTEASY_YAML, true);
-        addDependency(moduleSpecification, moduleLoader, JACKSON_CORE_ASL, true);
-        addDependency(moduleSpecification, moduleLoader, RESTEASY_CRYPTO, true);
+        addDependency(moduleSpecification, moduleLoader, RESTEASY_JSAPI, true, false);
+        addDependency(moduleSpecification, moduleLoader, RESTEASY_MULTIPART, true, false);
+        addDependency(moduleSpecification, moduleLoader, RESTEASY_YAML, true, false);
+        addDependency(moduleSpecification, moduleLoader, JACKSON_CORE_ASL, true, false);
+        addDependency(moduleSpecification, moduleLoader, RESTEASY_CRYPTO, true, false);
+        addDependency(moduleSpecification, moduleLoader, JACKSON_DATATYPE_JDK8, true, false);
+        addDependency(moduleSpecification, moduleLoader, JACKSON_DATATYPE_JSR310, true, false);
 
         if (WeldDeploymentMarker.isPartOfWeldDeployment(deploymentUnit)) {
-            addDependency(moduleSpecification, moduleLoader, RESTEASY_CDI, true);
+            addDependency(moduleSpecification, moduleLoader, RESTEASY_CDI, true, false);
         }
 
     }
 
+    private boolean isClientBuilderInDeployment(DeploymentUnit deploymentUnit) {
+        ResourceRoot root = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
+        List<ResourceRoot> roots = new ArrayList<>(deploymentUnit.getAttachmentList(Attachments.RESOURCE_ROOTS));
+        roots.add(root);
+        for(ResourceRoot r : roots) {
+            VirtualFile file  = r.getRoot().getChild(CLIENT_BUILDER);
+            if(file.exists()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void addDependency(ModuleSpecification moduleSpecification, ModuleLoader moduleLoader,
-                               ModuleIdentifier moduleIdentifier, boolean optional) {
-        moduleSpecification.addSystemDependency(new ModuleDependency(moduleLoader, moduleIdentifier, optional, false, true, false));
+                               ModuleIdentifier moduleIdentifier, boolean optional, boolean deploymentBundelesClientBuilder) {
+        ModuleDependency dependency = new ModuleDependency(moduleLoader, moduleIdentifier, optional, false, true, false);
+        if(deploymentBundelesClientBuilder) {
+            dependency.addImportFilter(PathFilters.is(CLIENT_BUILDER), false);
+        }
+        moduleSpecification.addSystemDependency(dependency);
     }
 
     @Override

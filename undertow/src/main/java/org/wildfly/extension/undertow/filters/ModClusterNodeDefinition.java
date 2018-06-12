@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2014, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this software; if not, write to the Free
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 2110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
 package org.wildfly.extension.undertow.filters;
@@ -33,6 +33,7 @@ import org.jboss.as.controller.PrimitiveListAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleOperationDefinition;
 import org.jboss.as.controller.SimpleResourceDefinition;
+import org.jboss.as.controller.client.helpers.MeasurementUnit;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.dmr.ModelNode;
@@ -52,89 +53,90 @@ public class ModClusterNodeDefinition extends SimpleResourceDefinition {
 
 
     public static final AttributeDefinition LOAD = new SimpleAttributeDefinitionBuilder(Constants.LOAD, ModelType.INT)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
     public static final AttributeDefinition STATUS = new SimpleAttributeDefinitionBuilder(Constants.STATUS, ModelType.STRING)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
     public static final AttributeDefinition LOAD_BALANCING_GROUP = new SimpleAttributeDefinitionBuilder(Constants.LOAD_BALANCING_GROUP, ModelType.STRING)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
     public static final AttributeDefinition CACHE_CONNECTIONS = new SimpleAttributeDefinitionBuilder(Constants.CACHE_CONNECTIONS, ModelType.INT)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
     public static final AttributeDefinition MAX_CONNECTIONS = new SimpleAttributeDefinitionBuilder(Constants.MAX_CONNECTIONS, ModelType.INT)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
     public static final AttributeDefinition OPEN_CONNECTIONS = new SimpleAttributeDefinitionBuilder(Constants.OPEN_CONNECTIONS, ModelType.INT)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
     public static final AttributeDefinition PING = new SimpleAttributeDefinitionBuilder(Constants.PING, ModelType.INT)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
     public static final AttributeDefinition READ = new SimpleAttributeDefinitionBuilder(Constants.READ, ModelType.LONG)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
     public static final AttributeDefinition REQUEST_QUEUE_SIZE = new SimpleAttributeDefinitionBuilder(Constants.REQUEST_QUEUE_SIZE, ModelType.INT)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
     public static final AttributeDefinition TIMEOUT = new SimpleAttributeDefinitionBuilder(Constants.TIMEOUT, ModelType.INT)
-            .setAllowNull(true)
+            .setRequired(false)
+            .setMeasurementUnit(MeasurementUnit.SECONDS)
             .setStorageRuntime()
             .build();
 
     public static final AttributeDefinition WRITTEN = new SimpleAttributeDefinitionBuilder(Constants.WRITTEN, ModelType.LONG)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
     public static final AttributeDefinition TTL = new SimpleAttributeDefinitionBuilder(Constants.TTL, ModelType.LONG)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
 
     public static final AttributeDefinition FLUSH_PACKETS = new SimpleAttributeDefinitionBuilder(Constants.FLUSH_PACKETS, ModelType.BOOLEAN)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
     public static final AttributeDefinition QUEUE_NEW_REQUESTS = new SimpleAttributeDefinitionBuilder(Constants.QUEUE_NEW_REQUESTS, ModelType.BOOLEAN)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
     public static final AttributeDefinition URI = new SimpleAttributeDefinitionBuilder(Constants.URI, ModelType.STRING)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
     public static final AttributeDefinition ALIASES = new PrimitiveListAttributeDefinition.Builder(Constants.ALIASES, ModelType.STRING)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
 
     public static final AttributeDefinition ELECTED = new SimpleAttributeDefinitionBuilder(Constants.ELECTED, ModelType.INT)
-            .setAllowNull(true)
+            .setRequired(false)
             .setStorageRuntime()
             .build();
 
@@ -144,7 +146,8 @@ public class ModClusterNodeDefinition extends SimpleResourceDefinition {
 
 
     ModClusterNodeDefinition() {
-        super(UndertowExtension.NODE, UndertowExtension.getResolver("handler", "mod-cluster", "balancer", "node"), null, null, true);
+        super(new Parameters(UndertowExtension.NODE, UndertowExtension.getResolver("handler", "mod-cluster", "balancer", "node"))
+                .setRuntime());
     }
 
     @Override

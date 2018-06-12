@@ -24,13 +24,16 @@ package org.jboss.as.ejb3.subsystem;
 
 import static org.jboss.as.ejb3.component.pool.StrictMaxPoolConfigService.Derive;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ServiceRemoveStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
@@ -43,9 +46,6 @@ import org.jboss.as.controller.operations.validation.TimeUnitValidator;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.OperationEntry;
-import org.jboss.as.controller.transform.description.DiscardAttributeChecker;
-import org.jboss.as.controller.transform.description.RejectAttributeChecker;
-import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
 import org.jboss.as.ejb3.component.pool.StrictMaxPoolConfigService;
 import org.jboss.as.ejb3.component.pool.StrictMaxPoolConfig;
 import org.jboss.dmr.ModelNode;
@@ -70,9 +70,12 @@ public class StrictMaxPoolResourceDefinition extends SimpleResourceDefinition {
                     .build();
     public static final SimpleAttributeDefinition DERIVE_SIZE =
             new SimpleAttributeDefinitionBuilder(EJB3SubsystemModel.DERIVE_SIZE, ModelType.STRING, true)
-                    .setDefaultValue(new ModelNode().set(DeriveSize.NONE.toString()))
                     .setAllowExpression(true)
-                    .setValidator(EnumValidator.create(DeriveSize.class, true, false))
+                    // DeriveSize.NONE is no longer legal but if presented we will correct to undefined
+                    .setValidator(EnumValidator.create(DeriveSize.class, true, false, DeriveSize.LEGAL_VALUES))
+                    .setCorrector(((newValue, currentValue) ->
+                            (newValue.getType() == ModelType.STRING && DeriveSize.NONE.toString().equalsIgnoreCase(newValue.asString()))
+                                    ? new ModelNode() : newValue))
                     .setAlternatives(EJB3SubsystemModel.MAX_POOL_SIZE)
                     .setFlags(AttributeAccess.Flag.RESTART_NONE)
                     .build();
@@ -91,6 +94,10 @@ public class StrictMaxPoolResourceDefinition extends SimpleResourceDefinition {
                     .setDefaultValue(new ModelNode().set(StrictMaxPoolConfig.DEFAULT_TIMEOUT_UNIT.name()))
                     .setFlags(AttributeAccess.Flag.RESTART_NONE)
                     .setAllowExpression(true)
+                    .build();
+    public static final SimpleAttributeDefinition DERIVED_SIZE =
+            new SimpleAttributeDefinitionBuilder(EJB3SubsystemModel.DERIVED_SIZE, ModelType.INT, true)
+                    .setFlags(AttributeAccess.Flag.STORAGE_RUNTIME)
                     .build();
 
     public static final Map<String, AttributeDefinition> ATTRIBUTES ;
@@ -112,9 +119,14 @@ public class StrictMaxPoolResourceDefinition extends SimpleResourceDefinition {
 
     enum DeriveSize {
         NONE(NONE_VALUE), FROM_WORKER_POOLS(FROM_WORKER_POOLS_VALUE), FROM_CPU_COUNT(FROM_CPU_COUNT_VALUE);
+
+        // All values but NONE are 'legal' for use, although we provide a corrector to allow NONE as well
+        // I use this convoluted mechanism to name these to make this more robust in case other values get added
+        private static DeriveSize[] LEGAL_VALUES = EnumSet.complementOf(EnumSet.of(NONE)).toArray(new DeriveSize[2]);
+
         private String value;
 
-        private DeriveSize(String value) {
+        DeriveSize(String value) {
             this.value = value;
         }
 
@@ -135,11 +147,16 @@ public class StrictMaxPoolResourceDefinition extends SimpleResourceDefinition {
     }
 
     static Derive parseDeriveSize(OperationContext context, ModelNode strictMaxPoolModel) throws OperationFailedException {
-        DeriveSize deriveSize = DeriveSize.fromValue(StrictMaxPoolResourceDefinition.DERIVE_SIZE.resolveModelAttribute(context, strictMaxPoolModel).asString());
+        ModelNode dsNode = StrictMaxPoolResourceDefinition.DERIVE_SIZE.resolveModelAttribute(context, strictMaxPoolModel);
+        if (dsNode.isDefined()) {
+            DeriveSize deriveSize = DeriveSize.fromValue(dsNode.asString());
 
-        switch (deriveSize) {
-            case FROM_WORKER_POOLS: return Derive.FROM_WORKER_POOLS;
-            case FROM_CPU_COUNT: return Derive.FROM_CPU_COUNT;
+            switch (deriveSize) {
+                case FROM_WORKER_POOLS:
+                    return Derive.FROM_WORKER_POOLS;
+                case FROM_CPU_COUNT:
+                    return Derive.FROM_CPU_COUNT;
+            }
         }
 
         return Derive.NONE;
@@ -154,28 +171,13 @@ public class StrictMaxPoolResourceDefinition extends SimpleResourceDefinition {
 
     @Override
     public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
-        for (AttributeDefinition attr : ATTRIBUTES.values()) {
-            resourceRegistration.registerReadWriteAttribute(attr, null, StrictMaxPoolWriteHandler.INSTANCE);
+        Collection<AttributeDefinition> ads = ATTRIBUTES.values();
+        OperationStepHandler osh = new StrictMaxPoolWriteHandler(ads);
+        for (AttributeDefinition attr : ads) {
+            resourceRegistration.registerReadWriteAttribute(attr, null, osh);
         }
+
+        resourceRegistration.registerReadOnlyAttribute(DERIVED_SIZE, new StrictMaxPoolDerivedSizeReadHandler());
     }
 
-    static void registerTransformers_1_1_0(ResourceTransformationDescriptionBuilder parent) {
-        parent.addChildResource(INSTANCE.getPathElement())
-            .getAttributeBuilder()
-            .addRejectCheck(RejectAttributeChecker.SIMPLE_EXPRESSIONS, INSTANCE_ACQUISITION_TIMEOUT_UNIT);
-    }
-
-    static void registerTransformers_1_2_0_and_1_3_0(ResourceTransformationDescriptionBuilder parent) {
-        parent.addChildResource(INSTANCE.getPathElement())
-                .getAttributeBuilder()
-                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(new ModelNode(DeriveSize.NONE.toString())), DERIVE_SIZE)
-                .addRejectCheck(RejectAttributeChecker.DEFINED, DERIVE_SIZE);
-    }
-
-    static void registerTransformers_3_0_0(ResourceTransformationDescriptionBuilder parent) {
-        parent.addChildResource(INSTANCE.getPathElement())
-                .getAttributeBuilder()
-                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(new ModelNode(DeriveSize.NONE.toString())), DERIVE_SIZE)
-                .addRejectCheck(RejectAttributeChecker.DEFINED, DERIVE_SIZE);
-    }
 }

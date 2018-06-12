@@ -49,7 +49,6 @@ public class TestEntityManager implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
         invocations.add(method.getName());
-        System.out.println("TestEntityManager method=" + method.getName());
 
         if (method.getName().equals("persist")) {
             return persist();
@@ -97,14 +96,12 @@ public class TestEntityManager implements InvocationHandler {
     }
 
     private Object close() {
-        String currentThreadName = Thread.currentThread().getName();
         boolean isBackgroundReaperThread =
                 TxUtils.isTransactionManagerTimeoutThread();
         if (isBackgroundReaperThread) {
-            System.out.println("EntityManager closed by tx reaper thread");
             closedByReaperThread.set(true);
         } else {
-            System.out.println("EntityManager closed by application");
+            closedByReaperThread.set(false);
         }
         return null;
     }

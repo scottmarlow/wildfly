@@ -37,6 +37,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
@@ -82,6 +84,7 @@ import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
+import org.wildfly.transaction.client.ContextTransactionManager;
 
 /**
  * <p>
@@ -90,6 +93,7 @@ import org.jboss.msc.value.InjectedValue;
  *
  * @author Stuart Douglas
  * @author Wolf-Dieter Fink
+ * @author Joerg Baesner
  */
 public class DatabaseTimerPersistence implements TimerPersistence, Service<DatabaseTimerPersistence> {
 
@@ -128,6 +132,8 @@ public class DatabaseTimerPersistence implements TimerPersistence, Service<Datab
     private static final String LOAD_TIMER = "load-timer";
     private static final String DELETE_TIMER = "delete-timer";
     private static final String UPDATE_RUNNING = "update-running";
+    /** The format for scheduler start and end date*/
+    private static final String SCHEDULER_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     public DatabaseTimerPersistence(final String database, String partition, String nodeName, int refreshInterval, boolean allowExecution) {
         this.database = database;
@@ -380,7 +386,8 @@ public class DatabaseTimerPersistence implements TimerPersistence, Service<Datab
     }
 
     @Override
-    public boolean shouldRun(TimerImpl timer, TransactionManager tm) {
+    public boolean shouldRun(TimerImpl timer, @Deprecated TransactionManager ignored) {
+        final ContextTransactionManager tm = ContextTransactionManager.getInstance();
         if (!allowExecution) {
             //timers never execute on this node
             return false;
@@ -403,32 +410,27 @@ public class DatabaseTimerPersistence implements TimerPersistence, Service<Datab
                     statement.setTimestamp(6, timestamp(timer.getNextExpiration()));
                 }
             } catch (SQLException e) {
-                // something wrong with the preparation
-                throw new RuntimeException(e);
+                // fix for WFLY-10130
+                EjbLogger.EJB3_TIMER_LOGGER.exceptionCheckingIfTimerShouldRun(timer, e);
+                return false;
             }
             tm.begin();
             int affected = statement.executeUpdate();
             tm.commit();
             return affected == 1;
-        } catch (SQLException e) {
+        } catch (SQLException | SystemException | SecurityException | IllegalStateException | RollbackException | HeuristicMixedException | HeuristicRollbackException e) {
             // failed to update the DB
-            // TODO need to analyze the Exception and suppress the Exception if 'only' the timer should not executed
             try {
                 tm.rollback();
             } catch (IllegalStateException | SecurityException | SystemException rbe) {
                 EjbLogger.EJB3_TIMER_LOGGER.timerUpdateFailedAndRollbackNotPossible(rbe);
             }
-            throw new RuntimeException(e);
-        }catch (SystemException | SecurityException | IllegalStateException | RollbackException | HeuristicMixedException | HeuristicRollbackException e) {
-            try {
-                tm.rollback();
-            } catch (IllegalStateException | SecurityException | SystemException rbe) {
-                EjbLogger.EJB3_TIMER_LOGGER.timerUpdateFailedAndRollbackNotPossible(rbe);
-            }
-            throw new RuntimeException(e);
+            EjbLogger.EJB3_TIMER_LOGGER.debugf(e, "Timer %s not running due to exception ", timer);
+            return false;
         } catch (NotSupportedException e) {
             // happen from tm.begin, no rollback necessary
-            throw new RuntimeException(e);
+            EjbLogger.EJB3_TIMER_LOGGER.timerNotRunning(e, timer);
+            return false;
         } finally {
             safeClose(statement);
             safeClose(connection);
@@ -458,6 +460,14 @@ public class DatabaseTimerPersistence implements TimerPersistence, Service<Datab
                     final Holder timerImpl = timerFromResult(resultSet, timerService);
                     if (timerImpl != null) {
                         timers.add(timerImpl);
+                    } else {
+                        final String deleteTimer = sql(DELETE_TIMER);
+                        try (PreparedStatement deleteStatement = connection.prepareStatement(deleteTimer)) {
+                            deleteStatement.setString(1, resultSet.getString(2));
+                            deleteStatement.setString(2, resultSet.getString(1));
+                            deleteStatement.setString(3, partition);
+                            deleteStatement.execute();
+                        }
                     }
                 } catch (Exception e) {
                     EjbLogger.EJB3_TIMER_LOGGER.timerReinstatementFailed(resultSet.getString(2), resultSet.getString(1), e);
@@ -519,6 +529,7 @@ public class DatabaseTimerPersistence implements TimerPersistence, Service<Datab
         boolean requiresReset = false;
 
         TimerImpl.Builder builder = null;
+        final String timerId = resultSet.getString(1); // needed for error message
         if (calendarTimer) {
             CalendarTimer.Builder cb = CalendarTimer.builder();
             builder = cb;
@@ -530,8 +541,8 @@ public class DatabaseTimerPersistence implements TimerPersistence, Service<Datab
             cb.setScheduleExprDayOfMonth(resultSet.getString(14));
             cb.setScheduleExprMonth(resultSet.getString(15));
             cb.setScheduleExprYear(resultSet.getString(16));
-            cb.setScheduleExprStartDate(resultSet.getTimestamp(17));
-            cb.setScheduleExprEndDate(resultSet.getTimestamp(18));
+            cb.setScheduleExprStartDate(stringAsSchedulerDate(resultSet.getString(17), timerId));
+            cb.setScheduleExprEndDate(stringAsSchedulerDate(resultSet.getString(18), timerId));
             cb.setScheduleExprTimezone(resultSet.getString(19));
             cb.setAutoTimer(resultSet.getBoolean(20));
 
@@ -552,7 +563,7 @@ public class DatabaseTimerPersistence implements TimerPersistence, Service<Datab
         }
 
 
-        builder.setId(resultSet.getString(1));
+        builder.setId(timerId);
         builder.setTimedObjectId(resultSet.getString(2));
         builder.setInitialDate(resultSet.getTimestamp(3));
         builder.setRepeatInterval(resultSet.getLong(4));
@@ -592,8 +603,10 @@ public class DatabaseTimerPersistence implements TimerPersistence, Service<Datab
             statement.setString(14, c.getScheduleExpression().getDayOfMonth());
             statement.setString(15, c.getScheduleExpression().getMonth());
             statement.setString(16, c.getScheduleExpression().getYear());
-            statement.setTimestamp(17, timestamp(c.getScheduleExpression().getStart()));
-            statement.setTimestamp(18, timestamp(c.getScheduleExpression().getEnd()));
+            // WFLY-9054: Oracle ojdbc6/7 store a timestamp as '06-JUL-17 01.54.00.269000000 PM'
+            //            but expect 'YYYY-MM-DD hh:mm:ss.fffffffff' as all other DB
+            statement.setString(17, schedulerDateAsString(c.getScheduleExpression().getStart()));
+            statement.setString(18, schedulerDateAsString(c.getScheduleExpression().getEnd()));
             statement.setString(19, c.getScheduleExpression().getTimezone());
             statement.setBoolean(20, c.isAutoTimer());
             if (c.isAutoTimer()) {
@@ -669,6 +682,26 @@ public class DatabaseTimerPersistence implements TimerPersistence, Service<Datab
             throw new RuntimeException(e);
         } finally {
             safeClose(in);
+        }
+    }
+
+    private String schedulerDateAsString(final Date date) {
+        if (date == null) {
+            return null;
+        }
+        return new SimpleDateFormat(SCHEDULER_DATE_FORMAT).format(date);
+    }
+
+    /** Convert the stored date-string from database back to Date */
+    private Date stringAsSchedulerDate(final String date, final String timerId) {
+        if (date == null) {
+            return null;
+        }
+        try {
+            return new SimpleDateFormat(SCHEDULER_DATE_FORMAT).parse(date);
+        } catch (ParseException e) {
+            EjbLogger.EJB3_TIMER_LOGGER.scheduleExpressionDateFromTimerPersistenceInvalid(timerId, e.getMessage());
+            return null;
         }
     }
 

@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.jboss.as.connector.logging.ConnectorLogger;
+import org.jboss.as.connector.metadata.api.common.SecurityMetadata;
+import org.jboss.as.connector.metadata.api.ds.DsSecurity;
 import org.jboss.as.connector.services.datasources.statistics.DataSourceStatisticsService;
 import org.jboss.as.connector.services.driver.registry.DriverRegistry;
 import org.jboss.as.connector.subsystems.datasources.AbstractDataSourceService;
@@ -70,6 +72,7 @@ import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.jca.common.api.metadata.Defaults;
+import org.jboss.jca.common.api.metadata.common.Credential;
 import org.jboss.jca.common.api.metadata.ds.DataSource;
 import org.jboss.jca.common.api.metadata.ds.DataSources;
 import org.jboss.jca.common.api.metadata.ds.DsXaPool;
@@ -114,7 +117,7 @@ public class DsXmlDeploymentInstallProcessor implements DeploymentUnitProcessor 
      * file and attach a configuration discovered during processing.
      *
      * @param phaseContext the deployment unit context
-     * @throws org.jboss.as.server.deployment.DeploymentUnitProcessingException
+     * @throws DeploymentUnitProcessingException
      *
      */
     @Override
@@ -123,7 +126,7 @@ public class DsXmlDeploymentInstallProcessor implements DeploymentUnitProcessor 
 
         final List<DataSources> dataSourcesList = deploymentUnit.getAttachmentList(DsXmlDeploymentParsingProcessor.DATA_SOURCES_ATTACHMENT_KEY);
 
-        final boolean securityEnabled = phaseContext.getDeploymentUnit().hasAttachment(SecurityAttachments.SECURITY_ENABLED);
+        final boolean legacySecurityPresent = phaseContext.getDeploymentUnit().hasAttachment(SecurityAttachments.SECURITY_ENABLED);
 
         for(DataSources dataSources : dataSourcesList) {
             if (dataSources.getDrivers() != null && dataSources.getDrivers().size() > 0) {
@@ -143,8 +146,10 @@ public class DsXmlDeploymentInstallProcessor implements DeploymentUnitProcessor 
                             final String dsName = ds.getJndiName();
                             final PathAddress addr = getDataSourceAddress(dsName, deploymentUnit, false);
                             installManagementModel(ds, deploymentUnit, addr);
+                            // TODO why have we been ignoring a configured legacy security domain but no legacy security present?
+                            boolean useLegacySecurity = legacySecurityPresent && isLegacySecurityRequired(ds.getSecurity());
                             startDataSource(lds, jndiName, ds.getDriver(), serviceTarget,
-                                    getRegistration(false, deploymentUnit), getResource(dsName, false, deploymentUnit), dsName, securityEnabled, ds.isJTA());
+                                    getRegistration(false, deploymentUnit), getResource(dsName, false, deploymentUnit), dsName, useLegacySecurity, ds.isJTA());
                         } catch (Exception e) {
                             throw ConnectorLogger.ROOT_LOGGER.exceptionDeployingDatasource(e, ds.getJndiName());
                         }
@@ -165,8 +170,12 @@ public class DsXmlDeploymentInstallProcessor implements DeploymentUnitProcessor 
                             final String dsName = xads.getJndiName();
                             final PathAddress addr = getDataSourceAddress(dsName, deploymentUnit, true);
                             installManagementModel(xads, deploymentUnit, addr);
+                            final Credential credential = xads.getRecovery() == null? null: xads.getRecovery().getCredential();
+                            // TODO why have we been ignoring a configured legacy security domain but no legacy security present?
+                            boolean useLegacySecurity = legacySecurityPresent && (isLegacySecurityRequired(xads.getSecurity())
+                                                        || isLegacySecurityRequired(credential));
                             startDataSource(xds, jndiName, xads.getDriver(), serviceTarget,
-                                    getRegistration(true, deploymentUnit), getResource(dsName, true, deploymentUnit), dsName, securityEnabled, true);
+                                    getRegistration(true, deploymentUnit), getResource(dsName, true, deploymentUnit), dsName, useLegacySecurity, true);
 
                         } catch (Exception e) {
                             throw ConnectorLogger.ROOT_LOGGER.exceptionDeployingDatasource(e, xads.getJndiName());
@@ -215,31 +224,35 @@ public class DsXmlDeploymentInstallProcessor implements DeploymentUnitProcessor 
         XMLXaDataSourceRuntimeHandler.INSTANCE.unregisterDataSource(addr);
     }
 
-    public void undeploy(final DeploymentUnit context) {
-        final List<DataSources> dataSourcesList = context.getAttachmentList(DsXmlDeploymentParsingProcessor.DATA_SOURCES_ATTACHMENT_KEY);
+    @Override
+    public void undeploy(final DeploymentUnit deploymentUnit) {
+        final List<DataSources> dataSourcesList = deploymentUnit.getAttachmentList(DsXmlDeploymentParsingProcessor.DATA_SOURCES_ATTACHMENT_KEY);
 
         for (final DataSources dataSources : dataSourcesList) {
             if (dataSources.getDataSource() != null) {
                 for (int i = 0; i < dataSources.getDataSource().size(); i++) {
-                    DataSource ds = (DataSource)dataSources.getDataSource().get(i);
-                    undeployDataSource(ds, context);
+                    DataSource ds = dataSources.getDataSource().get(i);
+                    undeployDataSource(ds, deploymentUnit);
                 }
             }
             if (dataSources.getXaDataSource() != null) {
-               for (int i = 0; i < dataSources.getXaDataSource().size(); i++) {
-                    XaDataSource xads = (XaDataSource)dataSources.getXaDataSource().get(i);
-                    undeployXaDataSource(xads, context);
+                for (int i = 0; i < dataSources.getXaDataSource().size(); i++) {
+                    XaDataSource xads = dataSources.getXaDataSource().get(i);
+                    undeployXaDataSource(xads, deploymentUnit);
                 }
             }
         }
+
+        deploymentUnit.removeAttachment(DsXmlDeploymentParsingProcessor.DATA_SOURCES_ATTACHMENT_KEY);
     }
 
 
     private ModifiableDataSource buildDataSource(DataSource ds) throws org.jboss.jca.common.api.validator.ValidateException {
+        assert ds.getSecurity() == null || ds.getSecurity() instanceof DsSecurity;
         return new ModifiableDataSource(ds.getConnectionUrl(),
                 ds.getDriverClass(), ds.getDataSourceClass(), ds.getDriver(),
                 ds.getTransactionIsolation(), ds.getConnectionProperties(), ds.getTimeOut(),
-                ds.getSecurity(), ds.getStatement(), ds.getValidation(),
+                (DsSecurity) ds.getSecurity(), ds.getStatement(), ds.getValidation(),
                 ds.getUrlDelimiter(), ds.getUrlSelectorStrategyClassName(), ds.getNewConnectionSql(),
                 ds.isUseJavaContext(), ds.getPoolName(), ds.isEnabled(), ds.getJndiName(),
                 ds.isSpy(), ds.isUseCcm(), ds.isJTA(), ds.isConnectable(), ds.isTracking(), ds.getMcp(), ds.isEnlistmentTrace(), ds.getPool());
@@ -282,7 +295,8 @@ public class DsXmlDeploymentInstallProcessor implements DeploymentUnitProcessor 
                                  final ServiceTarget serviceTarget,
                                  final ManagementResourceRegistration registration,
                                  final Resource resource,
-                                 final String managementName, boolean securityEnabled,
+                                 final String managementName,
+                                 boolean requireLegacySecurity,
                                  final boolean isTransactional) {
 
         final ContextNames.BindInfo bindInfo = ContextNames.bindInfoFor(jndiName);
@@ -291,10 +305,9 @@ public class DsXmlDeploymentInstallProcessor implements DeploymentUnitProcessor 
         final ServiceBuilder<?> dataSourceServiceBuilder =
                 Services.addServerExecutorDependency(
                         serviceTarget.addService(dataSourceServiceName, dataSourceService),
-                        dataSourceService.getExecutorServiceInjector(), false)
+                        dataSourceService.getExecutorServiceInjector())
                 .addDependency(ConnectorServices.IRONJACAMAR_MDR, MetadataRepository.class, dataSourceService.getMdrInjector())
                 .addDependency(ConnectorServices.RA_REPOSITORY_SERVICE, ResourceAdapterRepository.class, dataSourceService.getRaRepositoryInjector())
-                .addDependency(SimpleSecurityManagerService.SERVICE_NAME, ServerSecurityManager.class, dataSourceService.getServerSecurityManager())
                 .addDependency(ConnectorServices.BOOTSTRAP_CONTEXT_SERVICE.append(DEFAULT_NAME))
                 .addDependency(ConnectorServices.TRANSACTION_INTEGRATION_SERVICE, TransactionIntegration.class,
                         dataSourceService.getTransactionIntegrationInjector())
@@ -304,8 +317,9 @@ public class DsXmlDeploymentInstallProcessor implements DeploymentUnitProcessor 
                 .addDependency(ConnectorServices.JDBC_DRIVER_REGISTRY_SERVICE, DriverRegistry.class,
                         dataSourceService.getDriverRegistryInjector()).addDependency(NamingService.SERVICE_NAME);
 
-        if(securityEnabled) {
-
+        if (requireLegacySecurity) {
+            dataSourceServiceBuilder.addDependency(SimpleSecurityManagerService.SERVICE_NAME, ServerSecurityManager.class,
+                    dataSourceService.getServerSecurityManager());
             dataSourceServiceBuilder.addDependency(SubjectFactoryService.SERVICE_NAME, SubjectFactory.class,
                     dataSourceService.getSubjectFactoryInjector());
         }
@@ -430,5 +444,12 @@ public class DsXmlDeploymentInstallProcessor implements DeploymentUnitProcessor 
         }
     }
 
-
+    private static boolean isLegacySecurityRequired(org.jboss.jca.common.api.metadata.common.SecurityMetadata config) {
+        boolean result = config != null && config instanceof SecurityMetadata && !((SecurityMetadata) config).isElytronEnabled();
+        if (result) {
+            String domain = config.resolveSecurityDomain();
+            result = domain != null && domain.trim().length() > 0;
+        }
+        return result;
+    }
 }

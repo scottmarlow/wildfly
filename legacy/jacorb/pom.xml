@@ -31,7 +31,11 @@
         <groupId>org.wildfly</groupId>
         <artifactId>wildfly-parent</artifactId>
         <relativePath>../../pom.xml</relativePath>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-jacorb</artifactId>
@@ -41,15 +45,6 @@
 
     <build>
        <plugins>
-          <plugin>
-             <artifactId>maven-compiler-plugin</artifactId>
-             <configuration>
-                <showDeprecation>false</showDeprecation>
-                <compilerArguments>
-                   <endorseddirs>${project.build.directory}/endorsed</endorseddirs>
-                </compilerArguments>
-             </configuration>
-          </plugin>
           <plugin>
              <artifactId>maven-dependency-plugin</artifactId>
              <executions>
@@ -74,6 +69,26 @@
           </plugin>
        </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>jdk8</id>
+            <activation>
+                <jdk>8</jdk>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <compilerArguments>
+                                <endorseddirs>${project.build.directory}/endorsed</endorseddirs>
+                            </compilerArguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
     <dependencies>
 
@@ -83,7 +98,7 @@
         </dependency>
 
         <dependency>
-            <groupId>org.wildfly</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>wildfly-iiop-openjdk</artifactId>
         </dependency>
 
@@ -93,7 +108,7 @@
         </dependency>
 
         <dependency>
-            <groupId>org.wildfly</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>wildfly-naming</artifactId>
         </dependency>
 

@@ -33,11 +33,10 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.OperateOnDeployment;
-import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.container.test.api.TargetsContainer;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
-import org.jboss.as.test.clustering.cluster.ClusterAbstractTestCase;
+import org.jboss.as.test.clustering.cluster.AbstractClusteringTestCase;
 import org.jboss.as.test.clustering.single.web.Mutable;
 import org.jboss.as.test.clustering.single.web.SimpleServlet;
 import org.jboss.as.test.http.util.TestHttpClientUtils;
@@ -52,16 +51,16 @@ import org.junit.runner.RunWith;
  * Validates that session passivation in non-HA environment works (on single node).
  *
  * @author Radoslav Husar
- * @version Oct 2012
  */
 @RunWith(Arquillian.class)
-@RunAsClient
-public class NonHaWebSessionPersistenceTestCase extends ClusterAbstractTestCase {
+public class NonHaWebSessionPersistenceTestCase extends AbstractClusteringTestCase {
+
+    private static final String MODULE_NAME = NonHaWebSessionPersistenceTestCase.class.getSimpleName();
 
     @Deployment(name = DEPLOYMENT_1, managed = false, testable = false)
     @TargetsContainer(CONTAINER_SINGLE)
     public static Archive<?> deployment() {
-        WebArchive war = ShrinkWrap.create(WebArchive.class, "session-persistence.war");
+        WebArchive war = ShrinkWrap.create(WebArchive.class, MODULE_NAME + ".war");
         war.addClasses(SimpleServlet.class, Mutable.class);
         war.setWebXML(NonHaWebSessionPersistenceTestCase.class.getPackage(), "web.xml");
         return war;
@@ -70,8 +69,7 @@ public class NonHaWebSessionPersistenceTestCase extends ClusterAbstractTestCase 
     @Override
     public void beforeTestMethod() {
         // TODO rethink how this can be done faster with one less stopping (eg. make this test last)
-        stop(CONTAINER_1);
-        stop(CONTAINER_2);
+        stop(NODE_1);
 
         start(CONTAINER_SINGLE);
         deploy(DEPLOYMENT_1);

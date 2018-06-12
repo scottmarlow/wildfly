@@ -38,7 +38,6 @@ import org.jboss.as.controller.operations.validation.EnumValidator;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
-import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
 import org.jboss.as.naming.ManagedReferenceFactory;
 import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.as.naming.logging.NamingLogger;
@@ -49,6 +48,7 @@ import org.jboss.msc.service.ServiceController;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 
 /**
@@ -89,7 +89,6 @@ public class NamingBindingResourceDefinition extends SimpleResourceDefinition {
             .build();
 
     static final PropertiesAttributeDefinition ENVIRONMENT = new PropertiesAttributeDefinition.Builder(NamingSubsystemModel.ENVIRONMENT, true)
-            .setXmlName("property")
             .setAllowExpression(true)
             .build();
 
@@ -110,6 +109,8 @@ public class NamingBindingResourceDefinition extends SimpleResourceDefinition {
         ACCESS_CONSTRAINTS = Collections.unmodifiableList(constraints);
     }
 
+    static final OperationStepHandler VALIDATE_RESOURCE_MODEL_OPERATION_STEP_HANDLER = (context, op) -> validateResourceModel(context.readResource(PathAddress.EMPTY_ADDRESS).getModel(), true);
+
     private NamingBindingResourceDefinition() {
         super(NamingSubsystemModel.BINDING_PATH,
                 NamingExtension.getResourceDescriptionResolver(NamingSubsystemModel.BINDING),
@@ -128,7 +129,10 @@ public class NamingBindingResourceDefinition extends SimpleResourceDefinition {
     public void registerOperations(ManagementResourceRegistration resourceRegistration) {
         super.registerOperations(resourceRegistration);
         SimpleOperationDefinitionBuilder builder = new SimpleOperationDefinitionBuilder(NamingSubsystemModel.REBIND, getResourceDescriptionResolver())
-                .addParameter(BINDING_TYPE)
+                // disallow rebind op for external-context
+                .addParameter(SimpleAttributeDefinitionBuilder.create(BINDING_TYPE)
+                        .setValidator(new EnumValidator<>(BindingType.class, EnumSet.complementOf(EnumSet.of(BindingType.EXTERNAL_CONTEXT))))
+                        .build())
                 .addParameter(TYPE)
                 .addParameter(VALUE)
                 .addParameter(CLASS)
@@ -142,12 +146,13 @@ public class NamingBindingResourceDefinition extends SimpleResourceDefinition {
                     @Override
                     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
 
-                        validateResourceModel(operation, false);
                         Resource resource = context.readResourceForUpdate(PathAddress.EMPTY_ADDRESS);
                         ModelNode model = resource.getModel();
                         for (AttributeDefinition attr : ATTRIBUTES) {
                             attr.validateAndSet(operation, model);
                         }
+
+                        context.addStep(NamingBindingResourceDefinition.VALIDATE_RESOURCE_MODEL_OPERATION_STEP_HANDLER, OperationContext.Stage.MODEL);
 
                         context.addStep(new OperationStepHandler() {
                             @Override
@@ -173,10 +178,6 @@ public class NamingBindingResourceDefinition extends SimpleResourceDefinition {
         return ACCESS_CONSTRAINTS;
     }
 
-    public void registerTransformers_2_0(ResourceTransformationDescriptionBuilder builder) {
-        builder.addOperationTransformationOverride(NamingSubsystemModel.REBIND).setReject();
-    }
-
     private static class WriteAttributeHandler extends ReloadRequiredWriteAttributeHandler {
         private WriteAttributeHandler(AttributeDefinition... definitions) {
             super(definitions);
@@ -184,7 +185,7 @@ public class NamingBindingResourceDefinition extends SimpleResourceDefinition {
         @Override
         protected void validateUpdatedModel(OperationContext context, Resource model) throws OperationFailedException {
             super.validateUpdatedModel(context, model);
-            validateResourceModel(model.getModel(), true);
+            context.addStep(VALIDATE_RESOURCE_MODEL_OPERATION_STEP_HANDLER, OperationContext.Stage.MODEL);
         }
     }
 

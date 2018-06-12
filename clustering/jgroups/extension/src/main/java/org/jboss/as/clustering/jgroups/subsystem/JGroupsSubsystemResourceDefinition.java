@@ -21,62 +21,87 @@
  */
 package org.jboss.as.clustering.jgroups.subsystem;
 
-import org.jboss.as.clustering.controller.AddStepHandler;
-import org.jboss.as.clustering.controller.RemoveStepHandler;
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.function.UnaryOperator;
+
+import org.jboss.as.clustering.controller.Capability;
+import org.jboss.as.clustering.controller.CapabilityReference;
+import org.jboss.as.clustering.controller.DefaultSubsystemDescribeHandler;
+import org.jboss.as.clustering.controller.ManagementResourceRegistration;
+import org.jboss.as.clustering.controller.RequirementCapability;
 import org.jboss.as.clustering.controller.ResourceDescriptor;
+import org.jboss.as.clustering.controller.SimpleResourceRegistration;
+import org.jboss.as.clustering.controller.SubsystemRegistration;
 import org.jboss.as.clustering.controller.ResourceServiceHandler;
 import org.jboss.as.clustering.controller.SubsystemResourceDefinition;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ModelVersion;
+import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
-import org.jboss.as.controller.SubsystemRegistration;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
-import org.jboss.as.controller.operations.common.GenericSubsystemDescribeHandler;
+import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.registry.AttributeAccess;
-import org.jboss.as.controller.registry.ManagementResourceRegistration;
-import org.jboss.as.controller.registry.Resource;
-import org.jboss.as.controller.transform.TransformationContext;
 import org.jboss.as.controller.transform.description.DiscardAttributeChecker;
-import org.jboss.as.controller.transform.description.DiscardPolicy;
-import org.jboss.as.controller.transform.description.DynamicDiscardPolicy;
 import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
 import org.jboss.as.controller.transform.description.TransformationDescription;
 import org.jboss.as.controller.transform.description.TransformationDescriptionBuilder;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
+import org.wildfly.clustering.jgroups.spi.JGroupsRequirement;
+import org.wildfly.clustering.spi.ClusteringRequirement;
 
 /**
  * The root resource of the JGroups subsystem.
  *
  * @author Richard Achmatowicz (c) 2012 Red Hat Inc.
  */
-public class JGroupsSubsystemResourceDefinition extends SubsystemResourceDefinition {
+public class JGroupsSubsystemResourceDefinition extends SubsystemResourceDefinition<SubsystemRegistration> {
 
-    public static final PathElement PATH = PathElement.pathElement(ModelDescriptionConstants.SUBSYSTEM, JGroupsExtension.SUBSYSTEM_NAME);
+    public static final PathElement PATH = pathElement(JGroupsExtension.SUBSYSTEM_NAME);
 
-    public enum Attribute implements org.jboss.as.clustering.controller.Attribute {
-        DEFAULT_CHANNEL("default-channel", ModelType.STRING),
-        @Deprecated DEFAULT_STACK("default-stack", ModelType.STRING, JGroupsModel.VERSION_3_0_0),
+    static final Map<JGroupsRequirement, Capability> CAPABILITIES = new EnumMap<>(JGroupsRequirement.class);
+    static {
+        for (JGroupsRequirement requirement : EnumSet.allOf(JGroupsRequirement.class)) {
+            CAPABILITIES.put(requirement, new RequirementCapability(requirement.getDefaultRequirement()));
+        }
+    }
+
+    static final Map<ClusteringRequirement, Capability> CLUSTERING_CAPABILITIES = new EnumMap<>(ClusteringRequirement.class);
+    static {
+        for (ClusteringRequirement requirement : EnumSet.allOf(ClusteringRequirement.class)) {
+            CLUSTERING_CAPABILITIES.put(requirement, new RequirementCapability(requirement.getDefaultRequirement(), builder -> builder.setAllowMultipleRegistrations(true)));
+        }
+    }
+
+    public enum Attribute implements org.jboss.as.clustering.controller.Attribute, UnaryOperator<SimpleAttributeDefinitionBuilder> {
+        DEFAULT_CHANNEL("default-channel", ModelType.STRING) {
+            @Override
+            public SimpleAttributeDefinitionBuilder apply(SimpleAttributeDefinitionBuilder builder) {
+                return builder.setCapabilityReference(new CapabilityReference(CAPABILITIES.get(JGroupsRequirement.CHANNEL_FACTORY), JGroupsRequirement.CHANNEL_FACTORY));
+            }
+        },
+        @Deprecated DEFAULT_STACK("default-stack", ModelType.STRING) {
+            @Override
+            public SimpleAttributeDefinitionBuilder apply(SimpleAttributeDefinitionBuilder builder) {
+                return builder.setDeprecated(JGroupsModel.VERSION_3_0_0.getVersion());
+            }
+        },
         ;
         private final AttributeDefinition definition;
 
         Attribute(String name, ModelType type) {
-            this.definition = createBuilder(name, type).build();
-        }
-
-        Attribute(String name, ModelType type, JGroupsModel deprecation) {
-            this.definition = createBuilder(name, type).setDeprecated(deprecation.getVersion()).build();
-        }
-
-        static SimpleAttributeDefinitionBuilder createBuilder(String name, ModelType type) {
-            return new SimpleAttributeDefinitionBuilder(name, type)
-                    .setAllowNull(true)
-                    .setAllowExpression(false) // These are model references
+            this.definition = this.apply(new SimpleAttributeDefinitionBuilder(name, type)
+                    .setRequired(false)
+                    .setAllowExpression(false)
                     .setFlags(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
                     .setXmlName(XMLAttribute.DEFAULT.getLocalName())
-            ;
+                    ).build();
         }
 
         @Override
@@ -84,8 +109,6 @@ public class JGroupsSubsystemResourceDefinition extends SubsystemResourceDefinit
             return this.definition;
         }
     }
-
-    private final boolean allowRuntimeOnlyRegistration;
 
     static TransformationDescription buildTransformers(ModelVersion version) {
         ResourceTransformationDescriptionBuilder builder = TransformationDescriptionBuilder.Factory.createSubsystemInstance();
@@ -95,83 +118,57 @@ public class JGroupsSubsystemResourceDefinition extends SubsystemResourceDefinit
                     // The attribute is always discarded, the children will drive rejection/discardation
                     .setDiscard(DiscardAttributeChecker.ALWAYS, Attribute.DEFAULT_CHANNEL.getDefinition())
                     .end();
-
-            DynamicDiscardPolicy channelDiscardRejectPolicy = new DynamicDiscardPolicy() {
-                @Override
-                public DiscardPolicy checkResource(TransformationContext context, PathAddress address) {
-                    // Check whether all channel resources are used by the infinispan subsystem, and transformed
-                    // by its corresponding transformers; reject otherwise
-
-                    // n.b. we need to hard-code the values because otherwise we would end up with cyclical dependency
-
-                    String channelName = address.getLastElement().getValue();
-
-                    PathAddress rootAddress = address.subAddress(0, address.size() - 2);
-                    PathAddress subsystemAddress = rootAddress.append(PathElement.pathElement(ModelDescriptionConstants.SUBSYSTEM, "infinispan"));
-
-                    Resource infinispanResource;
-                    try {
-                        infinispanResource = context.readResourceFromRoot(subsystemAddress);
-                    } catch (Resource.NoSuchResourceException ex) {
-                        return DiscardPolicy.REJECT_AND_WARN;
-                    }
-                    ModelNode infinispanModel = Resource.Tools.readModel(infinispanResource);
-
-                    if (infinispanModel.hasDefined("cache-container")) {
-                        for (ModelNode container : infinispanModel.get("cache-container").asList()) {
-                            ModelNode cacheContainer = container.get(0);
-                            if (cacheContainer.hasDefined("transport")) {
-                                ModelNode transport = cacheContainer.get("transport").get("jgroups");
-                                if (transport.hasDefined("channel")) {
-                                    String channel = transport.get("channel").asString();
-                                    if (channel.equals(channelName)) {
-                                        return DiscardPolicy.SILENT;
-                                    }
-                                } else {
-                                    // In that case, if this were the default channel, it can be discarded too
-                                    ModelNode subsystem = context.readResourceFromRoot(address.subAddress(0, address.size() - 1)).getModel();
-                                    if (subsystem.hasDefined(Attribute.DEFAULT_CHANNEL.getDefinition().getName())) {
-                                        if (subsystem.get(Attribute.DEFAULT_CHANNEL.getDefinition().getName()).asString().equals(channelName)) {
-                                            return DiscardPolicy.SILENT;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // No references to this channel, we need to reject it.
-                    return DiscardPolicy.REJECT_AND_WARN;
-                }
-            };
-            builder.addChildResource(ChannelResourceDefinition.WILDCARD_PATH, channelDiscardRejectPolicy);
-
-        } else {
-            ChannelResourceDefinition.buildTransformation(version, builder);
         }
 
+        ChannelResourceDefinition.buildTransformation(version, builder);
         StackResourceDefinition.buildTransformation(version, builder);
 
         return builder.build();
     }
 
-    JGroupsSubsystemResourceDefinition(boolean allowRuntimeOnlyRegistration) {
-        super(PATH, new JGroupsResourceDescriptionResolver());
-        this.allowRuntimeOnlyRegistration = allowRuntimeOnlyRegistration;
+    static class AddOperationTransformer implements UnaryOperator<OperationStepHandler> {
+        @Override
+        public OperationStepHandler apply(OperationStepHandler handler) {
+            return new OperationStepHandler() {
+                @Override
+                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                    // If this is a legacy configuration containing a default-stack, but no default-channel, then fabricate a default channel using the default stack
+                    // This ensures that the default channel factory capability is available to the /subsystem=infinispan/cache-container=*/transport=jgroups resource, which requires them
+                    // We can drop this compatibility workaround after we drop support for model version 3.0.
+                    if (!operation.hasDefined(Attribute.DEFAULT_CHANNEL.getName()) && operation.hasDefined(Attribute.DEFAULT_STACK.getName())) {
+                        String defaultChannel = "auto";
+                        PathAddress channelAddress = context.getCurrentAddress().append(ChannelResourceDefinition.pathElement(defaultChannel));
+                        ModelNode channelOperation = Util.createAddOperation(channelAddress);
+                        channelOperation.get(ChannelResourceDefinition.Attribute.STACK.getName()).set(operation.get(Attribute.DEFAULT_STACK.getName()));
+                        context.addStep(channelOperation, context.getRootResourceRegistration().getOperationHandler(channelAddress, ModelDescriptionConstants.ADD), OperationContext.Stage.MODEL);
+                        operation.get(Attribute.DEFAULT_CHANNEL.getName()).set(new ModelNode(defaultChannel));
+                    }
+                    handler.execute(context, operation);
+                }
+            };
+        }
+    }
+
+    JGroupsSubsystemResourceDefinition() {
+        super(PATH, JGroupsExtension.SUBSYSTEM_RESOLVER);
     }
 
     @Override
     public void register(SubsystemRegistration parentRegistration) {
         ManagementResourceRegistration registration = parentRegistration.registerSubsystemModel(this);
 
-        registration.registerOperationHandler(GenericSubsystemDescribeHandler.DEFINITION, GenericSubsystemDescribeHandler.INSTANCE);
+        new DefaultSubsystemDescribeHandler().register(registration);
 
-        ResourceDescriptor descriptor = new ResourceDescriptor(this.getResourceDescriptionResolver()).addAttributes(Attribute.class);
+        ResourceDescriptor descriptor = new ResourceDescriptor(this.getResourceDescriptionResolver())
+                .addAttributes(Attribute.class)
+                .addCapabilities(model -> model.hasDefined(Attribute.DEFAULT_CHANNEL.getName()), CAPABILITIES.values())
+                .addCapabilities(model -> model.hasDefined(Attribute.DEFAULT_CHANNEL.getName()), CLUSTERING_CAPABILITIES.values())
+                .setAddOperationTransformation(new AddOperationTransformer())
+                ;
         ResourceServiceHandler handler = new JGroupsSubsystemServiceHandler();
-        new AddStepHandler(descriptor, handler).register(registration);
-        new RemoveStepHandler(descriptor, handler).register(registration);
+        new SimpleResourceRegistration(descriptor, handler).register(registration);
 
-        new ChannelResourceDefinition(this.allowRuntimeOnlyRegistration).register(registration);
-        new StackResourceDefinition(this.allowRuntimeOnlyRegistration).register(registration);
+        new ChannelResourceDefinition().register(registration);
+        new StackResourceDefinition().register(registration);
     }
 }

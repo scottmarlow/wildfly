@@ -1,0 +1,26 @@
+[[Management_API_reference]]
+= Management API reference
+
+This section is an in depth reference to the WildFly management API.
+Readers are encouraged to read the
+<<Management_Clients,Management clients>> and
+<<Core_management_concepts,Core management concepts>> sections
+for fundamental background information, as well as the
+<<Management_tasks,Management tasks>> and
+<<Domain_Setup,Domain setup>> sections for key task oriented
+information. This section is meant as an in depth reference to delve
+into some of the key details.
+
+:leveloffset: +1
+
+include::management-api/Global_operations.adoc[]
+
+include::management-api/Detyped_management_and_the_jboss-dmr_library.adoc[]
+
+include::management-api/Description_of_the_Management_Model.adoc[]
+
+include::management-api/The_HTTP_management_API.adoc[]
+
+include::management-api/The_native_management_API.adoc[]
+
+:leveloffset: -1

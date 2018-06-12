@@ -23,6 +23,7 @@
 package org.wildfly.extension.messaging.activemq;
 
 import static org.jboss.as.controller.SimpleAttributeDefinitionBuilder.create;
+import static org.jboss.as.controller.client.helpers.MeasurementUnit.BYTES;
 import static org.jboss.as.controller.client.helpers.MeasurementUnit.MILLISECONDS;
 import static org.jboss.dmr.ModelType.BIG_DECIMAL;
 import static org.jboss.dmr.ModelType.BOOLEAN;
@@ -34,7 +35,6 @@ import static org.wildfly.extension.messaging.activemq.CommonAttributes.STATIC_C
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.EnumSet;
 
 import org.apache.activemq.artemis.api.config.ActiveMQDefaultConfiguration;
 import org.apache.activemq.artemis.core.server.cluster.impl.MessageLoadBalancingType;
@@ -43,6 +43,7 @@ import org.jboss.as.controller.AttributeMarshaller;
 import org.jboss.as.controller.AttributeParser;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.PrimitiveListAttributeDefinition;
+import org.jboss.as.controller.ReloadRequiredWriteAttributeHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleOperationDefinition;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
@@ -51,7 +52,6 @@ import org.jboss.as.controller.operations.validation.EnumValidator;
 import org.jboss.as.controller.operations.validation.StringLengthValidator;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
-import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.dmr.ModelNode;
 
 
@@ -64,10 +64,6 @@ public class ClusterConnectionDefinition extends PersistentResourceDefinition {
 
     public static final String GET_NODES = "get-nodes";
 
-    public static final String[] OPERATIONS = {
-            GET_NODES
-    };
-
     public static final SimpleAttributeDefinition ADDRESS = create("cluster-connection-address", STRING)
             .setXmlName(CommonAttributes.ADDRESS)
             .setDefaultValue(null)
@@ -77,15 +73,21 @@ public class ClusterConnectionDefinition extends PersistentResourceDefinition {
 
     public static final SimpleAttributeDefinition ALLOW_DIRECT_CONNECTIONS_ONLY = create("allow-direct-connections-only", BOOLEAN)
             .setDefaultValue(new ModelNode(false))
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
-            .setAlternatives(CommonAttributes.DISCOVERY_GROUP)
+            .setRequires(STATIC_CONNECTORS)
+            .setRestartAllServices()
+            .build();
+
+    public static final SimpleAttributeDefinition CALL_FAILOVER_TIMEOUT = create(CommonAttributes.CALL_FAILOVER_TIMEOUT)
+            // cluster connection will wait forever during failover for a non-blocking call
+            .setDefaultValue(new ModelNode(-1L))
             .setRestartAllServices()
             .build();
 
     public static final SimpleAttributeDefinition CHECK_PERIOD = create("check-period", LONG)
             .setDefaultValue(new ModelNode(ActiveMQDefaultConfiguration.getDefaultClusterFailureCheckPeriod()))
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setMeasurementUnit(MILLISECONDS)
             .setRestartAllServices()
@@ -94,8 +96,9 @@ public class ClusterConnectionDefinition extends PersistentResourceDefinition {
     public static final SimpleAttributeDefinition CONNECTION_TTL = create("connection-ttl", LONG)
             .setDefaultValue(new ModelNode(ActiveMQDefaultConfiguration.getDefaultClusterConnectionTtl()))
             .setMeasurementUnit(MILLISECONDS)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
+            .setValidator(InfiniteOrPositiveValidators.LONG_INSTANCE)
             .setRestartAllServices()
             .build();
 
@@ -104,7 +107,7 @@ public class ClusterConnectionDefinition extends PersistentResourceDefinition {
             .build();
 
     public static final PrimitiveListAttributeDefinition CONNECTOR_REFS = new StringListAttributeDefinition.Builder(STATIC_CONNECTORS)
-            .setAllowNull(true)
+            .setRequired(true)
             .setElementValidator(new StringLengthValidator(1))
             .setAttributeParser(AttributeParser.STRING_LIST)
             .setAttributeMarshaller(AttributeMarshaller.STRING_LIST)
@@ -113,8 +116,8 @@ public class ClusterConnectionDefinition extends PersistentResourceDefinition {
             .build();
 
     public static final SimpleAttributeDefinition DISCOVERY_GROUP_NAME = create(CommonAttributes.DISCOVERY_GROUP, STRING)
-            .setAllowNull(true)
-            .setAlternatives(ALLOW_DIRECT_CONNECTIONS_ONLY.getName(), CONNECTOR_REFS.getName())
+            .setRequired(true)
+            .setAlternatives(CONNECTOR_REFS.getName())
             .setRestartAllServices()
             .build();
 
@@ -122,28 +125,30 @@ public class ClusterConnectionDefinition extends PersistentResourceDefinition {
     public static final SimpleAttributeDefinition MESSAGE_LOAD_BALANCING_TYPE = create("message-load-balancing-type", STRING)
             .setDefaultValue(new ModelNode(ActiveMQDefaultConfiguration.getDefaultClusterMessageLoadBalancingType()))
             .setValidator(new EnumValidator<>(MessageLoadBalancingType.class, true, true))
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setRestartAllServices()
             .build();
 
     public static final SimpleAttributeDefinition INITIAL_CONNECT_ATTEMPTS = create("initial-connect-attempts", INT)
             .setDefaultValue(new ModelNode(ActiveMQDefaultConfiguration.getDefaultClusterInitialConnectAttempts()))
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
+            .setCorrector(InfiniteOrPositiveValidators.NEGATIVE_VALUE_CORRECTOR)
+            .setValidator(InfiniteOrPositiveValidators.INT_INSTANCE)
             .setRestartAllServices()
             .build();
 
     public static final SimpleAttributeDefinition MAX_HOPS = create("max-hops", INT)
             .setDefaultValue(new ModelNode(ActiveMQDefaultConfiguration.getDefaultClusterMaxHops()))
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setRestartAllServices()
             .build();
 
     public static final SimpleAttributeDefinition MAX_RETRY_INTERVAL = create("max-retry-interval", LONG)
             .setDefaultValue(new ModelNode(ActiveMQDefaultConfiguration.getDefaultClusterMaxRetryInterval()))
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setMeasurementUnit(MILLISECONDS)
             .setRestartAllServices()
@@ -152,7 +157,7 @@ public class ClusterConnectionDefinition extends PersistentResourceDefinition {
     public static final SimpleAttributeDefinition NOTIFICATION_ATTEMPTS = create("notification-attempts",INT)
             .setDefaultValue(new ModelNode(ActiveMQDefaultConfiguration.getDefaultClusterNotificationAttempts()))
             .setMeasurementUnit(MILLISECONDS)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setRestartAllServices()
             .build();
@@ -160,36 +165,48 @@ public class ClusterConnectionDefinition extends PersistentResourceDefinition {
     public static final SimpleAttributeDefinition NOTIFICATION_INTERVAL = create("notification-interval",LONG)
             .setDefaultValue(new ModelNode(ActiveMQDefaultConfiguration.getDefaultClusterNotificationInterval()))
             .setMeasurementUnit(MILLISECONDS)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
+            .setRestartAllServices()
+            .build();
+
+    public static final SimpleAttributeDefinition PRODUCER_WINDOW_SIZE = create("producer-window-size", INT)
+            .setDefaultValue(new ModelNode(ActiveMQDefaultConfiguration.getDefaultBridgeProducerWindowSize()))
+            .setMeasurementUnit(BYTES)
+            .setRequired(false)
+            .setAllowExpression(true)
+            .setCorrector(InfiniteOrPositiveValidators.NEGATIVE_VALUE_CORRECTOR)
+            .setValidator(InfiniteOrPositiveValidators.INT_INSTANCE)
             .setRestartAllServices()
             .build();
 
     public static final SimpleAttributeDefinition RETRY_INTERVAL = create("retry-interval", LONG)
             .setDefaultValue(new ModelNode(ActiveMQDefaultConfiguration.getDefaultClusterRetryInterval()))
             .setMeasurementUnit(MILLISECONDS)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setRestartAllServices()
             .build();
 
     public static final SimpleAttributeDefinition RECONNECT_ATTEMPTS = create("reconnect-attempts", INT)
             .setDefaultValue(new ModelNode(ActiveMQDefaultConfiguration.getDefaultClusterReconnectAttempts()))
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
+            .setCorrector(InfiniteOrPositiveValidators.NEGATIVE_VALUE_CORRECTOR)
+            .setValidator(InfiniteOrPositiveValidators.INT_INSTANCE)
             .setRestartAllServices()
             .build();
 
     public static final SimpleAttributeDefinition RETRY_INTERVAL_MULTIPLIER = create("retry-interval-multiplier", BIG_DECIMAL)
             .setDefaultValue(new ModelNode(ActiveMQDefaultConfiguration.getDefaultClusterRetryIntervalMultiplier()))
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setRestartAllServices()
             .build();
 
     public static final SimpleAttributeDefinition USE_DUPLICATE_DETECTION = create("use-duplicate-detection", BOOLEAN)
             .setDefaultValue(new ModelNode(ActiveMQDefaultConfiguration.isDefaultClusterDuplicateDetection()))
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setRestartAllServices()
             .build();
@@ -200,12 +217,13 @@ public class ClusterConnectionDefinition extends PersistentResourceDefinition {
             CONNECTION_TTL,
             CommonAttributes.MIN_LARGE_MESSAGE_SIZE,
             CommonAttributes.CALL_TIMEOUT,
-            CommonAttributes.CALL_FAILOVER_TIMEOUT,
+            CALL_FAILOVER_TIMEOUT,
             RETRY_INTERVAL, RETRY_INTERVAL_MULTIPLIER, MAX_RETRY_INTERVAL,
             INITIAL_CONNECT_ATTEMPTS,
             RECONNECT_ATTEMPTS, USE_DUPLICATE_DETECTION,
             MESSAGE_LOAD_BALANCING_TYPE, MAX_HOPS,
             CommonAttributes.BRIDGE_CONFIRMATION_WINDOW_SIZE,
+            PRODUCER_WINDOW_SIZE,
             NOTIFICATION_ATTEMPTS,
             NOTIFICATION_INTERVAL,
             CONNECTOR_REFS,
@@ -226,13 +244,14 @@ public class ClusterConnectionDefinition extends PersistentResourceDefinition {
             NODE_ID
     };
 
-    static final ClusterConnectionDefinition INSTANCE = new ClusterConnectionDefinition();
+    private final boolean registerRuntimeOnly;
 
-    private ClusterConnectionDefinition() {
+    ClusterConnectionDefinition(boolean registerRuntimeOnly) {
         super(MessagingExtension.CLUSTER_CONNECTION_PATH,
                 MessagingExtension.getResourceDescriptionResolver(CommonAttributes.CLUSTER_CONNECTION),
                 ClusterConnectionAdd.INSTANCE,
                 ClusterConnectionRemove.INSTANCE);
+        this.registerRuntimeOnly = registerRuntimeOnly;
     }
 
     @Override
@@ -242,9 +261,10 @@ public class ClusterConnectionDefinition extends PersistentResourceDefinition {
 
     @Override
     public void registerAttributes(ManagementResourceRegistration registry) {
+        ReloadRequiredWriteAttributeHandler reloadRequiredWriteAttributeHandler = new ReloadRequiredWriteAttributeHandler(ATTRIBUTES);
         for (AttributeDefinition attr : ATTRIBUTES) {
             if (!attr.getFlags().contains(AttributeAccess.Flag.STORAGE_RUNTIME)) {
-                registry.registerReadWriteAttribute(attr, null, ClusterConnectionWriteAttributeHandler.INSTANCE);
+                registry.registerReadWriteAttribute(attr, null, reloadRequiredWriteAttributeHandler);
             }
         }
 
@@ -260,14 +280,16 @@ public class ClusterConnectionDefinition extends PersistentResourceDefinition {
 
         super.registerOperations(registry);
 
-        ClusterConnectionControlHandler.INSTANCE.registerOperations(registry, getResourceDescriptionResolver());
+        if (registerRuntimeOnly) {
+            ClusterConnectionControlHandler.INSTANCE.registerOperations(registry, getResourceDescriptionResolver());
 
-        final EnumSet<OperationEntry.Flag> flags = EnumSet.of(OperationEntry.Flag.READ_ONLY, OperationEntry.Flag.RUNTIME_ONLY);
-        SimpleOperationDefinition getNodesDef = new SimpleOperationDefinitionBuilder(ClusterConnectionDefinition.GET_NODES, getResourceDescriptionResolver())
-                .withFlags(flags)
-                .setReplyType(OBJECT)
-                .setReplyValueType(STRING)
-                .build();
-        registry.registerOperationHandler(getNodesDef, ClusterConnectionControlHandler.INSTANCE);
+            SimpleOperationDefinition getNodesDef = new SimpleOperationDefinitionBuilder(ClusterConnectionDefinition.GET_NODES, getResourceDescriptionResolver())
+                    .setReadOnly()
+                    .setRuntimeOnly()
+                    .setReplyType(OBJECT)
+                    .setReplyValueType(STRING)
+                    .build();
+            registry.registerOperationHandler(getNodesDef, ClusterConnectionControlHandler.INSTANCE);
+        }
     }
 }

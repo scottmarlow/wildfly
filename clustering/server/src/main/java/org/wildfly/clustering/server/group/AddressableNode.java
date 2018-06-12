@@ -21,20 +21,22 @@
  */
 package org.wildfly.clustering.server.group;
 
+import java.io.IOException;
+import java.io.Serializable;
 import java.net.InetSocketAddress;
 
 import org.jgroups.Address;
 import org.wildfly.clustering.group.Node;
-import org.wildfly.clustering.server.Addressable;
 
 /**
  * Node implementation that associates a JGroups {@link Address} with its logical name
  * and transport socket binding.
  * @author Paul Ferraro
  */
-public class AddressableNode implements Node, Addressable, Comparable<AddressableNode> {
+public class AddressableNode implements Node, Comparable<AddressableNode>, Serializable {
+    private static final long serialVersionUID = -7707210981640344598L;
 
-    private final Address address;
+    private transient Address address;
     private final String name;
     private final InetSocketAddress socketAddress;
 
@@ -44,7 +46,6 @@ public class AddressableNode implements Node, Addressable, Comparable<Addressabl
         this.socketAddress = socketAddress;
     }
 
-    @Override
     public Address getAddress() {
         return this.address;
     }
@@ -61,11 +62,7 @@ public class AddressableNode implements Node, Addressable, Comparable<Addressabl
 
     @Override
     public boolean equals(Object object) {
-        if (object instanceof Addressable) {
-            Addressable node = (Addressable) object;
-            return this.address.equals(node.getAddress());
-        }
-        return false;
+        return (object instanceof AddressableNode) ? this.address.equals(((AddressableNode) object).address) : false;
     }
 
     @Override
@@ -81,5 +78,15 @@ public class AddressableNode implements Node, Addressable, Comparable<Addressabl
     @Override
     public InetSocketAddress getSocketAddress() {
         return this.socketAddress;
+    }
+
+    private void writeObject(java.io.ObjectOutputStream output) throws IOException {
+        output.defaultWriteObject();
+        AddressSerializer.INSTANCE.write(output, this.address);
+    }
+
+    private void readObject(java.io.ObjectInputStream input) throws IOException, ClassNotFoundException {
+        input.defaultReadObject();
+        this.address = AddressSerializer.INSTANCE.read(input);
     }
 }

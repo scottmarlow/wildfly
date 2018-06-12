@@ -55,6 +55,7 @@ public interface Constants {
     String FLAG = "flag";
     String IDENTITY_TRUST = "identity-trust";
     String IDENTITY_TRUST_MANAGER_CLASS_NAME = "identity-trust-manager-class-name";
+    String INITIALIZE_JACC = "initialize-jacc";
     String JASPI = "jaspi";
     String JSSE = "jsse";
     String KEY_MANAGER = "key-manager";
@@ -128,4 +129,6 @@ public interface Constants {
     String ELYTRON_KEY_MANAGER = "elytron-key-manager";
     String ELYTRON_TRUST_MANAGER = "elytron-trust-manager";
     String LEGACY_JSSE_CONFIG = "legacy-jsse-config";
+    String APPLY_ROLE_MAPPERS = "apply-role-mappers";
+    String ELYTRON_SECURITY = "elytron-security";
 }

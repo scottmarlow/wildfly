@@ -28,10 +28,10 @@ import static org.jboss.as.connector.subsystems.jca.Constants.WORKMANAGER_SHORT_
 import java.util.Map;
 import java.util.concurrent.Executor;
 
-import org.jboss.as.connector.services.workmanager.statistics.DistributedWorkManagerStatisticsService;
-import org.jboss.as.connector.services.workmanager.statistics.WorkManagerStatisticsService;
 import org.jboss.as.connector.services.workmanager.DistributedWorkManagerService;
 import org.jboss.as.connector.services.workmanager.NamedDistributedWorkManager;
+import org.jboss.as.connector.services.workmanager.statistics.DistributedWorkManagerStatisticsService;
+import org.jboss.as.connector.services.workmanager.statistics.WorkManagerStatisticsService;
 import org.jboss.as.connector.subsystems.resourceadapters.IronJacamarResource;
 import org.jboss.as.connector.util.ConnectorServices;
 import org.jboss.as.connector.util.Injection;
@@ -42,6 +42,7 @@ import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PropertiesAttributeDefinition;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.threads.ThreadsServices;
+import org.jboss.as.txn.integration.JBossContextXATerminator;
 import org.jboss.as.txn.service.TxnServices;
 import org.jboss.dmr.ModelNode;
 import org.jboss.jca.core.api.workmanager.DistributedWorkManager;
@@ -55,9 +56,8 @@ import org.jboss.jca.core.workmanager.selector.PingTime;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceTarget;
-import org.jboss.tm.JBossXATerminator;
-import org.wildfly.clustering.jgroups.spi.ChannelFactory;
-import org.wildfly.clustering.jgroups.spi.service.ChannelServiceName;
+import org.wildfly.clustering.dispatcher.CommandDispatcherFactory;
+import org.wildfly.clustering.spi.ClusteringDefaultRequirement;
 
 /**
  * @author <a href="jesper.pedersen@jboss.org">Jesper Pedersen</a>
@@ -78,12 +78,13 @@ public class DistributedWorkManagerAdd extends AbstractAddStepHandler {
     protected void performRuntime(final OperationContext context, final ModelNode operation, final Resource resource) throws OperationFailedException {
         ModelNode model = resource.getModel();
         String name = JcaDistributedWorkManagerDefinition.DWmParameters.NAME.getAttribute().resolveModelAttribute(context, model).asString();
+        boolean elytronEnabled = JcaWorkManagerDefinition.WmParameters.ELYTRON_ENABLED.getAttribute().resolveModelAttribute(context, resource.getModel()).asBoolean();
 
         String policy = JcaDistributedWorkManagerDefinition.DWmParameters.POLICY.getAttribute().resolveModelAttribute(context, model).asString();
         String selector = JcaDistributedWorkManagerDefinition.DWmParameters.SELECTOR.getAttribute().resolveModelAttribute(context, model).asString();
 
         ServiceTarget serviceTarget = context.getServiceTarget();
-        NamedDistributedWorkManager namedDistributedWorkManager = new NamedDistributedWorkManager(name);
+        NamedDistributedWorkManager namedDistributedWorkManager = new NamedDistributedWorkManager(name, elytronEnabled);
 
         if (policy != null && !policy.trim().isEmpty()) {
             switch (JcaDistributedWorkManagerDefinition.PolicyValue.valueOf(policy)) {
@@ -145,15 +146,14 @@ public class DistributedWorkManagerAdd extends AbstractAddStepHandler {
         }
 
         DistributedWorkManagerService wmService = new DistributedWorkManagerService(namedDistributedWorkManager);
-        ServiceBuilder<DistributedWorkManager> builder = serviceTarget
+        ServiceBuilder<NamedDistributedWorkManager> builder = serviceTarget
                 .addService(ConnectorServices.WORKMANAGER_SERVICE.append(name), wmService);
-        builder.addDependency(ChannelServiceName.FACTORY.getServiceName(), ChannelFactory.class, wmService.getJGroupsChannelFactoryInjector());
-
+        builder.addDependency(ClusteringDefaultRequirement.COMMAND_DISPATCHER_FACTORY.getServiceName(context), CommandDispatcherFactory.class, wmService.getCommandDispatcherFactoryInjector());
 
         builder.addDependency(ServiceBuilder.DependencyType.OPTIONAL, ThreadsServices.EXECUTOR.append(WORKMANAGER_LONG_RUNNING).append(name), Executor.class, wmService.getExecutorLongInjector());
         builder.addDependency(ThreadsServices.EXECUTOR.append(WORKMANAGER_SHORT_RUNNING).append(name), Executor.class, wmService.getExecutorShortInjector());
 
-        builder.addDependency(TxnServices.JBOSS_TXN_XA_TERMINATOR, JBossXATerminator.class, wmService.getXaTerminatorInjector())
+        builder.addDependency(TxnServices.JBOSS_TXN_CONTEXT_XA_TERMINATOR, JBossContextXATerminator.class, wmService.getXaTerminatorInjector())
                 .setInitialMode(ServiceController.Mode.ACTIVE)
                 .install();
         WorkManagerStatisticsService wmStatsService = new WorkManagerStatisticsService(context.getResourceRegistrationForUpdate(), name, true);

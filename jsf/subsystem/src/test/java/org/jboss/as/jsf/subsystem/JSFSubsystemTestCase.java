@@ -22,6 +22,7 @@
 package org.jboss.as.jsf.subsystem;
 
 import org.jboss.as.subsystem.test.AbstractSubsystemBaseTest;
+import org.junit.Test;
 
 import java.io.IOException;
 
@@ -36,12 +37,12 @@ public class JSFSubsystemTestCase extends AbstractSubsystemBaseTest {
 
     @Override
     protected String getSubsystemXml() throws IOException {
-        return "<subsystem xmlns=\"urn:jboss:domain:jsf:1.0\" />";
+        return "<subsystem xmlns=\"urn:jboss:domain:jsf:1.1\" />";
     }
 
     @Override
     protected String getSubsystemXsdPath() throws Exception {
-        return "schema/jboss-as-jsf_1_0.xsd";
+        return "schema/jboss-as-jsf_1_1.xsd";
     }
 
     @Override
@@ -49,5 +50,11 @@ public class JSFSubsystemTestCase extends AbstractSubsystemBaseTest {
         return new String[] {
                 "/subsystem-templates/jsf.xml"
         };
+    }
+
+    @Test
+    @Override
+    public void testSchemaOfSubsystemTemplates() throws Exception {
+        super.testSchemaOfSubsystemTemplates();
     }
 }

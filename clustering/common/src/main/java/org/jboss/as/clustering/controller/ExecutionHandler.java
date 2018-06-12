@@ -23,9 +23,9 @@
 package org.jboss.as.clustering.controller;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.jboss.as.controller.AbstractRuntimeOnlyHandler;
 import org.jboss.as.controller.OperationContext;
@@ -40,8 +40,9 @@ import org.jboss.dmr.ModelNode;
  */
 public class ExecutionHandler<C, E extends Executable<C>> extends AbstractRuntimeOnlyHandler {
 
-    private final Map<String, E> executables;
+    private final Map<String, E> executables = new HashMap<>();
     private final Executor<C, E> executor;
+    private final Function<ModelNode, String> nameExtractor;
 
     /**
      * Constructs a new ExecutionHandler
@@ -49,14 +50,17 @@ public class ExecutionHandler<C, E extends Executable<C>> extends AbstractRuntim
      * @param executables the executables sharing this handler
      * @param name a function returning the name of an executable
      */
-    public ExecutionHandler(Executor<C, E> executor, Collection<? extends E> executables, Function<E, String> name) {
+    public ExecutionHandler(Executor<C, E> executor, Collection<? extends E> executables, Function<E, String> nameFactory, Function<ModelNode, String> nameExtractor) {
         this.executor = executor;
-        this.executables = executables.stream().collect(Collectors.toMap(name, Function.identity()));
+        for (E executable : executables) {
+            this.executables.put(nameFactory.apply(executable), executable);
+        }
+        this.nameExtractor = nameExtractor;
     }
 
     @Override
     protected void executeRuntimeStep(OperationContext context, ModelNode operation) {
-        String name = Operations.getAttributeName(operation);
+        String name = this.nameExtractor.apply(operation);
         E executable = this.executables.get(name);
         try {
             ModelNode result = this.executor.execute(context, executable);

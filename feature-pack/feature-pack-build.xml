@@ -31,6 +31,10 @@
                 subsystems="configuration/standalone/subsystems.xml"
                 output-file="standalone/configuration/standalone.xml"/>
         <standalone
+                template="configuration/standalone/template-ee8.xml"
+                subsystems="configuration/standalone/subsystems.xml"
+                output-file="standalone/configuration/standalone-ee8.xml"/>
+        <standalone
                 template="configuration/standalone/template.xml"
                 subsystems="configuration/standalone/subsystems-full.xml"
                 output-file="standalone/configuration/standalone-full.xml"/>
@@ -51,7 +55,7 @@
         <standalone
                 template="configuration/standalone/template.xml"
                 subsystems="configuration/standalone/subsystems-load-balancer.xml"
-                output-file="docs/examples/configs/standalone-load-balancer.xml"/>
+                output-file="standalone/configuration/standalone-load-balancer.xml"/>
         <standalone
                 template="configuration/standalone/template.xml"
                 subsystems="configuration/examples/subsystems-activemq-colocated.xml"
@@ -64,16 +68,19 @@
                 <property name="mod_cluster.supplement" value="no-multicast" />
        </standalone>
         <standalone
-                template="configuration/standalone/template-elytron.xml"
-                subsystems="configuration/standalone/subsystems-elytron.xml"
-                output-file="standalone/configuration/standalone-elytron.xml"/>
-        <standalone
                 template="configuration/standalone/template.xml"
                 subsystems="configuration/standalone/subsystems-ha.xml"
                 output-file="docs/examples/configs/standalone-ec2-ha.xml">
             <property name="jgroups.supplement" value="ec2" />
             <property name="mod_cluster.supplement" value="no-multicast" />
         </standalone>
+        <domain
+                template="configuration/domain/template.xml"
+                subsystems="configuration/domain/subsystems.xml"
+                output-file="docs/examples/configs/domain-ec2.xml">
+            <property name="jgroups.supplement" value="ec2" />
+            <property name="mod_cluster.supplement" value="no-multicast" />
+        </domain>
         <!-- azure.AZURE_PING -->
         <standalone
                 template="configuration/standalone/template.xml"
@@ -127,11 +134,10 @@
         <domain
                 template="configuration/domain/template.xml"
                 subsystems="configuration/domain/subsystems.xml"
-                output-file="domain/configuration/domain.xml"/>
-        <domain
-                template="configuration/domain/template.xml"
-                subsystems="configuration/domain/subsystems-elytron.xml"
-                output-file="domain/configuration/domain-elytron.xml"/>
+                output-file="domain/configuration/domain.xml">
+            <property name="jgroups.supplement" value="" />
+            <property name="mod_cluster.supplement" value="" />
+        </domain>
         <host
                 template="configuration/host/host.xml"
                 subsystems="configuration/host/subsystems.xml"
@@ -144,23 +150,18 @@
                 template="configuration/host/host-slave.xml"
                 subsystems="configuration/host/subsystems.xml"
                 output-file="domain/configuration/host-slave.xml" />
-        <host
-                template="configuration/host/host-elytron.xml"
-                subsystems="configuration/host/subsystems-elytron.xml"
-                output-file="domain/configuration/host-elytron.xml" />
     </config>
     <copy-artifacts>
         <copy-artifact artifact="org.jboss.resteasy:resteasy-spring" to-location="modules/system/layers/base/org/jboss/resteasy/resteasy-spring/main/bundled/resteasy-spring-jar/"/>
-        <copy-artifact artifact="org.jboss.seam.integration:jboss-seam-int-jbossas" to-location="modules/system/layers/base/org/jboss/integration/ext-content/main/bundled/jboss-seam-int.jar"/>
+        <copy-artifact artifact="org.jboss.seam.integration:jboss-seam-int-jbossas" to-location="modules/system/layers/base/org/jboss/integration/ext-content/main/bundled/jboss-seam-int-jbossas.jar"/>
         <copy-artifact artifact="org.wildfly:wildfly-client-all" to-location="bin/client/jboss-client.jar"/>
         <copy-artifact artifact="org.wildfly.core:wildfly-cli::client" to-location="bin/client/jboss-cli-client.jar"/>
-        <copy-artifact artifact="org.apache.activemq:artemis-native" to-location="modules/system/layers/base/org/apache/activemq/artemis/main" extract="true" >
+        <copy-artifact artifact="org.apache.activemq:artemis-native" to-location="modules/system/layers/base/org/apache/activemq/artemis/journal/main" extract="true" >
             <filter pattern="lib/*" include="true" />
             <filter pattern="*" include="false"/>
         </copy-artifact>
     </copy-artifacts>
     <mkdirs>
-        <dir name="domain/data/content"/>
         <dir name="standalone/lib/ext"/>
         <dir name="domain/tmp/auth"/>
         <dir name="standalone/tmp/auth"/>
@@ -171,14 +172,31 @@
             <filter pattern="*.sh" include="true"/>
             <filter pattern="*" include="false"/>
         </permission>
+        <permission value="771">
+            <filter pattern="*/tmp" include="true"/>
+        </permission>
+        <permission value="751">
+            <filter pattern="bin" include="true" />
+            <filter pattern="domain" include="true" />
+            <filter pattern="migration" include="true" />
+            <filter pattern="standalone" include="true" />
+            <filter pattern="bin/client" include="true" />
+            <filter pattern="docs/examples" include="true" />
+            <filter pattern="docs/schema" include="true" />
+            <filter pattern="docs/licenses" include="true" />
+        </permission>
         <permission value="700">
             <filter pattern="*/tmp/auth" include="true"/>
             <filter pattern="*" include="false"/>
         </permission>
+        <permission value="644">
+            <filter pattern="*.jar" include="true"/>
+        </permission>
         <permission value="600">
             <filter pattern="*-users.properties" include="true" />
-            <filter pattern="*/.installation" include="true"/>
-            <filter pattern="*" include="false"/>
+            <filter pattern=".installation" include="true"/>
+            <filter pattern="*/configuration/logging.properties" include="true"/>
+            <filter pattern="domain/configuration/default-server-logging.properties" include="true"/>
         </permission>
     </file-permissions>
     <line-endings>

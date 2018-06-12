@@ -26,11 +26,9 @@ import java.util.Collection;
 
 import org.jboss.as.ee.component.Attachments;
 import org.jboss.as.ee.component.BindingConfiguration;
-import org.jboss.as.ee.component.Component;
 import org.jboss.as.ee.component.ComponentConfiguration;
 import org.jboss.as.ee.component.ComponentConfigurator;
 import org.jboss.as.ee.component.ComponentDescription;
-import org.jboss.as.ee.component.DependencyConfigurator;
 import org.jboss.as.ee.component.EEModuleDescription;
 import org.jboss.as.ee.component.InjectionSource;
 import org.jboss.as.ee.component.ViewDescription;
@@ -48,8 +46,8 @@ import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.EjbDeploymentMarker;
 import org.jboss.msc.inject.Injector;
-import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
+import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.value.InjectedValue;
 import org.jboss.msc.value.Values;
 import org.wildfly.extension.requestcontroller.ControlPoint;
@@ -114,10 +112,12 @@ public class EjbJndiBindingsDeploymentUnitProcessor implements DeploymentUnitPro
         // NOTE: Do NOT use the app name from the EEModuleDescription.getApplicationName() because the Java EE spec has a different and conflicting meaning for app name
         // (where app name == module name in the absence of a .ear). Use EEModuleDescription.getEarApplicationName() instead
         final String applicationName = sessionBean.getModuleDescription().getEarApplicationName();
+        final String distinctName = sessionBean.getModuleDescription().getDistinctName(); // default to empty string
         final String globalJNDIBaseName = "java:global/" + (applicationName != null ? applicationName + "/" : "") + sessionBean.getModuleName() + "/" + sessionBean.getEJBName();
         final String appJNDIBaseName = "java:app/" + sessionBean.getModuleName() + "/" + sessionBean.getEJBName();
         final String moduleJNDIBaseName = "java:module/" + sessionBean.getEJBName();
         final String remoteExportedJNDIBaseName = "java:jboss/exported/" + (applicationName != null ? applicationName + "/" : "") + sessionBean.getModuleName() + "/" + sessionBean.getEJBName();
+        final String ejbNamespaceBindingBaseName = "ejb:" + (applicationName != null ? applicationName + "/" : "") + sessionBean.getModuleName() + "/" + (distinctName != "" ? distinctName + "/" : "") + sessionBean.getEJBName();
 
         // the base ServiceName which will be used to create the ServiceName(s) for each of the view bindings
         final StringBuilder jndiBindingsLogMessage = new StringBuilder();
@@ -159,6 +159,11 @@ public class EjbJndiBindingsDeploymentUnitProcessor implements DeploymentUnitPro
                 }
                 logBinding(jndiBindingsLogMessage, remoteJNDIName);
             }
+
+            // log EJB's ejb:/ namespace binding
+            final String ejbNamespaceBindingName = sessionBean.isStateful() ? ejbNamespaceBindingBaseName + "!" + viewClassName + "?stateful" : ejbNamespaceBindingBaseName + "!" + viewClassName;
+            logBinding(jndiBindingsLogMessage, ejbNamespaceBindingName);
+
         }
 
         // EJB3.1 spec, section 4.4.1 Global JNDI Access states:
@@ -189,7 +194,7 @@ public class EjbJndiBindingsDeploymentUnitProcessor implements DeploymentUnitPro
         }
 
         // log the jndi bindings
-        EjbLogger.DEPLOYMENT_LOGGER.jndiBindings(sessionBean.getEJBName(),deploymentUnit,jndiBindingsLogMessage);
+        EjbLogger.DEPLOYMENT_LOGGER.jndiBindings(sessionBean.getEJBName(), deploymentUnit, jndiBindingsLogMessage);
     }
 
     private void registerBinding(final EJBComponentDescription componentDescription, final ViewDescription viewDescription, final String jndiName) {
@@ -203,7 +208,7 @@ public class EjbJndiBindingsDeploymentUnitProcessor implements DeploymentUnitPro
     private void registerRemoteBinding(final EJBComponentDescription componentDescription, final ViewDescription viewDescription, final String jndiName) {
         final EEModuleDescription moduleDescription = componentDescription.getModuleDescription();
         final InjectedValue<ClassLoader> viewClassLoader = new InjectedValue<ClassLoader>();
-        moduleDescription.getBindingConfigurations().add(new BindingConfiguration(jndiName, new RemoteViewInjectionSource(null, moduleDescription.getEarApplicationName(), moduleDescription.getModuleName(), moduleDescription.getDistinctName(), componentDescription.getComponentName(), viewDescription.getViewClassName(), componentDescription.isStateful(), viewClassLoader)));
+        moduleDescription.getBindingConfigurations().add(new BindingConfiguration(jndiName, new RemoteViewInjectionSource(null, moduleDescription.getEarApplicationName(), moduleDescription.getModuleName(), moduleDescription.getDistinctName(), componentDescription.getComponentName(), viewDescription.getViewClassName(), componentDescription.isStateful(), viewClassLoader, appclient)));
         componentDescription.getConfigurators().add(new ComponentConfigurator() {
             public void configure(DeploymentPhaseContext context, ComponentDescription description, ComponentConfiguration configuration) throws DeploymentUnitProcessingException {
                 viewClassLoader.setValue(Values.immediateValue(configuration.getModuleClassLoader()));
@@ -214,18 +219,11 @@ public class EjbJndiBindingsDeploymentUnitProcessor implements DeploymentUnitPro
         final EEModuleDescription moduleDescription = componentDescription.getModuleDescription();
         final InjectedValue<ClassLoader> viewClassLoader = new InjectedValue<ClassLoader>();
         final InjectedValue<ControlPoint> controlPointInjectedValue = new InjectedValue<>();
-        final RemoteViewInjectionSource delegate = new RemoteViewInjectionSource(null, moduleDescription.getEarApplicationName(), moduleDescription.getModuleName(), moduleDescription.getDistinctName(), componentDescription.getComponentName(), viewDescription.getViewClassName(), componentDescription.isStateful(), viewClassLoader);
-
-        componentDescription.getConfigurators().add(new ComponentConfigurator() {
-            public void configure(DeploymentPhaseContext context, ComponentDescription description, final ComponentConfiguration configuration) throws DeploymentUnitProcessingException {
-                viewClassLoader.setValue(Values.immediateValue(configuration.getModuleClassLoader()));
-                configuration.getCreateDependencies().add(new DependencyConfigurator<Service<Component>>() {
-                    @Override
-                    public void configureDependency(ServiceBuilder<?> serviceBuilder, Service<Component> service) throws DeploymentUnitProcessingException {
-                        serviceBuilder.addDependency(ControlPointService.serviceName(deploymentUnit.getParent() == null ? deploymentUnit.getName() : deploymentUnit.getParent().getName(), EJBComponentSuspendDeploymentUnitProcessor.ENTRY_POINT_NAME + deploymentUnit.getName() + "." + componentDescription.getComponentName()), ControlPoint.class, controlPointInjectedValue);
-                    }
-                });
-            }
+        final RemoteViewInjectionSource delegate = new RemoteViewInjectionSource(null, moduleDescription.getEarApplicationName(), moduleDescription.getModuleName(), moduleDescription.getDistinctName(), componentDescription.getComponentName(), viewDescription.getViewClassName(), componentDescription.isStateful(), viewClassLoader, appclient);
+        final ServiceName depName = ControlPointService.serviceName(deploymentUnit.getParent() == null ? deploymentUnit.getName() : deploymentUnit.getParent().getName(), EJBComponentSuspendDeploymentUnitProcessor.ENTRY_POINT_NAME + deploymentUnit.getName() + "." + componentDescription.getComponentName());
+        componentDescription.getConfigurators().add((context, description, configuration) -> {
+            viewClassLoader.setValue(Values.immediateValue(configuration.getModuleClassLoader()));
+            configuration.getCreateDependencies().add((serviceBuilder, service) -> serviceBuilder.addDependency(depName, ControlPoint.class, controlPointInjectedValue));
         });
         //we need to wrap the injection source to allow graceful shutdown to function, although this is not ideal
         //as it will also reject local lookups as well, although in general local code should never be looking up the

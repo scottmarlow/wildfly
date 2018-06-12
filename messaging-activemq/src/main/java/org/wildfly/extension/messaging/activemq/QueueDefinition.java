@@ -42,7 +42,6 @@ import org.jboss.as.controller.access.management.AccessConstraintDefinition;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
-import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 
@@ -80,20 +79,21 @@ public class QueueDefinition extends PersistentResourceDefinition {
             CommonAttributes.SCHEDULED_COUNT, CommonAttributes.CONSUMER_COUNT
     };
 
-    static final QueueDefinition INSTANCE = new QueueDefinition(false, MessagingExtension.QUEUE_PATH);
+    private final boolean registerRuntimeOnly;
 
-    static final QueueDefinition RUNTIME_INSTANCE = new QueueDefinition(true,  MessagingExtension.RUNTIME_QUEUE_PATH);
-
-    private final boolean runtimeOnly;
-
-    private QueueDefinition(final boolean runtimeOnly,
-                            final PathElement path) {
+    QueueDefinition(final boolean registerRuntimeOnly,
+                    final PathElement path) {
         super(path,
                 MessagingExtension.getResourceDescriptionResolver(CommonAttributes.QUEUE),
-                runtimeOnly ? null : QueueAdd.INSTANCE,
-                runtimeOnly ? null : QueueRemove.INSTANCE,
-                runtimeOnly);
-        this.runtimeOnly = runtimeOnly;
+                path == MessagingExtension.RUNTIME_QUEUE_PATH ? null : QueueAdd.INSTANCE,
+                path == MessagingExtension.RUNTIME_QUEUE_PATH ? null : QueueRemove.INSTANCE,
+                path == MessagingExtension.RUNTIME_QUEUE_PATH);
+        this.registerRuntimeOnly = registerRuntimeOnly;
+    }
+
+    @Override
+    public boolean isRuntime() {
+        return getPathElement() == MessagingExtension.RUNTIME_QUEUE_PATH;
     }
 
     @Override
@@ -102,7 +102,7 @@ public class QueueDefinition extends PersistentResourceDefinition {
 
         for (SimpleAttributeDefinition attr : ATTRIBUTES) {
             if (!attr.getFlags().contains(AttributeAccess.Flag.STORAGE_RUNTIME)) {
-                if (runtimeOnly) {
+                if (isRuntime()) {
                     AttributeDefinition readOnlyRuntimeAttr = create(attr)
                             .setStorageRuntime()
                             .build();
@@ -131,12 +131,14 @@ public class QueueDefinition extends PersistentResourceDefinition {
     public void registerOperations(ManagementResourceRegistration registry) {
         super.registerOperations(registry);
 
-        QueueControlHandler.INSTANCE.registerOperations(registry, getResourceDescriptionResolver());
+        if (registerRuntimeOnly) {
+            QueueControlHandler.INSTANCE.registerOperations(registry, getResourceDescriptionResolver());
+        }
     }
 
     @Override
     public List<AccessConstraintDefinition> getAccessConstraints() {
-        if (runtimeOnly) {
+        if (isRuntime()) {
             return Collections.emptyList();
         } else {
             return Arrays.asList(MessagingExtension.QUEUE_ACCESS_CONSTRAINT);
@@ -162,9 +164,7 @@ public class QueueDefinition extends PersistentResourceDefinition {
         String queueName = address.getLastElement().getValue();
 
         PathAddress activeMQPathAddress = MessagingServices.getActiveMQServerPathAddress(address);
-        Resource serverResource = context.readResourceFromRoot(activeMQPathAddress);
-        boolean hasChild = serverResource.hasChild(address.getLastElement());
-        if (hasChild) {
+        if (context.readResourceFromRoot(activeMQPathAddress, false).hasChild(address.getLastElement())) {
             return false;
         } else {
             // there is no registered queue resource, forward to the runtime-queue address instead

@@ -22,6 +22,7 @@
 
 package org.jboss.as.ejb3.deployment;
 
+import org.jboss.as.ee.component.deployers.StartupCountdown;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.StartContext;
@@ -66,7 +67,7 @@ public class ModuleDeployment implements Service<ModuleDeployment> {
 
     @Override
     public void start(StartContext context) throws StartException {
-        deploymentRepository.getValue().add(identifier, this);
+        deploymentRepository.getValue().add(identifier, ModuleDeployment.this);
     }
 
     @Override
@@ -86,14 +87,23 @@ public class ModuleDeployment implements Service<ModuleDeployment> {
 
         private final DeploymentModuleIdentifier identifier;
         private final InjectedValue<DeploymentRepository> deploymentRepository = new InjectedValue<DeploymentRepository>();
+        private final StartupCountdown countdown;
 
-        public ModuleDeploymentStartService(DeploymentModuleIdentifier identifier) {
+        public ModuleDeploymentStartService(DeploymentModuleIdentifier identifier, StartupCountdown countdown) {
             this.identifier = identifier;
+            this.countdown = countdown;
         }
 
         @Override
         public void start(StartContext startContext) throws StartException {
-            deploymentRepository.getValue().startDeployment(identifier);
+            Runnable action = new Runnable() {
+                @Override
+                public void run() {
+                    deploymentRepository.getValue().startDeployment(identifier);
+                }
+            };
+            if (countdown == null) action.run();
+            else countdown.addCallback(action);
         }
 
         @Override

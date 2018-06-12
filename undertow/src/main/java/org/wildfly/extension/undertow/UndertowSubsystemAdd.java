@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -22,6 +22,8 @@
 
 package org.wildfly.extension.undertow;
 
+import static org.wildfly.extension.undertow.UndertowRootDefinition.HTTP_INVOKER_RUNTIME_CAPABILITY;
+
 import java.util.function.Predicate;
 
 import org.jboss.as.controller.AbstractBoottimeAddStepHandler;
@@ -35,7 +37,8 @@ import org.jboss.as.server.deployment.jbossallxml.JBossAllXmlParserRegisteringPr
 import org.jboss.as.web.common.SharedTldsMetaDataBuilder;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceController;
-import org.jboss.msc.service.ServiceTarget;
+import org.wildfly.extension.undertow.deployment.DefaultDeploymentMappingProvider;
+import org.wildfly.extension.undertow.deployment.DefaultSecurityDomainProcessor;
 import org.wildfly.extension.undertow.deployment.DeploymentRootExplodedMountProcessor;
 import org.wildfly.extension.undertow.deployment.EarContextRootProcessor;
 import org.wildfly.extension.undertow.deployment.ExternalTldParsingDeploymentProcessor;
@@ -57,11 +60,7 @@ import org.wildfly.extension.undertow.deployment.WebFragmentParsingDeploymentPro
 import org.wildfly.extension.undertow.deployment.WebJBossAllParser;
 import org.wildfly.extension.undertow.deployment.WebParsingDeploymentProcessor;
 import org.wildfly.extension.undertow.logging.UndertowLogger;
-import org.wildfly.extension.undertow.session.DistributableSessionIdentifierCodecBuilder;
-import org.wildfly.extension.undertow.session.DistributableSessionIdentifierCodecBuilderValue;
-import org.wildfly.extension.undertow.session.RouteValueService;
 import org.wildfly.extension.undertow.session.SharedSessionConfigParser_1_0;
-import org.wildfly.extension.undertow.session.SharedSessionManagerConfig;
 
 
 /**
@@ -83,7 +82,7 @@ class UndertowSubsystemAdd extends AbstractBoottimeAddStepHandler {
      * {@inheritDoc}
      */
     @Override
-        protected void performBoottime(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+    protected void performBoottime(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
 
         try {
             Class.forName("org.apache.jasper.compiler.JspRuntimeContext", true, this.getClass().getClassLoader());
@@ -100,10 +99,13 @@ class UndertowSubsystemAdd extends AbstractBoottimeAddStepHandler {
 
         final ModelNode instanceIdModel = UndertowRootDefinition.INSTANCE_ID.resolveModelAttribute(context, model);
         final String instanceId = instanceIdModel.isDefined() ? instanceIdModel.asString() : null;
-        ServiceTarget target = context.getServiceTarget();
 
-        target.addService(UndertowService.UNDERTOW, new UndertowService(defaultContainer, defaultServer, defaultVirtualHost, instanceId, stats))
+
+        DefaultDeploymentMappingProvider.instance().clear();//we clear provider on system boot, as on reload it could cause issues.
+
+        context.getCapabilityServiceTarget().addCapability(UndertowRootDefinition.UNDERTOW_CAPABILITY, new UndertowService(defaultContainer, defaultServer, defaultVirtualHost, instanceId, stats))
                 .setInitialMode(ServiceController.Mode.ACTIVE)
+                .addAliases(UndertowService.UNDERTOW)
                 .install();
 
         context.addStep(new AbstractDeploymentChainStep() {
@@ -112,7 +114,7 @@ class UndertowSubsystemAdd extends AbstractBoottimeAddStepHandler {
 
                 final SharedTldsMetaDataBuilder sharedTldsBuilder = new SharedTldsMetaDataBuilder(model.clone());
                 processorTarget.addDeploymentProcessor(UndertowExtension.SUBSYSTEM_NAME, Phase.STRUCTURE, Phase.STRUCTURE_EXPLODED_MOUNT, new DeploymentRootExplodedMountProcessor());
-                processorTarget.addDeploymentProcessor(UndertowExtension.SUBSYSTEM_NAME, Phase.STRUCTURE, Phase.STRUCTURE_REGISTER_JBOSS_ALL_UNDERTOW_SHARED_SESSION, new JBossAllXmlParserRegisteringProcessor<SharedSessionManagerConfig>(SharedSessionConfigParser_1_0.ROOT_ELEMENT, UndertowAttachments.SHARED_SESSION_MANAGER_CONFIG, SharedSessionConfigParser_1_0.INSTANCE));
+                processorTarget.addDeploymentProcessor(UndertowExtension.SUBSYSTEM_NAME, Phase.STRUCTURE, Phase.STRUCTURE_REGISTER_JBOSS_ALL_UNDERTOW_SHARED_SESSION, new JBossAllXmlParserRegisteringProcessor<>(SharedSessionConfigParser_1_0.ROOT_ELEMENT, UndertowAttachments.SHARED_SESSION_MANAGER_CONFIG, SharedSessionConfigParser_1_0.INSTANCE));
                 processorTarget.addDeploymentProcessor(UndertowExtension.SUBSYSTEM_NAME, Phase.STRUCTURE, Phase.STRUCTURE_REGISTER_JBOSS_ALL_WEB, new JBossAllXmlParserRegisteringProcessor<>(WebJBossAllParser.ROOT_ELEMENT, WebJBossAllParser.ATTACHMENT_KEY, new WebJBossAllParser()));
                 processorTarget.addDeploymentProcessor(UndertowExtension.SUBSYSTEM_NAME, Phase.STRUCTURE, Phase.STRUCTURE_WAR_DEPLOYMENT_INIT, new WarDeploymentInitializingProcessor());
                 processorTarget.addDeploymentProcessor(UndertowExtension.SUBSYSTEM_NAME, Phase.STRUCTURE, Phase.STRUCTURE_WAR, new WarStructureDeploymentProcessor(sharedTldsBuilder));
@@ -124,6 +126,7 @@ class UndertowSubsystemAdd extends AbstractBoottimeAddStepHandler {
                 processorTarget.addDeploymentProcessor(UndertowExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_WEB_MERGE_METADATA, new WarMetaDataProcessor());
                 processorTarget.addDeploymentProcessor(UndertowExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_WEB_MERGE_METADATA + 1, new TldParsingDeploymentProcessor()); //todo: fix priority
                 processorTarget.addDeploymentProcessor(UndertowExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_WEB_MERGE_METADATA + 2, new org.wildfly.extension.undertow.deployment.WebComponentProcessor()); //todo: fix priority
+                processorTarget.addDeploymentProcessor(UndertowExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_WEB_MERGE_METADATA + 3, new DefaultSecurityDomainProcessor(defaultSecurityDomain)); //todo: fix priority
 
                 processorTarget.addDeploymentProcessor(UndertowExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_WAR_MODULE, new UndertowDependencyProcessor());
 
@@ -133,7 +136,7 @@ class UndertowSubsystemAdd extends AbstractBoottimeAddStepHandler {
                 processorTarget.addDeploymentProcessor(UndertowExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_UNDERTOW_HANDLERS + 2, new UndertowServletContainerDependencyProcessor(defaultContainer)); //todo: fix priority
 
 
-                processorTarget.addDeploymentProcessor(UndertowExtension.SUBSYSTEM_NAME, Phase.INSTALL, Phase.INSTALL_SHARED_SESSION_MANAGER, new SharedSessionManagerDeploymentProcessor());
+                processorTarget.addDeploymentProcessor(UndertowExtension.SUBSYSTEM_NAME, Phase.INSTALL, Phase.INSTALL_SHARED_SESSION_MANAGER, new SharedSessionManagerDeploymentProcessor(defaultServer));
 
                 processorTarget.addDeploymentProcessor(UndertowExtension.SUBSYSTEM_NAME, Phase.INSTALL, Phase.INSTALL_SERVLET_INIT_DEPLOYMENT, new ServletContainerInitializerDeploymentProcessor());
 
@@ -142,16 +145,9 @@ class UndertowSubsystemAdd extends AbstractBoottimeAddStepHandler {
             }
         }, OperationContext.Stage.RUNTIME);
 
-        DistributableSessionIdentifierCodecBuilder builder = new DistributableSessionIdentifierCodecBuilderValue().getValue();
-        if (builder != null) {
-            builder.buildServerDependency(target)
-                    .setInitialMode(ServiceController.Mode.ON_DEMAND)
-                    .install();
-        }
-
-        RouteValueService.build(target)
-                .setInitialMode(ServiceController.Mode.ON_DEMAND)
+        context.getCapabilityServiceTarget()
+                .addCapability(HTTP_INVOKER_RUNTIME_CAPABILITY, new RemoteHttpInvokerService())
                 .install();
-
     }
+
 }

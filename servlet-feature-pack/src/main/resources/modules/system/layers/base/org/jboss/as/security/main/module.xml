@@ -22,7 +22,7 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<module xmlns="urn:jboss:module:1.3" name="org.jboss.as.security">
+<module xmlns="urn:jboss:module:1.5" name="org.jboss.as.security">
     <properties>
         <property name="jboss.api" value="private"/>
     </properties>
@@ -57,13 +57,14 @@
         <module name="org.jboss.modules"/>
         <module name="org.jboss.msc"/>
         <module name="org.jboss.remoting"/>
-        <module name="org.jboss.sasl"/>
         <module name="org.jboss.security.negotiation" optional="true"/>
         <module name="org.jboss.staxmapper"/>
         <module name="org.picketbox"/>
         <module name="org.wildfly.common"/>
         <module name="org.wildfly.clustering.infinispan.spi" optional="true"/>
-        <module name="org.wildfly.security.elytron"/>
+        <module name="org.wildfly.clustering.service" optional="true"/>
+        <module name="org.wildfly.security.elytron-private"/>
+        <module name="org.wildfly.extension.undertow" />
         <module name="sun.jdk"/>
     </dependencies>
 </module>

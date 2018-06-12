@@ -26,23 +26,23 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 import org.infinispan.transaction.LockingMode;
-import org.jboss.as.clustering.controller.AddStepHandler;
-import org.jboss.as.clustering.controller.ResourceDescriptor;
+import org.jboss.as.clustering.controller.ManagementResourceRegistration;
 import org.jboss.as.clustering.controller.MetricHandler;
 import org.jboss.as.clustering.controller.Operations;
-import org.jboss.as.clustering.controller.RemoveStepHandler;
+import org.jboss.as.clustering.controller.ResourceDescriptor;
+import org.jboss.as.clustering.controller.SimpleResourceRegistration;
 import org.jboss.as.clustering.controller.ResourceServiceHandler;
 import org.jboss.as.clustering.controller.SimpleAliasEntry;
 import org.jboss.as.clustering.controller.SimpleResourceServiceHandler;
 import org.jboss.as.clustering.controller.transform.AttributeOperationTransformer;
 import org.jboss.as.clustering.controller.transform.ChainedOperationTransformer;
+import org.jboss.as.clustering.controller.transform.OperationTransformer;
 import org.jboss.as.clustering.controller.transform.RequiredChildResourceDiscardPolicy;
 import org.jboss.as.clustering.controller.transform.SimpleOperationTransformer;
-import org.jboss.as.clustering.controller.validation.EnumValidatorBuilder;
-import org.jboss.as.clustering.controller.validation.ParameterValidatorBuilder;
-import org.jboss.as.clustering.controller.transform.OperationTransformer;
+import org.jboss.as.clustering.controller.validation.EnumValidator;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.OperationFailedException;
@@ -53,7 +53,6 @@ import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.client.helpers.MeasurementUnit;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.registry.AttributeAccess;
-import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.transform.OperationResultTransformer;
 import org.jboss.as.controller.transform.ResourceTransformationContext;
@@ -76,30 +75,35 @@ public class TransactionResourceDefinition extends ComponentResourceDefinition {
     static final PathElement PATH = pathElement("transaction");
     static final PathElement LEGACY_PATH = PathElement.pathElement(PATH.getValue(), "TRANSACTION");
 
-    enum Attribute implements org.jboss.as.clustering.controller.Attribute {
-        LOCKING("locking", ModelType.STRING, new ModelNode(LockingMode.PESSIMISTIC.name()), new EnumValidatorBuilder<>(LockingMode.class)),
-        MODE("mode", ModelType.STRING, new ModelNode(TransactionMode.NONE.name()), new EnumValidatorBuilder<>(TransactionMode.class)),
-        STOP_TIMEOUT("stop-timeout", ModelType.LONG, new ModelNode(10000L)),
+    enum Attribute implements org.jboss.as.clustering.controller.Attribute, UnaryOperator<SimpleAttributeDefinitionBuilder> {
+        LOCKING("locking", ModelType.STRING, new ModelNode(LockingMode.PESSIMISTIC.name())) {
+            @Override
+            public SimpleAttributeDefinitionBuilder apply(SimpleAttributeDefinitionBuilder builder) {
+                return builder.setValidator(new EnumValidator<>(LockingMode.class));
+            }
+        },
+        MODE("mode", ModelType.STRING, new ModelNode(TransactionMode.NONE.name())) {
+            @Override
+            public SimpleAttributeDefinitionBuilder apply(SimpleAttributeDefinitionBuilder builder) {
+                return builder.setValidator(new EnumValidator<>(TransactionMode.class));
+            }
+        },
+        STOP_TIMEOUT("stop-timeout", ModelType.LONG, new ModelNode(10000L)) {
+            @Override
+            public SimpleAttributeDefinitionBuilder apply(SimpleAttributeDefinitionBuilder builder) {
+                return builder.setMeasurementUnit(MeasurementUnit.MILLISECONDS);
+            }
+        },
         ;
         private final SimpleAttributeDefinition definition;
 
         Attribute(String name, ModelType type, ModelNode defaultValue) {
-            this.definition = createBuilder(name, type, defaultValue).build();
-        }
-
-        Attribute(String name, ModelType type, ModelNode defaultValue, ParameterValidatorBuilder validator) {
-            SimpleAttributeDefinitionBuilder builder = createBuilder(name, type, defaultValue);
-            this.definition = builder.setValidator(validator.configure(builder).build()).build();
-        }
-
-        private static SimpleAttributeDefinitionBuilder createBuilder(String name, ModelType type, ModelNode defaultValue) {
-            return new SimpleAttributeDefinitionBuilder(name, type)
+            this.definition = this.apply(new SimpleAttributeDefinitionBuilder(name, type)
                     .setAllowExpression(true)
-                    .setAllowNull(true)
+                    .setRequired(false)
                     .setDefaultValue(defaultValue)
                     .setFlags(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
-                    .setMeasurementUnit((type == ModelType.LONG) ? MeasurementUnit.MILLISECONDS : null)
-            ;
+                    ).build();
         }
 
         @Override
@@ -107,8 +111,6 @@ public class TransactionResourceDefinition extends ComponentResourceDefinition {
             return this.definition;
         }
     }
-
-    private final boolean allowRuntimeOnlyRegistration;
 
     @SuppressWarnings("deprecation")
     static void buildTransformation(ModelVersion version, ResourceTransformationDescriptionBuilder parent) {
@@ -125,8 +127,8 @@ public class TransactionResourceDefinition extends ComponentResourceDefinition {
             OperationTransformer addTransformer = new OperationTransformer() {
                 @Override
                 public ModelNode transformOperation(ModelNode operation) {
-                    if (operation.hasDefined(Attribute.MODE.getDefinition().getName())) {
-                        ModelNode mode = operation.get(Attribute.MODE.getDefinition().getName());
+                    if (operation.hasDefined(Attribute.MODE.getName())) {
+                        ModelNode mode = operation.get(Attribute.MODE.getName());
                         if ((mode.getType() == ModelType.STRING) && (TransactionMode.valueOf(mode.asString()) == TransactionMode.BATCH)) {
                             mode.set(TransactionMode.NONE.name());
                             PathAddress address = Operations.getPathAddress(operation);
@@ -163,7 +165,7 @@ public class TransactionResourceDefinition extends ComponentResourceDefinition {
                     return readBatchingResult.asBoolean() ? new ModelNode(TransactionMode.BATCH.name()) : result.get(1);
                 }
             };
-            readAttributeTransformers.put(Attribute.MODE.getDefinition().getName(), new SimpleOperationTransformer(readAttributeOperationTransformer, readAttributeResultTransformer));
+            readAttributeTransformers.put(Attribute.MODE.getName(), new SimpleOperationTransformer(readAttributeOperationTransformer, readAttributeResultTransformer));
 
             // Convert BATCH -> NONE, and include write-attribute:name=batching
             OperationTransformer writeAttributeTransformer = new OperationTransformer() {
@@ -178,7 +180,7 @@ public class TransactionResourceDefinition extends ComponentResourceDefinition {
                     return Operations.createCompositeOperation(operation, Operations.createWriteAttributeOperation(cacheAddress(address), CacheResourceDefinition.DeprecatedAttribute.BATCHING, new ModelNode(batching)));
                 }
             };
-            writeAttributeTransformers.put(Attribute.MODE.getDefinition().getName(), new SimpleOperationTransformer(writeAttributeTransformer));
+            writeAttributeTransformers.put(Attribute.MODE.getName(), new SimpleOperationTransformer(writeAttributeTransformer));
 
             // Include undefine-attribute:name=batching
             OperationTransformer undefineAttributeTransformer = new OperationTransformer() {
@@ -188,15 +190,15 @@ public class TransactionResourceDefinition extends ComponentResourceDefinition {
                     return Operations.createCompositeOperation(operation, Operations.createUndefineAttributeOperation(cacheAddress(address), CacheResourceDefinition.DeprecatedAttribute.BATCHING));
                 }
             };
-            undefineAttributeTransformers.put(Attribute.MODE.getDefinition().getName(), new SimpleOperationTransformer(undefineAttributeTransformer));
+            undefineAttributeTransformers.put(Attribute.MODE.getName(), new SimpleOperationTransformer(undefineAttributeTransformer));
 
             // Convert BATCH -> NONE
             ResourceTransformer modeTransformer = new ResourceTransformer() {
                 @Override
                 public void transformResource(ResourceTransformationContext context, PathAddress address, Resource resource) throws OperationFailedException {
                     ModelNode model = resource.getModel();
-                    if (model.hasDefined(Attribute.MODE.getDefinition().getName())) {
-                        ModelNode value = model.get(Attribute.MODE.getDefinition().getName());
+                    if (model.hasDefined(Attribute.MODE.getName())) {
+                        ModelNode value = model.get(Attribute.MODE.getName());
                         if ((value.getType() == ModelType.STRING) && (TransactionMode.valueOf(value.asString()) == TransactionMode.BATCH)) {
                             value.set(TransactionMode.NONE.name());
                         }
@@ -233,23 +235,23 @@ public class TransactionResourceDefinition extends ComponentResourceDefinition {
         return transactionAddress.subAddress(0, transactionAddress.size() - 1);
     }
 
-    TransactionResourceDefinition(boolean allowRuntimeOnlyRegistration) {
+    TransactionResourceDefinition() {
         super(PATH);
-        this.allowRuntimeOnlyRegistration = allowRuntimeOnlyRegistration;
     }
 
     @Override
-    public void register(ManagementResourceRegistration parentRegistration) {
-        ManagementResourceRegistration registration = parentRegistration.registerSubModel(this);
-        parentRegistration.registerAlias(LEGACY_PATH, new SimpleAliasEntry(registration));
+    public ManagementResourceRegistration register(ManagementResourceRegistration parent) {
+        ManagementResourceRegistration registration = parent.registerSubModel(this);
+        parent.registerAlias(LEGACY_PATH, new SimpleAliasEntry(registration));
 
         ResourceDescriptor descriptor = new ResourceDescriptor(this.getResourceDescriptionResolver()).addAttributes(Attribute.class);
-        ResourceServiceHandler handler = new SimpleResourceServiceHandler<>(new TransactionBuilderFactory());
-        new AddStepHandler(descriptor, handler).register(registration);
-        new RemoveStepHandler(descriptor, handler).register(registration);
+        ResourceServiceHandler handler = new SimpleResourceServiceHandler(TransactionServiceConfigurator::new);
+        new SimpleResourceRegistration(descriptor, handler).register(registration);
 
-        if (this.allowRuntimeOnlyRegistration) {
+        if (registration.isRuntimeOnlyRegistrationValid()) {
             new MetricHandler<>(new TransactionMetricExecutor(), TransactionMetric.class).register(registration);
         }
+
+        return registration;
     }
 }

@@ -25,8 +25,10 @@
  */
 package org.jboss.as.connector.subsystems.datasources;
 
+import static org.jboss.as.connector.subsystems.datasources.Constants.DATASOURCE_CLASS_INFO;
 import static org.jboss.as.connector.subsystems.datasources.Constants.DEPLOYMENT_NAME;
 import static org.jboss.as.connector.subsystems.datasources.Constants.DRIVER_CLASS_NAME;
+import static org.jboss.as.connector.subsystems.datasources.Constants.DRIVER_DATASOURCE_CLASS_NAME;
 import static org.jboss.as.connector.subsystems.datasources.Constants.DRIVER_MAJOR_VERSION;
 import static org.jboss.as.connector.subsystems.datasources.Constants.DRIVER_MINOR_VERSION;
 import static org.jboss.as.connector.subsystems.datasources.Constants.DRIVER_MODULE_NAME;
@@ -34,6 +36,7 @@ import static org.jboss.as.connector.subsystems.datasources.Constants.DRIVER_NAM
 import static org.jboss.as.connector.subsystems.datasources.Constants.DRIVER_XA_DATASOURCE_CLASS_NAME;
 import static org.jboss.as.connector.subsystems.datasources.Constants.JDBC_COMPLIANT;
 import static org.jboss.as.connector.subsystems.datasources.Constants.MODULE_SLOT;
+import static org.jboss.as.connector.subsystems.datasources.GetDataSourceClassInfoOperationHandler.dsClsInfoNode;
 
 import org.jboss.as.connector.services.driver.InstalledDriver;
 import org.jboss.as.connector.services.driver.registry.DriverRegistry;
@@ -43,8 +46,10 @@ import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.operations.validation.ParametersValidator;
 import org.jboss.as.controller.operations.validation.StringLengthValidator;
+import org.jboss.as.server.Services;
+import org.jboss.as.server.moduleservice.ServiceModuleLoader;
 import org.jboss.dmr.ModelNode;
-import org.jboss.msc.service.ServiceController;
+import org.jboss.msc.service.ServiceRegistry;
 
 /**
  * Reads the "installed-drivers" attribute.
@@ -72,9 +77,9 @@ public class GetInstalledDriverOperationHandler implements OperationStepHandler 
                 @Override
                 public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
 
-                    ServiceController<?> sc = context.getServiceRegistry(false).getRequiredService(
-                            ConnectorServices.JDBC_DRIVER_REGISTRY_SERVICE);
-                    DriverRegistry driverRegistry = DriverRegistry.class.cast(sc.getValue());
+                    ServiceRegistry registry = context.getServiceRegistry(false);
+                    DriverRegistry driverRegistry = (DriverRegistry)registry.getRequiredService(ConnectorServices.JDBC_DRIVER_REGISTRY_SERVICE).getValue();
+                    ServiceModuleLoader serviceModuleLoader = (ServiceModuleLoader)registry.getRequiredService(Services.JBOSS_SERVICE_MODULE_LOADER).getValue();
                     ModelNode result = new ModelNode();
                     InstalledDriver driver = driverRegistry.getInstalledDriver(name);
                     ModelNode driverNode = new ModelNode();
@@ -83,14 +88,19 @@ public class GetInstalledDriverOperationHandler implements OperationStepHandler 
                         driverNode.get(DEPLOYMENT_NAME.getName()).set(driver.getDriverName());
                         driverNode.get(DRIVER_MODULE_NAME.getName());
                         driverNode.get(MODULE_SLOT.getName());
+                        driverNode.get(DRIVER_DATASOURCE_CLASS_NAME.getName());
                         driverNode.get(DRIVER_XA_DATASOURCE_CLASS_NAME.getName());
                     } else {
                         driverNode.get(DEPLOYMENT_NAME.getName());
                         driverNode.get(DRIVER_MODULE_NAME.getName()).set(driver.getModuleName().getName());
                         driverNode.get(MODULE_SLOT.getName()).set(driver.getModuleName() != null ? driver.getModuleName().getSlot() : "");
+                        driverNode.get(DRIVER_DATASOURCE_CLASS_NAME.getName()).set(
+                                driver.getDataSourceClassName() != null ? driver.getDataSourceClassName() : "");
                         driverNode.get(DRIVER_XA_DATASOURCE_CLASS_NAME.getName()).set(driver.getXaDataSourceClassName());
 
                     }
+                    driverNode.get(DATASOURCE_CLASS_INFO.getName()).set(
+                            dsClsInfoNode(serviceModuleLoader, driver.getModuleName(), driver.getDataSourceClassName(), driver.getXaDataSourceClassName()));
                     driverNode.get(DRIVER_CLASS_NAME.getName()).set(driver.getDriverClassName());
                     driverNode.get(DRIVER_MAJOR_VERSION.getName()).set(driver.getMajorVersion());
                     driverNode.get(DRIVER_MINOR_VERSION.getName()).set(driver.getMinorVersion());

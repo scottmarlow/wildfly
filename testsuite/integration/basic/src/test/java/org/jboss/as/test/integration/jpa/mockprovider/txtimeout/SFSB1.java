@@ -29,11 +29,10 @@ import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
 import javax.persistence.PersistenceContext;
 import javax.transaction.Status;
-import javax.transaction.Synchronization;
 import javax.transaction.TransactionSynchronizationRegistry;
 
 import org.jboss.ejb3.annotation.TransactionTimeout;
-import org.jboss.tm.TxUtils;
+import org.jboss.logging.Logger;
 
 /**
  * stateful session bean
@@ -42,10 +41,9 @@ import org.jboss.tm.TxUtils;
  */
 @Stateful
 public class SFSB1 {
+    private static final Logger LOGGER = Logger.getLogger(SFSB1.class);
     @PersistenceContext
     EntityManager entityManager;
-
-    private static boolean afterCompletionCalledByTMTimeoutThread = false;
 
     @Resource
     TransactionSynchronizationRegistry transactionSynchronizationRegistry;
@@ -59,8 +57,8 @@ public class SFSB1 {
     }
 
     @TransactionTimeout(value = 1, unit = TimeUnit.SECONDS)
-    public void createEmployeeWaitForTxTimeout(boolean registerTxSync, String name, String address, int id) {
-        System.out.println("org.jboss.as.test.integration.jpa.mockprovider.txtimeout.createEmployeeWaitForTxTimeout " +
+    public void createEmployeeWaitForTxTimeout(String name, String address, int id) {
+        LOGGER.trace("org.jboss.as.test.integration.jpa.mockprovider.txtimeout.createEmployeeWaitForTxTimeout " +
                 "entered, will wait for tx time out to occur");
         Employee emp = new Employee();
         emp.setId(id);
@@ -68,21 +66,6 @@ public class SFSB1 {
         emp.setName(name);
         entityManager.persist(emp);
         boolean done = false;
-        if (registerTxSync) {
-            transactionSynchronizationRegistry.registerInterposedSynchronization(
-                    new Synchronization() {
-                        @Override
-                        public void beforeCompletion() {
-
-                        }
-
-                        @Override
-                        public void afterCompletion(int status) {
-                            afterCompletionCalledByTMTimeoutThread =
-                                    TxUtils.isTransactionManagerTimeoutThread();
-                        }
-                    });
-        }
 
         while (!done) {
             try {
@@ -93,14 +76,14 @@ public class SFSB1 {
                     case Status.STATUS_COMMITTED:
                         throw new RuntimeException("transaction was committed.");
                     case Status.STATUS_ROLLEDBACK:
-                        System.out.println("tx timed out and rolled back as expected, success case reached.");
+                        LOGGER.trace("tx timed out and rolled back as expected, success case reached.");
                         done = true;
                         break;
                     case Status.STATUS_ACTIVE:
-                        System.out.println("tx is still active, sleep for 250ms and check tx status again.");
+                        LOGGER.trace("tx is still active, sleep for 250ms and check tx status again.");
                         break;
                     default:
-                        System.out.println("tx status = " + status + ", sleep for 250ms and check tx status again.");
+                        LOGGER.trace("tx status = " + status + ", sleep for 250ms and check tx status again.");
                         break;
                 }
 
@@ -108,21 +91,12 @@ public class SFSB1 {
                 e.printStackTrace();
                 return;
             }
-            System.out.println("org.jboss.as.test.integration.jpa.mockprovider.txtimeout.createEmployeeWaitForTxTimeout waiting for tx to timeout");
+            LOGGER.trace("org.jboss.as.test.integration.jpa.mockprovider.txtimeout.createEmployeeWaitForTxTimeout waiting for tx to timeout");
         }
-
     }
 
     public Employee getEmployeeNoTX(int id) {
         return entityManager.find(Employee.class, id, LockModeType.NONE);
     }
 
-    /**
-     * @return true if the afterCompletion synchronization used in
-     * createEmployeeWaitForTxTimeout was called by the transaction
-     * manager handling a transaction timeout, otherwise return false
-     */
-    public static boolean isAfterCompletionCalledByTMTimeoutThread() {
-        return afterCompletionCalledByTMTimeoutThread;
-    }
 }

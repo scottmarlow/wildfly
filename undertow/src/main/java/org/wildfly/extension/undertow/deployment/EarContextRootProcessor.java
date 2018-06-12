@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -35,7 +35,6 @@ import org.jboss.metadata.ear.spec.EarMetaData;
 import org.jboss.metadata.ear.spec.ModuleMetaData;
 import org.jboss.metadata.ear.spec.ModulesMetaData;
 import org.jboss.metadata.ear.spec.WebModuleMetaData;
-import org.jboss.metadata.web.jboss.JBoss70WebMetaData;
 import org.jboss.metadata.web.jboss.JBossWebMetaData;
 
 import static org.jboss.metadata.ear.spec.ModuleMetaData.ModuleType.Web;
@@ -82,7 +81,7 @@ public class EarContextRootProcessor implements DeploymentUnitProcessor {
                 if(contextRoot != null) {
                     JBossWebMetaData jBossWebMetaData = warMetaData.getJBossWebMetaData();
                         if(jBossWebMetaData == null) {
-                            jBossWebMetaData = new JBoss70WebMetaData();
+                            jBossWebMetaData = new JBossWebMetaData();
                             warMetaData.setJBossWebMetaData(jBossWebMetaData);
                         }
                     jBossWebMetaData.setContextRoot(contextRoot);

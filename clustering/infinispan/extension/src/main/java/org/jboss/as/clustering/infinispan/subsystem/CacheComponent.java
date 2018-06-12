@@ -22,21 +22,29 @@
 
 package org.jboss.as.clustering.infinispan.subsystem;
 
+import java.util.stream.Stream;
+
+import org.jboss.as.clustering.controller.ResourceServiceNameFactory;
+import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.msc.service.ServiceName;
-import org.wildfly.clustering.infinispan.spi.service.CacheServiceName;
-import org.wildfly.clustering.service.SubGroupServiceNameFactory;
 
 /**
  * Enumerates the configurable cache components
  * @author Paul Ferraro
  */
-public enum CacheComponent implements SubGroupServiceNameFactory {
+public enum CacheComponent implements ResourceServiceNameFactory {
 
-    EVICTION(EvictionResourceDefinition.PATH),
+    MODULE("module"),
     EXPIRATION(ExpirationResourceDefinition.PATH),
     LOCKING(LockingResourceDefinition.PATH),
-    PERSISTENCE(StoreResourceDefinition.WILDCARD_PATH),
+    MEMORY(MemoryResourceDefinition.WILDCARD_PATH),
+    PERSISTENCE() {
+        @Override
+        public ServiceName getServiceName(PathAddress cacheAddress) {
+            return StoreResourceDefinition.Capability.PERSISTENCE.getServiceName(cacheAddress.append(StoreResourceDefinition.WILDCARD_PATH));
+        }
+    },
     STATE_TRANSFER(StateTransferResourceDefinition.PATH),
     PARTITION_HANDLING(PartitionHandlingResourceDefinition.PATH),
     STORE_WRITE(StoreWriteResourceDefinition.WILDCARD_PATH),
@@ -44,26 +52,28 @@ public enum CacheComponent implements SubGroupServiceNameFactory {
     BINARY_TABLE(StoreResourceDefinition.WILDCARD_PATH, BinaryTableResourceDefinition.PATH),
     STRING_TABLE(StoreResourceDefinition.WILDCARD_PATH, StringTableResourceDefinition.PATH),
     BACKUPS(BackupResourceDefinition.WILDCARD_PATH),
-    BACKUP_FOR(BackupForResourceDefinition.PATH),
     ;
 
     private final String[] components;
 
+    CacheComponent() {
+        this(Stream.empty());
+    }
+
     CacheComponent(PathElement... paths) {
-        this.components = new String[paths.length];
-        for (int i = 0; i < paths.length; ++i) {
-            PathElement path = paths[i];
-            this.components[i] = path.isWildcard() ? path.getKey() : path.getValue();
-        }
+        this(Stream.of(paths).map(path -> path.isWildcard() ? path.getKey() : path.getValue()));
+    }
+
+    CacheComponent(Stream<String> components) {
+        this(components.toArray(String[]::new));
+    }
+
+    CacheComponent(String... components) {
+        this.components = components;
     }
 
     @Override
-    public ServiceName getServiceName(String container) {
-        return this.getServiceName(container, DEFAULT_SUB_GROUP);
-    }
-
-    @Override
-    public ServiceName getServiceName(String container, String cache) {
-        return CacheServiceName.CONFIGURATION.getServiceName(container, cache).append(this.components);
+    public ServiceName getServiceName(PathAddress cacheAddress) {
+        return CacheResourceDefinition.Capability.CONFIGURATION.getServiceName(cacheAddress).append(this.components);
     }
 }

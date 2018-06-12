@@ -30,7 +30,11 @@
     <parent>
         <groupId>org.wildfly</groupId>
         <artifactId>wildfly-parent</artifactId>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-servlet-build</artifactId>
@@ -44,8 +48,8 @@
             <artifactId>wildfly-request-controller</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.wildfly</groupId>
-            <artifactId>wildfly-servlet-feature-pack</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>wildfly-servlet-galleon-pack</artifactId>
             <type>zip</type>
             <exclusions>
                 <exclusion>
@@ -57,20 +61,44 @@
     </dependencies>
 
     <build>
-        <finalName>${server.output.dir.prefix}-servlet-${project.version}</finalName>
+        <finalName>${server.output.dir.prefix}-servlet-${server.output.dir.version}</finalName>
         <plugins>
             <plugin>
-                <groupId>org.wildfly.build</groupId>
-                <artifactId>wildfly-server-provisioning-maven-plugin</artifactId>
+                <groupId>org.jboss.galleon</groupId>
+                <artifactId>galleon-maven-plugins</artifactId>
                 <executions>
                     <execution>
                         <id>server-provisioning</id>
                         <goals>
-                            <goal>build</goal>
+                            <goal>provision</goal>
                         </goals>
-                        <phase>compile</phase>
+                        <phase>prepare-package</phase>
                         <configuration>
-                            <config-file>server-provisioning.xml</config-file>
+                            <install-dir>${project.build.directory}/${project.build.finalName}</install-dir>
+                            <feature-packs>
+                                <feature-pack>
+                                    <groupId>org.wildfly.core</groupId>
+                                    <artifactId>wildfly-core-galleon-pack</artifactId>
+                                    <inherit-configs>false</inherit-configs>
+                                    <excluded-packages>
+                                        <name>product.conf</name>
+                                        <name>docs.schema</name>
+                                    </excluded-packages>
+                                </feature-pack>
+                                <feature-pack>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>wildfly-servlet-galleon-pack</artifactId>
+                                    <version>${project.version}</version>
+                                    <excluded-packages>
+                                        <name>product.conf</name>
+                                        <name>docs.schema</name>
+                                    </excluded-packages>
+                                </feature-pack>
+                            </feature-packs>
+                            <plugin-options>
+                                <jboss-maven-dist/>
+                                <jboss-fork-embedded/>
+                            </plugin-options>
                         </configuration>
                     </execution>
                 </executions>
@@ -90,7 +118,7 @@
                                 <descriptor>assembly.xml</descriptor>
                             </descriptors>
                             <recompressZippedFiles>true</recompressZippedFiles>
-                            <finalName>${server.output.dir.prefix}-web-${project.version}</finalName>
+                            <finalName>${project.build.finalName}</finalName>
                             <appendAssemblyId>false</appendAssemblyId>
                             <outputDirectory>${project.build.directory}</outputDirectory>
                             <workDirectory>${project.build.directory}/assembly/work</workDirectory>

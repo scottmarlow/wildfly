@@ -36,11 +36,10 @@ import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.OperateOnDeployment;
-import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.container.test.api.TargetsContainer;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
-import org.jboss.as.test.clustering.cluster.ClusterAbstractTestCase;
+import org.jboss.as.test.clustering.cluster.AbstractClusteringTestCase;
 import org.jboss.as.test.clustering.cluster.web.externalizer.CounterExternalizer;
 import org.jboss.as.test.clustering.cluster.web.externalizer.CounterServlet;
 import org.jboss.as.test.http.util.TestHttpClientUtils;
@@ -56,18 +55,19 @@ import org.wildfly.clustering.marshalling.Externalizer;
  * @author Paul Ferraro
  */
 @RunWith(Arquillian.class)
-@RunAsClient
-public class ExternalizerTestCase extends ClusterAbstractTestCase {
-    private static final String DEPLOYMENT_NAME = "externalizer.war";
+public class ExternalizerTestCase extends AbstractClusteringTestCase {
+
+    private static final String MODULE_NAME = ExternalizerTestCase.class.getSimpleName();
+    private static final String DEPLOYMENT_NAME = MODULE_NAME + ".war";
 
     @Deployment(name = DEPLOYMENT_1, managed = false, testable = false)
-    @TargetsContainer(CONTAINER_1)
+    @TargetsContainer(NODE_1)
     public static Archive<?> deployment0() {
         return getDeployment();
     }
 
     @Deployment(name = DEPLOYMENT_2, managed = false, testable = false)
-    @TargetsContainer(CONTAINER_2)
+    @TargetsContainer(NODE_2)
     public static Archive<?> deployment1() {
         return getDeployment();
     }
@@ -77,7 +77,6 @@ public class ExternalizerTestCase extends ClusterAbstractTestCase {
         war.addPackage(CounterServlet.class.getPackage());
         war.setWebXML(ExternalizerTestCase.class.getPackage(), "web.xml");
         war.addAsServiceProvider(Externalizer.class, CounterExternalizer.class);
-        log.info(war.toString(true));
         return war;
     }
 

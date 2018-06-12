@@ -1,3 +1,25 @@
+/*
+ * JBoss, Home of Professional Open Source.
+ * Copyright 2017, Red Hat, Inc., and individual contributors
+ * as indicated by the @author tags. See the copyright.txt file in the
+ * distribution for a full listing of individual contributors.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
+
 package org.jboss.as.test.integration.ee.appclient.basic;
 
 import java.lang.management.ManagementFactory;
@@ -24,7 +46,7 @@ public class AppClientStateSingleton implements AppClientSingletonRemote {
 
     @Override
     public void reset() {
-        logger.info("Reset called!");
+        logger.trace("Reset called!");
         value = null;
         //if we have a thread blocked on the latch release it
         latch.countDown();
@@ -33,7 +55,7 @@ public class AppClientStateSingleton implements AppClientSingletonRemote {
 
     @Override
     public void makeAppClientCall(final String value) {
-        logger.info("AppClient Call called!");
+        logger.trace("AppClient Call called!");
         this.value = value;
         latch.countDown();
     }
@@ -42,11 +64,11 @@ public class AppClientStateSingleton implements AppClientSingletonRemote {
     public String awaitAppClientCall() {
         try {
             boolean b = latch.await(30, TimeUnit.SECONDS);
-            logger.info("Await returned: " + b + " : " + value);
+            logger.trace("Await returned: " + b + " : " + value);
             if (!b) {
                 ThreadInfo[] threadInfos = ManagementFactory.getThreadMXBean().dumpAllThreads(true, true);
                 for (ThreadInfo info : threadInfos) {
-                    logger.info(info);
+                    logger.trace(info);
                 }
             }
             return value;

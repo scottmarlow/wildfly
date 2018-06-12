@@ -24,14 +24,12 @@ package org.jboss.as.test.integration.web.rootcontext;
 import java.net.URL;
 
 import org.jboss.arquillian.container.test.api.Deployment;
-import org.jboss.arquillian.container.test.api.OperateOnDeployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.arquillian.api.ServerSetup;
 import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.test.integration.management.base.AbstractMgmtServerSetupTask;
-import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
@@ -51,8 +49,6 @@ import static org.junit.Assert.assertTrue;
 @ServerSetup(RootContextEarUnitTestCase.RootContextEarUnitTestCaseSetup.class)
 public class RootContextEarUnitTestCase {
 
-    private static Logger log = Logger.getLogger(RootContextEarUnitTestCase.class);
-
     static class RootContextEarUnitTestCaseSetup extends AbstractMgmtServerSetupTask {
 
         @Override
@@ -69,7 +65,7 @@ public class RootContextEarUnitTestCase {
 
     private static String HOST = "context-host";
 
-    @Deployment(name = "root-web.ear", testable = false)
+    @Deployment(name = "root-web.ear")
     public static EnterpriseArchive earDeployment() {
 
         ClassLoader tccl = Thread.currentThread().getContextClassLoader();
@@ -85,14 +81,12 @@ public class RootContextEarUnitTestCase {
         ear.setApplicationXML(tccl.getResource(resourcesLocation + "application-root.xml"));
         ear.addAsModule(war);
 
-        log.info(ear.toString(true));
         return ear;
     }
 
     @Test
-    @OperateOnDeployment("root-web.ear")
     public void testRootContextEAR(@ArquillianResource URL url) throws Exception {
-        String response = RootContextUtil.hitRootContext(log, url, HOST);
+        String response = RootContextUtil.hitRootContext(url, HOST);
         assertTrue(response.contains("A Root Context Page"));
     }
 

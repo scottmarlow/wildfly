@@ -34,8 +34,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
-import org.mockito.Matchers;
-import org.wildfly.clustering.ee.infinispan.Mutator;
+import org.mockito.ArgumentMatchers;
+import org.wildfly.clustering.ee.Mutator;
 import org.wildfly.clustering.ejb.Bean;
 import org.wildfly.clustering.ejb.PassivationListener;
 import org.wildfly.clustering.ejb.RemoveListener;
@@ -124,7 +124,7 @@ public class InfinispanBeanTestCase {
 
         this.bean.close();
 
-        verify(this.entry).setLastAccessedTime(Matchers.<Date>any());
+        verify(this.entry).setLastAccessedTime(ArgumentMatchers.<Date>any());
         verify(this.mutator, never()).mutate();
         verify(this.group, never()).close();
 
@@ -135,7 +135,7 @@ public class InfinispanBeanTestCase {
 
         this.bean.close();
 
-        verify(this.entry).setLastAccessedTime(Matchers.<Date>any());
+        verify(this.entry).setLastAccessedTime(ArgumentMatchers.<Date>any());
         verify(this.mutator).mutate();
         verify(this.group).close();
     }

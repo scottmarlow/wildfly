@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -42,13 +42,13 @@ import org.xnio.channels.AcceptingChannel;
 /**
  * @author <a href="mailto:tomaz.cerar@redhat.com">Tomaz Cerar</a> (c) 2013 Red Hat Inc.
  */
-public class AjpListenerService extends ListenerService<AjpListenerService> {
+public class AjpListenerService extends ListenerService {
 
     private volatile AcceptingChannel<StreamConnection> server;
     private final String scheme;
 
     public AjpListenerService(String name, final String scheme, OptionMap listenerOptions, OptionMap socketOptions) {
-        super(name, listenerOptions, socketOptions);
+        super(name, listenerOptions, socketOptions, false);
         this.scheme = scheme;
     }
 
@@ -63,7 +63,8 @@ public class AjpListenerService extends ListenerService<AjpListenerService> {
     void startListening(XnioWorker worker, InetSocketAddress socketAddress, ChannelListener<AcceptingChannel<StreamConnection>> acceptListener) throws IOException {
         server = worker.createStreamConnectionServer(socketAddress, acceptListener, OptionMap.builder().addAll(commonOptions).addAll(socketOptions).getMap());
         server.resumeAccepts();
-        UndertowLogger.ROOT_LOGGER.listenerStarted("AJP", getName(), NetworkUtils.formatIPAddressForURI(binding.getValue().getSocketAddress().getAddress()), getBinding().getValue().getSocketAddress().getPort());
+        final InetSocketAddress boundAddress = server.getLocalAddress(InetSocketAddress.class);
+        UndertowLogger.ROOT_LOGGER.listenerStarted("AJP", getName(), NetworkUtils.formatIPAddressForURI(boundAddress.getAddress()), boundAddress.getPort());
     }
 
     @Override
@@ -73,10 +74,11 @@ public class AjpListenerService extends ListenerService<AjpListenerService> {
 
     @Override
     void stopListening() {
+        final InetSocketAddress boundAddress = server.getLocalAddress(InetSocketAddress.class);
         server.suspendAccepts();
         UndertowLogger.ROOT_LOGGER.listenerSuspend("AJP", getName());
         IoUtils.safeClose(server);
-        UndertowLogger.ROOT_LOGGER.listenerStopped("AJP", getName(), NetworkUtils.formatIPAddressForURI(getBinding().getValue().getSocketAddress().getAddress()), getBinding().getValue().getSocketAddress().getPort());
+        UndertowLogger.ROOT_LOGGER.listenerStopped("AJP", getName(), NetworkUtils.formatIPAddressForURI(boundAddress.getAddress()), boundAddress.getPort());
     }
 
     @Override
@@ -95,7 +97,7 @@ public class AjpListenerService extends ListenerService<AjpListenerService> {
     }
 
     @Override
-    protected String getProtocol() {
+    public String getProtocol() {
         return "ajp";
     }
 }

@@ -27,7 +27,6 @@ import java.util.jar.Manifest;
 import org.jboss.as.appclient.component.ApplicationClientComponentDescription;
 import org.jboss.as.appclient.logging.AppClientLogger;
 import org.jboss.as.ee.component.DeploymentDescriptorEnvironment;
-import org.jboss.as.ee.component.EEApplicationClasses;
 import org.jboss.as.ee.component.EEModuleDescription;
 import org.jboss.as.ee.component.deployers.DescriptorEnvironmentLifecycleMethodProcessor;
 import org.jboss.as.ee.structure.DeploymentType;
@@ -56,7 +55,6 @@ public class ApplicationClientManifestProcessor implements DeploymentUnitProcess
         final ResourceRoot root = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
         final Module module = deploymentUnit.getAttachment(Attachments.MODULE);
         final EEModuleDescription moduleDescription = deploymentUnit.getAttachment(org.jboss.as.ee.component.Attachments.EE_MODULE_DESCRIPTION);
-        final EEApplicationClasses applicationClasses = deploymentUnit.getAttachment(org.jboss.as.ee.component.Attachments.EE_APPLICATION_CLASSES_DESCRIPTION);
 
         final Manifest manifest = root.getAttachment(Attachments.MANIFEST);
         if (manifest != null) {
@@ -67,7 +65,7 @@ public class ApplicationClientManifestProcessor implements DeploymentUnitProcess
                     try {
                         final Class<?> clazz = module.getClassLoader().loadClass(mainClass);
                         deploymentUnit.putAttachment(AppClientAttachments.MAIN_CLASS, clazz);
-                        final ApplicationClientComponentDescription description = new ApplicationClientComponentDescription(clazz.getName(), moduleDescription, deploymentUnit.getServiceName(), applicationClasses);
+                        final ApplicationClientComponentDescription description = new ApplicationClientComponentDescription(clazz.getName(), moduleDescription, deploymentUnit.getServiceName());
                         moduleDescription.addComponent(description);
                         deploymentUnit.putAttachment(AppClientAttachments.APPLICATION_CLIENT_COMPONENT, description);
 

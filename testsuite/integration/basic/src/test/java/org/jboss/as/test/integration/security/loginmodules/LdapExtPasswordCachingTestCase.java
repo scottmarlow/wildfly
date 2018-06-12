@@ -50,7 +50,6 @@ import org.jboss.security.auth.spi.LdapExtLoginModule;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.AfterClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -155,7 +154,7 @@ public class LdapExtPasswordCachingTestCase {
         assertEquals("Password from cache: 1", 1, passwordProvider.readFileCounter());
 
         long WAIT = 800;
-        Thread.sleep(WAIT);
+        sleep(WAIT);
 
         checkPrincipal(webAppURL, "jduke");
         assertEquals("Password from cache: 1", 1, passwordProvider.readFileCounter());
@@ -172,7 +171,6 @@ public class LdapExtPasswordCachingTestCase {
      */
     @Test
     @OperateOnDeployment(DEP3)
-    @Ignore("WFLY-6770")
     public void test3(@ArquillianResource URL webAppURL) throws Exception {
 
         passwordProvider.resetFileCounter();
@@ -184,7 +182,7 @@ public class LdapExtPasswordCachingTestCase {
         assertEquals("Password from cache 1", 1, passwordProvider.readFileCounter());
 
         long WAIT = 800;
-        Thread.sleep(WAIT);
+        sleep(WAIT);
 
         checkPrincipal(webAppURL, "jduke");
         assertEquals("Password call 2", 2, passwordProvider.readFileCounter());
@@ -195,6 +193,18 @@ public class LdapExtPasswordCachingTestCase {
     }
 
     // Private methods -------------------------------------------------------
+
+    /**
+     * Sleep the thread for given time, protected against spurious wakeups.
+     */
+    private void sleep(long millis) throws InterruptedException {
+        long endTime = System.currentTimeMillis() + millis;
+        long sleepTime = millis;
+        while(sleepTime > 0) {
+            Thread.sleep(sleepTime);
+            sleepTime = endTime - System.currentTimeMillis();
+        }
+    }
 
     private void checkPrincipal(URL webAppURL, String username) throws
             IOException, URISyntaxException, LoginException {
@@ -212,15 +222,11 @@ public class LdapExtPasswordCachingTestCase {
      * @return
      */
     private static WebArchive createWar(String securityDomainName) {
-        LOGGER.info("Start deployment for security-domain " + securityDomainName);
         final WebArchive war = ShrinkWrap.create(WebArchive.class, securityDomainName + ".war");
         war.addClasses(PrincipalPrintingServlet.class);
         war.addAsWebInfResource(LdapExtLoginModuleTestCase.class.getPackage(), LdapExtLoginModuleTestCase.class.getSimpleName()
                 + "-web.xml", "web.xml");
         war.addAsWebInfResource(Utils.getJBossWebXmlAsset(securityDomainName), "jboss-web.xml");
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug(war.toString(true));
-        }
         return war;
     }
 
@@ -317,7 +323,6 @@ public class LdapExtPasswordCachingTestCase {
 
     @AfterClass
     public static void cleanup() {
-        System.out.println("doing cleanup");
         passwordProvider.cleanup();
     }
 

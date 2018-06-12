@@ -23,6 +23,7 @@
 package org.jboss.as.clustering.controller;
 
 import org.jboss.as.clustering.controller.transform.InitialAttributeValueOperationContextAttachment;
+import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
@@ -37,12 +38,12 @@ import org.jboss.msc.service.ServiceName;
  * {@link org.jboss.as.controller.RestartParentWriteAttributeHandler} that leverages a {@link ResourceServiceBuilderFactory} for service recreation.
  * @author Paul Ferraro
  */
-public class RestartParentResourceWriteAttributeHandler<T> extends RestartParentWriteAttributeHandler implements Registration<ManagementResourceRegistration> {
+public class RestartParentResourceWriteAttributeHandler extends RestartParentWriteAttributeHandler implements Registration<ManagementResourceRegistration> {
 
     private final WriteAttributeStepHandlerDescriptor descriptor;
-    private final ResourceServiceBuilderFactory<T> parentFactory;
+    private final ResourceServiceConfiguratorFactory parentFactory;
 
-    public RestartParentResourceWriteAttributeHandler(ResourceServiceBuilderFactory<T> parentFactory, WriteAttributeStepHandlerDescriptor descriptor) {
+    public RestartParentResourceWriteAttributeHandler(ResourceServiceConfiguratorFactory parentFactory, WriteAttributeStepHandlerDescriptor descriptor) {
         super(null, descriptor.getAttributes());
         this.descriptor = descriptor;
         this.parentFactory = parentFactory;
@@ -50,12 +51,12 @@ public class RestartParentResourceWriteAttributeHandler<T> extends RestartParent
 
     @Override
     protected void recreateParentService(OperationContext context, PathAddress parentAddress, ModelNode parentModel) throws OperationFailedException {
-        this.parentFactory.createBuilder(parentAddress).configure(context, parentModel).build(context.getServiceTarget()).install();
+        this.parentFactory.createServiceConfigurator(parentAddress).configure(context, parentModel).build(context.getServiceTarget()).install();
     }
 
     @Override
     protected ServiceName getParentServiceName(PathAddress parentAddress) {
-        return this.parentFactory.createBuilder(parentAddress).getServiceName();
+        return this.parentFactory.createServiceConfigurator(parentAddress).getServiceName();
     }
 
     @Override
@@ -65,7 +66,9 @@ public class RestartParentResourceWriteAttributeHandler<T> extends RestartParent
 
     @Override
     public void register(ManagementResourceRegistration registration) {
-        this.descriptor.getAttributes().forEach(attribute -> registration.registerReadWriteAttribute(attribute, null, this));
+        for (AttributeDefinition attribute : this.descriptor.getAttributes()) {
+            registration.registerReadWriteAttribute(attribute, null, this);
+        }
     }
 
     @Override

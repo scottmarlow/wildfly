@@ -39,7 +39,6 @@ public class AuditResourceDefinition extends SimpleResourceDefinition {
     static final ListAttributeDefinition PROVIDER_MODULES = new LegacySupport.ProviderModulesAttributeDefinition(Constants.PROVIDER_MODULES, Constants.PROVIDER_MODULE);
     private static final OperationStepHandler LEGACY_ADD_HANDLER = new LegacySupport.LegacyModulesConverter(Constants.PROVIDER_MODULE, PROVIDER_MODULES);
 
-
     private AuditResourceDefinition() {
         super(SecurityExtension.PATH_AUDIT_CLASSIC,
                 SecurityExtension.getResourceDescriptionResolver(Constants.AUDIT),
@@ -73,6 +72,5 @@ public class AuditResourceDefinition extends SimpleResourceDefinition {
                    }
                }
     }
-
 
 }

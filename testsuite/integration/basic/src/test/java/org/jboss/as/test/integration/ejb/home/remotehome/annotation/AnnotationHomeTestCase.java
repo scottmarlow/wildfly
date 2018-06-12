@@ -50,7 +50,6 @@ public class AnnotationHomeTestCase {
 
     private static final String ARCHIVE_NAME = "SimpleLocalHomeTest.war";
 
-
     @ArquillianResource
     private InitialContext iniCtx;
 

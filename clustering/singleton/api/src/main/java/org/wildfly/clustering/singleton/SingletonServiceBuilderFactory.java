@@ -23,18 +23,19 @@ package org.wildfly.clustering.singleton;
 
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceName;
+import org.wildfly.clustering.singleton.service.SingletonServiceConfiguratorFactory;
 
 /**
  * Factory for creating a singleton service builder.
  * @author Paul Ferraro
+ * @deprecated Replaced by {@link SingletonServiceConfiguratorFactory}
  */
-public interface SingletonServiceBuilderFactory extends SingletonPolicy {
-    /**
-     * Creates a singleton service builder.
-     * @param name the name of the service
-     * @param service the service to install
-     * @return a singleton service builder
-     */
+@Deprecated
+public interface SingletonServiceBuilderFactory extends SingletonPolicy, SingletonServiceConfiguratorFactory {
+
     @Override
     <T> SingletonServiceBuilder<T> createSingletonServiceBuilder(ServiceName name, Service<T> service);
+
+    @Override
+    <T> SingletonServiceBuilder<T> createSingletonServiceBuilder(ServiceName name, Service<T> primaryService, Service<T> backupService);
 }

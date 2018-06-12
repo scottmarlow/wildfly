@@ -6,6 +6,7 @@ target
 # ignore downloaded maven
 /tools/maven
 /tools/maven.zip
+/tools/wrapper
 # ignore eclipse files
 .project
 .classpath
@@ -49,10 +50,14 @@ PutObjectStoreDirHere
 /.m2
 # ignore eap repo
 local-repo-eap
-
+# ignore the build metadata created by the build metadata plugin
+build.metadata
 #These keep hanging around
 arquillian/*/server.log*
 client/shade/dependency-reduced-pom.xml
 
 #OS X stuff
 .DS_Store
+
+# Zanata files
+**/.zanata-cache/

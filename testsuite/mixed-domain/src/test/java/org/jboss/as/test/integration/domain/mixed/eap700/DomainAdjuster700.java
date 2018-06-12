@@ -22,15 +22,17 @@
 
 package org.jboss.as.test.integration.domain.mixed.eap700;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.EXTENSION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
+import static org.jboss.as.controller.operations.common.Util.createRemoveOperation;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.jboss.as.controller.PathAddress;
-import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.client.helpers.domain.DomainClient;
-import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
-import org.jboss.as.controller.operations.common.Util;
-import org.jboss.as.test.integration.domain.mixed.DomainAdjuster;
+import org.jboss.as.test.integration.domain.mixed.eap710.DomainAdjuster710;
 import org.jboss.dmr.ModelNode;
 
 /**
@@ -38,31 +40,31 @@ import org.jboss.dmr.ModelNode;
  *
  * @author <a href="mailto:kabir.khan@jboss.com">Kabir Khan</a>
  */
-public class DomainAdjuster700 extends DomainAdjuster {
+public class DomainAdjuster700 extends DomainAdjuster710 {
 
     @Override
-    protected List<ModelNode> adjustForVersion(final DomainClient client, PathAddress profileAddress) throws Exception {
-        final List<ModelNode> list = new ArrayList<>();
+    protected List<ModelNode> adjustForVersion(final DomainClient client, PathAddress profileAddress, boolean withMasterServers) throws Exception {
+        final List<ModelNode> list = super.adjustForVersion(client, profileAddress, withMasterServers);
 
-        removeHTTPSListener(profileAddress, list);
-
+        list.addAll(removeCoreManagement(profileAddress.append(SUBSYSTEM, "core-management")));
+        list.addAll(removeElytron(profileAddress.append(SUBSYSTEM, "elytron")));
         return list;
     }
-    /**
-     *  EAP 7.0 and earlier required explicit SSL configuration. Wildfly 10.1 added support
-     *  for SSL by default, which automatically generates certs.
-     *
-     *  This could be removed if all hosts were configured to contain a security domain with SSL
-     *  enabled.
-     */
-    private void removeHTTPSListener(PathAddress profileAddress, List<ModelNode> ops) {
 
-        PathAddress undertow = profileAddress
-                .append(PathElement.pathElement(ModelDescriptionConstants.SUBSYSTEM, "undertow"))
-                .append(PathElement.pathElement("server", "default-server"))
-                .append(PathElement.pathElement("https-listener", "https"));
-        ModelNode op = Util.getEmptyOperation(ModelDescriptionConstants.REMOVE, undertow.toModelNode());
-        ops.add(op);
+    private Collection<? extends ModelNode> removeElytron(final PathAddress subsystem) {
+        final List<ModelNode> list = new ArrayList<>();
+        //elytron and extension don't exist
+        list.add(createRemoveOperation(subsystem));
+        list.add(createRemoveOperation(PathAddress.pathAddress(EXTENSION, "org.wildfly.extension.elytron")));
+        return list;
     }
 
+
+    private Collection<? extends ModelNode> removeCoreManagement(final PathAddress subsystem) {
+        final List<ModelNode> list = new ArrayList<>();
+        //core-management subsystem and extension don't exist
+        list.add(createRemoveOperation(subsystem));
+        list.add(createRemoveOperation(PathAddress.pathAddress(EXTENSION, "org.wildfly.extension.core-management")));
+        return list;
+    }
 }

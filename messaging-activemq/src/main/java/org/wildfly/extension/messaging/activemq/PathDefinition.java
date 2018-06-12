@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.jboss.as.controller.AbstractRemoveStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ExtensionContext;
 import org.jboss.as.controller.OperationContext;
@@ -66,13 +67,13 @@ public class PathDefinition extends PersistentResourceDefinition {
     // each one define a different default values. Their respective attributes are accessed through the PATHS map.
     private static final SimpleAttributeDefinition PATH_BASE = create(PathResourceDefinition.PATH)
             .setAllowExpression(true)
-            .setAllowNull(true)
+            .setRequired(false)
             .setRestartAllServices()
             .build();
 
     public static final SimpleAttributeDefinition RELATIVE_TO = create(PathResourceDefinition.RELATIVE_TO)
             .setDefaultValue(new ModelNode(DEFAULT_RELATIVE_TO))
-            .setAllowNull(true)
+            .setRequired(false)
             .setRestartAllServices()
             .build();
 
@@ -106,13 +107,14 @@ public class PathDefinition extends PersistentResourceDefinition {
         }
     };
 
-    static final OperationStepHandler PATH_REMOVE = new OperationStepHandler() {
+    static final OperationStepHandler PATH_REMOVE = new AbstractRemoveStepHandler() {
 
         @Override
-        public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-            context.removeResource(PathAddress.EMPTY_ADDRESS);
+        protected void performRemove(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+            super.performRemove(context, operation, model);
             reloadRequiredStep(context);
         }
+
     };
 
     private final PathElement path;
@@ -158,6 +160,7 @@ public class PathDefinition extends PersistentResourceDefinition {
             final ResolvePathHandler resolvePathHandler = ResolvePathHandler.Builder.of(context.getPathManager())
                     .setPathAttribute(PATHS.get(registry.getPathAddress().getLastElement().getValue()))
                     .setRelativeToAttribute(PathDefinition.RELATIVE_TO)
+                    .setCheckAbsolutePath(true)
                     .build();
             registry.registerOperationHandler(resolvePathHandler.getOperationDefinition(), resolvePathHandler);
         }

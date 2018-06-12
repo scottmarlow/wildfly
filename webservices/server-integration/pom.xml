@@ -29,7 +29,11 @@
     <parent>
         <groupId>org.wildfly</groupId>
         <artifactId>wildfly-webservices</artifactId>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-webservices-server-integration</artifactId>
@@ -65,17 +69,22 @@
     </dependency>
 
     <dependency>
-       <groupId>org.wildfly</groupId>
+       <groupId>${project.groupId}</groupId>
        <artifactId>wildfly-ee</artifactId>
     </dependency>
 
     <dependency>
-       <groupId>org.wildfly</groupId>
+       <groupId>${project.groupId}</groupId>
        <artifactId>wildfly-ejb3</artifactId>
     </dependency>
 
     <dependency>
-        <groupId>org.wildfly</groupId>
+       <groupId>${project.groupId}</groupId>
+       <artifactId>wildfly-undertow</artifactId>
+    </dependency>
+
+    <dependency>
+        <groupId>${project.groupId}</groupId>
         <artifactId>wildfly-web-common</artifactId>
     </dependency>
 
@@ -97,7 +106,6 @@
         <scope>provided</scope>
         <optional>true</optional>
     </dependency>
-
     <dependency>
        <groupId>org.jboss.logging</groupId>
        <artifactId>jboss-logging-processor</artifactId>
@@ -105,10 +113,6 @@
              projects that depend on this project.-->
        <scope>provided</scope>
        <optional>true</optional>
-    </dependency>
-    <dependency>
-       <groupId>org.wildfly</groupId>
-       <artifactId>wildfly-undertow</artifactId>
     </dependency>
 
     <dependency>
@@ -131,5 +135,9 @@
         <groupId>javax.jws</groupId>
         <artifactId>jsr181-api</artifactId>
     </dependency>
- </dependencies>
+    <dependency>
+        <groupId>org.jboss.spec.javax.xml.ws</groupId>
+        <artifactId>jboss-jaxws-api_2.3_spec</artifactId>
+    </dependency>
+    </dependencies>
 </project>

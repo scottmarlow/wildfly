@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -55,7 +55,7 @@ public class Server implements Service<Server> {
     private final InjectedValue<ServletContainerService> servletContainer = new InjectedValue<>();
     private final InjectedValue<UndertowService> undertowService = new InjectedValue<>();
     private volatile HttpHandler root;
-    private final List<ListenerService<?>> listeners = new CopyOnWriteArrayList<>();
+    private final List<ListenerService> listeners = new CopyOnWriteArrayList<>();
     private final Set<Host> hosts = new CopyOnWriteArraySet<>();
 
     private final HashMap<Integer,Integer> securePortMappings = new HashMap<>();
@@ -76,7 +76,7 @@ public class Server implements Service<Server> {
         undertowService.getValue().registerServer(this);
     }
 
-    protected void registerListener(ListenerService<?> listener) {
+    protected void registerListener(ListenerService listener) {
            listeners.add(listener);
            if (!listener.isSecure()) {
                SocketBinding binding = listener.getBinding().getValue();
@@ -89,7 +89,7 @@ public class Server implements Service<Server> {
            }
        }
 
-       protected void unregisterListener(ListenerService<?> listener) {
+       protected void unregisterListener(ListenerService listener) {
            listeners.remove(listener);
            if (!listener.isSecure()) {
                SocketBinding binding = listener.getBinding().getValue();
@@ -143,7 +143,7 @@ public class Server implements Service<Server> {
         return root;
     }
 
-    Injector<UndertowService> getUndertowServiceInjector() {
+    protected Injector<UndertowService> getUndertowServiceInjector() {
         return undertowService;
     }
 
@@ -163,10 +163,15 @@ public class Server implements Service<Server> {
         return Collections.unmodifiableSet(hosts);
     }
 
-    public List<ListenerService<?>> getListeners() {
-        return listeners;
+    public List<UndertowListener> getListeners() {
+        return (List)listeners;
     }
 
+    public String getRoute() {
+        UndertowService service = this.undertowService.getValue();
+        String defaultServerRoute = service.getInstanceId();
+        return this.name.equals(service.getDefaultServer()) ? defaultServerRoute : String.join("-", defaultServerRoute, this.name);
+    }
 
     private final class DefaultHostHandler implements HttpHandler {
 

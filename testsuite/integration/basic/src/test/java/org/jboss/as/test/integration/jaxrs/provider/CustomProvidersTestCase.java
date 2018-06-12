@@ -37,7 +37,6 @@ import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -49,7 +48,6 @@ import org.junit.runner.RunWith;
  */
 @RunWith(Arquillian.class)
 @RunAsClient
-@Ignore("JBPAPP-9963")
 public class CustomProvidersTestCase {
 
     private static Logger LOGGER = Logger.getLogger(CustomProvidersTestCase.class);
@@ -95,13 +93,13 @@ public class CustomProvidersTestCase {
     @OperateOnDeployment(WEBAPP_TEST_EXCEPTION_MAPPER)
     public void testProvidersInTwoWars(@ArquillianResource URL webAppURL) throws Exception {
         final String path = webAppURL.toExternalForm() + ExceptionMapperProvider.PATH_EXCEPTION.substring(1);
-        LOGGER.info("Requested path: " + path);
+        LOGGER.trace("Requested path: " + path);
         assertEquals(ExceptionMapperProvider.ERROR_MESSAGE, HttpRequest.get(path, 10, TimeUnit.SECONDS));
 
         final String converterPath = webAppURL.toExternalForm().replace(WEBAPP_TEST_EXCEPTION_MAPPER, WEBAPP_TEST_CONVERTER)
                 + CurrencyConverterProvider.PATH_CONVERTER.substring(1).replace(
                 "{" + CurrencyConverterProvider.PARAM_CURRENCY + "}", "USD");
-        LOGGER.info("Requested path: " + converterPath);
+        LOGGER.trace("Requested path: " + converterPath);
         assertEquals(Currency.getInstance("USD").getSymbol(), HttpRequest.get(converterPath, 10, TimeUnit.SECONDS));
     }
 

@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -27,10 +27,13 @@ import javax.el.ELContext;
 import javax.el.ELResolver;
 import javax.el.ImportHandler;
 import java.beans.FeatureDescriptor;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Iterator;
 import java.util.Objects;
 
 import org.wildfly.extension.undertow.logging.UndertowLogger;
+import org.wildfly.security.manager.WildFlySecurityManager;
 
 /**
  * An {@link ELResolver} which supports resolution of EL expressions which use imported classes (for static field/method references)
@@ -55,7 +58,18 @@ public class ImportedClassELResolver extends ELResolver {
         if (importHandler == null) {
             return null;
         }
-        final Class<?> klass = importHandler.resolveClass(klassName);
+        final Class<?> klass;
+        if (WildFlySecurityManager.isChecking()) {
+            klass = AccessController.doPrivileged(new PrivilegedAction<Class<?>>() {
+                @Override
+                public Class<?> run() {
+                    return importHandler.resolveClass(klassName);
+                }
+            });
+        } else {
+            klass = importHandler.resolveClass(klassName);
+        }
+
         if (klass != null) {
             context.setPropertyResolved(true);
             return new ELClass(klass);

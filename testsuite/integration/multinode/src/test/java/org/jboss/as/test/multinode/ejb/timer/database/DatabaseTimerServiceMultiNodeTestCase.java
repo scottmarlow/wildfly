@@ -45,7 +45,10 @@ import org.junit.runner.RunWith;
 
 import javax.naming.Context;
 import javax.naming.InitialContext;
+
+import java.net.SocketPermission;
 import java.net.URI;
+import java.security.SecurityPermission;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -59,6 +62,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.REMOVE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ROLLBACK_ON_RUNTIME_FAILURE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
+import static org.jboss.as.test.shared.integration.ejb.security.PermissionUtils.createPermissionsXmlAsset;
 
 /**
  * Tests that timers are never doubled up
@@ -76,7 +80,6 @@ public class DatabaseTimerServiceMultiNodeTestCase {
     private static Server server;
 
     private static final int TIMER_DELAY = 400;
-
 
     @AfterClass
     public static void afterClass() {
@@ -112,7 +115,7 @@ public class DatabaseTimerServiceMultiNodeTestCase {
             operation.get("driver-name").set("h2");
             operation.get("pool-name").set("MyNewDs_Pool");
 
-            operation.get("connection-url").set("jdbc:h2:" + server.getURL() + "/testdb;DB_CLOSE_DELAY=-1");
+            operation.get("connection-url").set("jdbc:h2:" + server.getURL() + "/mem:testdb;DB_CLOSE_DELAY=-1");
             operation.get("user-name").set("sa");
             operation.get("password").set("sa");
 
@@ -181,6 +184,11 @@ public class DatabaseTimerServiceMultiNodeTestCase {
         war.addAsResource(new StringAsset(client ? "client" : "server"), "node.txt");
         if (client) {
             war.addAsManifestResource(DatabaseTimerServiceMultiNodeExecutionDisabledTestCase.class.getPackage(), "jboss-ejb-client.xml", "jboss-ejb-client.xml");
+            war.addAsManifestResource(
+                    createPermissionsXmlAsset(
+                            new SocketPermission("*:9092", "connect,resolve"),
+                            new SecurityPermission("putProviderProperty.WildFlyElytron")),
+                    "permissions.xml");
         }
         return war;
     }

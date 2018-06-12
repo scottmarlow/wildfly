@@ -22,8 +22,7 @@
 
 package org.wildfly.extension.messaging.activemq.jms;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
-import static org.wildfly.extension.messaging.activemq.CommonAttributes.JGROUPS_CHANNEL;
+import static org.wildfly.extension.messaging.activemq.CommonAttributes.JGROUPS_CLUSTER;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.LOCAL;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.LOCAL_TX;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.NONE;
@@ -34,6 +33,7 @@ import static org.wildfly.extension.messaging.activemq.jms.ConnectionFactoryAttr
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jboss.as.connector.metadata.deployment.ResourceAdapterDeployment;
 import org.jboss.as.controller.AbstractAddStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
@@ -41,8 +41,8 @@ import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
-import org.jboss.msc.service.ServiceTarget;
-import org.wildfly.extension.messaging.activemq.AlternativeAttributeCheckHandler;
+import org.jboss.msc.service.ServiceController;
+import org.jboss.msc.service.ServiceName;
 import org.wildfly.extension.messaging.activemq.CommonAttributes;
 import org.wildfly.extension.messaging.activemq.MessagingServices;
 import org.wildfly.extension.messaging.activemq.jms.ConnectionFactoryAttributes.Common;
@@ -56,20 +56,16 @@ public class PooledConnectionFactoryAdd extends AbstractAddStepHandler {
 
     public static final PooledConnectionFactoryAdd INSTANCE = new PooledConnectionFactoryAdd();
 
-    protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
-
-        AlternativeAttributeCheckHandler.checkAlternatives(operation, Common.CONNECTORS.getName(), Common.DISCOVERY_GROUP.getName(), false);
-
-        for(final AttributeDefinition attribute : getDefinitions(PooledConnectionFactoryDefinition.ATTRIBUTES)) {
-            attribute.validateAndSet(operation, model);
-        }
+    private PooledConnectionFactoryAdd() {
+        super(getDefinitions(PooledConnectionFactoryDefinition.ATTRIBUTES));
     }
 
-    protected void performRuntime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
+    @Override
+    protected void performRuntime(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
 
-        ModelNode opAddr = operation.require(OP_ADDR);
-        final PathAddress address = PathAddress.pathAddress(opAddr);
-        final String name = address.getLastElement().getValue();
+        ModelNode model = resource.getModel();
+        PathAddress address = context.getCurrentAddress();
+        final String name = context.getCurrentAddressValue();
 
         final ModelNode resolvedModel = model.clone();
         for(final AttributeDefinition attribute : getDefinitions(PooledConnectionFactoryDefinition.ATTRIBUTES)) {
@@ -107,23 +103,34 @@ public class PooledConnectionFactoryAdd extends AbstractAddStepHandler {
             txSupport = XA_TX;
         }
 
-        ServiceTarget serviceTarget = context.getServiceTarget();
         List<String> connectors = Common.CONNECTORS.unwrap(context, model);
         String discoveryGroupName = getDiscoveryGroup(resolvedModel);
         String jgroupsChannelName = null;
         if (discoveryGroupName != null) {
-            Resource dgResource = context.readResourceFromRoot(MessagingServices.getActiveMQServerPathAddress(address).append(CommonAttributes.DISCOVERY_GROUP, discoveryGroupName));
+            Resource dgResource = context.readResourceFromRoot(MessagingServices.getActiveMQServerPathAddress(address).append(CommonAttributes.DISCOVERY_GROUP, discoveryGroupName), false);
             ModelNode dgModel = dgResource.getModel();
-            jgroupsChannelName = JGROUPS_CHANNEL.resolveModelAttribute(context, dgModel).asString();
+            jgroupsChannelName = JGROUPS_CLUSTER.resolveModelAttribute(context, dgModel).asString();
         }
 
         List<PooledConnectionFactoryConfigProperties> adapterParams = getAdapterParams(resolvedModel, context);
 
         final PathAddress serverAddress = MessagingServices.getActiveMQServerPathAddress(address);
 
-        PooledConnectionFactoryService.installService(serviceTarget,
+        PooledConnectionFactoryService.installService(context,
                 name, serverAddress.getLastElement().getValue(), connectors, discoveryGroupName, jgroupsChannelName,
-                adapterParams, jndiNames, txSupport, minPoolSize, maxPoolSize, managedConnectionPoolClassName, enlistmentTrace);
+                adapterParams, jndiNames, txSupport, minPoolSize, maxPoolSize, managedConnectionPoolClassName, enlistmentTrace, model);
+
+        boolean statsEnabled = ConnectionFactoryAttributes.Pooled.STATISTICS_ENABLED.resolveModelAttribute(context, model).asBoolean();
+
+        if (statsEnabled) {
+            // Add the stats resource. This is kind of a hack as we are modifying the resource
+            // in runtime, but oh well. We don't use readResourceForUpdate for this reason.
+            // This only runs in this add op anyway, and because it's an add we know readResource
+            // is going to be returning the current write snapshot of the model, i.e. the one we want
+            PooledConnectionFactoryStatisticsService.registerStatisticsResources(resource);
+
+            installStatistics(context, name);
+        }
     }
 
     static String getDiscoveryGroup(final ModelNode model) {
@@ -142,10 +149,27 @@ public class PooledConnectionFactoryAdd extends AbstractAddStepHandler {
             AttributeDefinition definition = nodeAttribute.getDefinition();
             ModelNode node = definition.resolveModelAttribute(context, model);
             if (node.isDefined()) {
-                String value = node.asString();
-                configs.add(new PooledConnectionFactoryConfigProperties(nodeAttribute.getPropertyName(), value, nodeAttribute.getClassType()));
+                String attributeName = definition.getName();
+                final String value;
+                if (attributeName.equals(Common.DESERIALIZATION_BLACKLIST.getName())) {
+                    value = String.join(",", Common.DESERIALIZATION_BLACKLIST.unwrap(context, model));
+                } else if (attributeName.equals(Common.DESERIALIZATION_WHITELIST.getName())) {
+                    value = String.join(",", Common.DESERIALIZATION_WHITELIST.unwrap(context, model));
+                } else {
+                    value = node.asString();
+                }
+                configs.add(new PooledConnectionFactoryConfigProperties(nodeAttribute.getPropertyName(), value, nodeAttribute.getClassType(), nodeAttribute.getConfigType()));
             }
         }
         return configs;
+    }
+
+    private void installStatistics(OperationContext context, String name) {
+        ServiceName raActivatorsServiceName = PooledConnectionFactoryService.getResourceAdapterActivatorsServiceName(name);
+        PooledConnectionFactoryStatisticsService statsService = new PooledConnectionFactoryStatisticsService(context.getResourceRegistrationForUpdate(), true);
+        context.getServiceTarget().addService(raActivatorsServiceName.append("statistics"), statsService)
+                .addDependency(raActivatorsServiceName, ResourceAdapterDeployment.class, statsService.getRADeploymentInjector())
+                .setInitialMode(ServiceController.Mode.PASSIVE)
+                .install();
     }
 }

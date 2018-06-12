@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.jboss.as.controller.AbstractAddStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
@@ -41,12 +40,12 @@ import org.jboss.as.controller.ReloadRequiredWriteAttributeHandler;
 import org.jboss.as.controller.ResourceDefinition;
 import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.StringListAttributeDefinition;
+import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraintDefinition;
 import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.as.controller.registry.Resource;
-import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.inject.Injector;
 import org.jboss.msc.service.Service;
@@ -77,10 +76,11 @@ public class IdentityResourceDefinition extends SimpleResourceDefinition {
     private static final String SECURITY_DOMAIN_CAPABILITY = "org.wildfly.security.security-domain";
 
     public static final StringListAttributeDefinition OUTFLOW_SECURITY_DOMAINS = new StringListAttributeDefinition.Builder(EJB3SubsystemModel.OUTFLOW_SECURITY_DOMAINS)
-            .setAllowNull(true)
+            .setRequired(false)
             .setMinSize(1)
             .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
             .setCapabilityReference(SECURITY_DOMAIN_CAPABILITY, IDENTITY_CAPABILITY, false)
+            .setAccessConstraints(SensitiveTargetAccessConstraintDefinition.ELYTRON_SECURITY_DOMAIN_REF)
             .build();
 
     static final IdentityResourceDefinition INSTANCE = new IdentityResourceDefinition();
@@ -144,9 +144,12 @@ public class IdentityResourceDefinition extends SimpleResourceDefinition {
 
         @Override
         public void start(StartContext context) throws StartException {
-            outflowSecurityDomains.addAll(outflowSecurityDomainInjectors.stream()
-                    .map(InjectedValue<SecurityDomain>::getValue)
-                    .collect(Collectors.toCollection(HashSet::new)));
+            HashSet<SecurityDomain> securityDomains = new HashSet<>();
+            for (InjectedValue<SecurityDomain> outflowSecurityDomainInjector : outflowSecurityDomainInjectors) {
+                SecurityDomain value = outflowSecurityDomainInjector.getValue();
+                securityDomains.add(value);
+            }
+            outflowSecurityDomains.addAll(securityDomains);
         }
 
         private Set<SecurityIdentity> outflowIdentity(final SecurityIdentity securityIdentity) {
@@ -187,17 +190,5 @@ public class IdentityResourceDefinition extends SimpleResourceDefinition {
 
     BooleanSupplier getOutflowSecurityDomainsConfiguredSupplier() {
         return () -> ! outflowSecurityDomains.isEmpty();
-    }
-
-    static void registerTransformers_1_2_0_and_1_3_0(ResourceTransformationDescriptionBuilder parent) {
-        parent.rejectChildResource(EJB3SubsystemModel.IDENTITY_PATH);
-    }
-
-    static void registerTransformers_3_0_0(ResourceTransformationDescriptionBuilder parent) {
-        parent.rejectChildResource(EJB3SubsystemModel.IDENTITY_PATH);
-    }
-
-    static void registerTransformers_4_0(ResourceTransformationDescriptionBuilder parent) {
-        parent.rejectChildResource(EJB3SubsystemModel.IDENTITY_PATH);
     }
 }

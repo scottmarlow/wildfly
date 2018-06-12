@@ -24,36 +24,37 @@ package org.wildfly.clustering.server;
 
 import java.util.ServiceLoader;
 
+import org.jboss.logging.Logger;
 import org.junit.Test;
 import org.wildfly.clustering.marshalling.Externalizer;
 import org.wildfly.clustering.marshalling.jboss.ClassTableContributor;
-import org.wildfly.clustering.spi.CacheGroupAliasBuilderProvider;
-import org.wildfly.clustering.spi.DistributedCacheGroupBuilderProvider;
-import org.wildfly.clustering.spi.DistributedGroupBuilderProvider;
-import org.wildfly.clustering.spi.GroupAliasBuilderProvider;
-import org.wildfly.clustering.spi.LocalCacheGroupBuilderProvider;
-import org.wildfly.clustering.spi.LocalGroupBuilderProvider;
+import org.wildfly.clustering.spi.IdentityCacheServiceConfiguratorProvider;
+import org.wildfly.clustering.spi.DistributedCacheServiceConfiguratorProvider;
+import org.wildfly.clustering.spi.DistributedGroupServiceConfiguratorProvider;
+import org.wildfly.clustering.spi.IdentityGroupServiceConfiguratorProvider;
+import org.wildfly.clustering.spi.LocalCacheServiceConfiguratorProvider;
+import org.wildfly.clustering.spi.LocalGroupServiceConfiguratorProvider;
 
 /**
  * Validates loading of services.
  * @author Paul Ferraro
  */
 public class ServiceLoaderTestCase {
-
+    private static final Logger LOGGER = Logger.getLogger(ServiceLoaderTestCase.class);
     @Test
     public void load() {
         load(Externalizer.class);
         load(ClassTableContributor.class);
-        load(GroupAliasBuilderProvider.class);
-        load(CacheGroupAliasBuilderProvider.class);
-        load(DistributedGroupBuilderProvider.class);
-        load(DistributedCacheGroupBuilderProvider.class);
-        load(LocalGroupBuilderProvider.class);
-        load(LocalCacheGroupBuilderProvider.class);
+        load(IdentityGroupServiceConfiguratorProvider.class);
+        load(IdentityCacheServiceConfiguratorProvider.class);
+        load(DistributedGroupServiceConfiguratorProvider.class);
+        load(DistributedCacheServiceConfiguratorProvider.class);
+        load(LocalGroupServiceConfiguratorProvider.class);
+        load(LocalCacheServiceConfiguratorProvider.class);
     }
 
     private static <T> void load(Class<T> targetClass) {
-        System.out.println(targetClass.getName() + ":");
-        ServiceLoader.load(targetClass, ServiceLoaderTestCase.class.getClassLoader()).forEach(object -> System.out.println("\t" + object.getClass().getName()));
+        ServiceLoader.load(targetClass, ServiceLoaderTestCase.class.getClassLoader())
+                .forEach(object -> LOGGER.trace("\t" + object.getClass().getName()));
     }
 }

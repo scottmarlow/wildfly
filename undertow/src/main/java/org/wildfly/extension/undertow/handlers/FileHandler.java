@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -22,20 +22,22 @@
 
 package org.wildfly.extension.undertow.handlers;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 import io.undertow.server.HttpHandler;
-import io.undertow.server.handlers.resource.FileResourceManager;
+import io.undertow.server.handlers.resource.PathResourceManager;
 import io.undertow.server.handlers.resource.ResourceHandler;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.StringListAttributeDefinition;
+import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.wildfly.extension.undertow.Constants;
@@ -50,40 +52,47 @@ public class FileHandler extends Handler {
 
     /*<file path="/opt/data" cache-buffer-size="1024" cache-buffers="1024"/>*/
     public static final AttributeDefinition PATH = new SimpleAttributeDefinitionBuilder(Constants.PATH, ModelType.STRING)
-            .setAllowNull(true)
+            .setRequired(true)
             .setAllowExpression(true)
+            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
             .build();
     public static final AttributeDefinition CACHE_BUFFER_SIZE = new SimpleAttributeDefinitionBuilder("cache-buffer-size", ModelType.LONG)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setDefaultValue(new ModelNode(1024))
+            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
             .build();
     public static final AttributeDefinition CACHE_BUFFERS = new SimpleAttributeDefinitionBuilder("cache-buffers", ModelType.LONG)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setDefaultValue(new ModelNode(1024))
+            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
             .build();
     public static final AttributeDefinition DIRECTORY_LISTING = new SimpleAttributeDefinitionBuilder(Constants.DIRECTORY_LISTING, ModelType.BOOLEAN)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setDefaultValue(new ModelNode(false))
+            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
             .build();
 
     public static final AttributeDefinition FOLLOW_SYMLINK = new SimpleAttributeDefinitionBuilder("follow-symlink", ModelType.BOOLEAN)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setDefaultValue(new ModelNode(false))
+            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
             .build();
 
     public static final StringListAttributeDefinition SAFE_SYMLINK_PATHS = new StringListAttributeDefinition.Builder("safe-symlink-paths")
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
+            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
             .build();
 
     public static final AttributeDefinition CASE_SENSITIVE = new SimpleAttributeDefinitionBuilder("case-sensitive", ModelType.BOOLEAN)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setDefaultValue(new ModelNode(true))
+            .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
             .build();
 
     private FileHandler() {
@@ -107,13 +116,13 @@ public class FileHandler extends Handler {
         final String[] paths = safePaths.toArray(new String[safePaths.size()]);
 
         UndertowLogger.ROOT_LOGGER.creatingFileHandler(path, directoryListing, followSymlink, caseSensitive, safePaths);
-        File base = null;
+        Path base;
         try {
-            base = new File(path).getCanonicalFile();
+            base = Paths.get(path).normalize().toRealPath(); //workaround for JBEAP-10231
         } catch (IOException e) {
-            throw new OperationFailedException(e);
+            throw new OperationFailedException(UndertowLogger.ROOT_LOGGER.unableAddHandlerForPath(path));
         }
-        FileResourceManager resourceManager = new FileResourceManager(base, cacheBufferSize * cacheBuffers, caseSensitive, followSymlink, paths);
+        PathResourceManager resourceManager = new PathResourceManager(base, cacheBufferSize * cacheBuffers, caseSensitive, followSymlink, paths);
         ResourceHandler handler = new ResourceHandler(resourceManager);
         handler.setDirectoryListingEnabled(directoryListing);
         return handler;

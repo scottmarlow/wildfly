@@ -20,7 +20,7 @@
   ~ Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
-<module xmlns="urn:jboss:module:1.3" name="org.jboss.as.ejb3">
+<module xmlns="urn:jboss:module:1.5" name="org.jboss.as.ejb3">
     <properties>
         <property name="jboss.api" value="private"/>
     </properties>
@@ -31,6 +31,7 @@
     </resources>
 
     <dependencies>
+        <module name="org.wildfly.http-client.ejb" />
         <module name="javax.annotation.api"/>
         <module name="javax.api"/>
         <module name="javax.ejb.api"/>
@@ -44,15 +45,19 @@
         <module name="org.hibernate"/>
         <module name="org.jboss.common-beans" services="import"/>
         <module name="org.jboss.as.clustering.common"/>
+        <module name="org.wildfly.client.config"/>
         <module name="org.wildfly.clustering.api"/>
         <module name="org.wildfly.clustering.ee.spi"/>
         <module name="org.wildfly.clustering.ejb.spi"/>
         <module name="org.wildfly.clustering.marshalling.api"/>
         <module name="org.wildfly.clustering.marshalling.jboss"/>
+        <module name="org.wildfly.clustering.marshalling.spi"/>
         <module name="org.wildfly.clustering.service"/>
         <module name="org.wildfly.clustering.spi"/>
         <module name="org.wildfly.clustering.singleton"/>
-        <module name="org.wildfly.extension.request-controller" />
+        <module name="org.wildfly.common"/>
+        <module name="org.wildfly.extension.request-controller"/>
+        <module name="org.wildfly.discovery"/>
         <module name="org.jboss.as.controller"/>
         <module name="org.jboss.as.weld"/>
         <!-- So we can access its integration API -->
@@ -68,7 +73,8 @@
         <module name="org.jboss.as.network"/>
         <module name="org.jboss.as.remoting"/>
         <module name="org.jboss.as.security"/>
-        <module name="org.wildfly.security.elytron"/>
+        <module name="org.wildfly.security.elytron-private"/>
+        <module name="org.wildfly.security.elytron-web.undertow-server"/>
         <module name="org.jboss.as.server"/>
         <module name="org.jboss.as.threads"/>
         <module name="org.jboss.as.transactions"/>
@@ -104,6 +110,8 @@
 
         <module name="org.omg.api"/>
         <module name="javax.xml.rpc.api"/>
+        <!-- Needed for EJB over HTTP support-->
+        <module name="io.undertow.core" />
 
         <!-- TODO WFLY-5966 validate the need for these and remove if not needed.
              Prior to WFLY-5922 they were exported by javax.ejb.api. -->
@@ -111,5 +119,6 @@
         <module name="javax.rmi.api"/>
 
         <module name="org.wildfly.common"/>
+        <module name="org.wildfly.transaction.client"/>
     </dependencies>
 </module>

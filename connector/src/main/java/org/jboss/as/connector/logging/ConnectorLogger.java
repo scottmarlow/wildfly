@@ -30,10 +30,11 @@ import static org.jboss.logging.Logger.Level.WARN;
 import java.sql.Driver;
 import java.util.Set;
 
+import javax.security.auth.Subject;
+
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
-import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.dmr.ModelNode;
 import org.jboss.jca.deployers.common.DeployException;
@@ -43,7 +44,6 @@ import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
-import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.StartException;
 import org.jboss.vfs.VirtualFile;
 
@@ -164,15 +164,15 @@ public interface ConnectorLogger extends BasicLogger {
     @Message(id = 7, value = "Registered connection factory %s")
     void registeredConnectionFactory(String jndiName);
 
-    /**
-     * Logs an informational message indicating the service, represented by the {@code serviceName} parameter, is
-     * starting.
-     *
-     * @param serviceName the name of the service that is starting.
-     */
-    @LogMessage(level = INFO)
-    @Message(id = 8, value = "Starting service %s")
-    void startingService(ServiceName serviceName);
+//    /**
+//     * Logs an informational message indicating the service, represented by the {@code serviceName} parameter, is
+//     * starting.
+//     *
+//     * @param serviceName the name of the service that is starting.
+//     */
+//    @LogMessage(level = INFO)
+//    @Message(id = 8, value = "Starting service %s")
+//    void startingService(ServiceName serviceName);
 
     /**
      * Logs an informational message indicating the subsystem, represented by the {@code subsystem} parameter, is
@@ -352,15 +352,15 @@ public interface ConnectorLogger extends BasicLogger {
     @Message(id = 37, value = "failed to get metrics: %s")
     String failedToGetMetrics(String message);
 
-    /**
-     * Creates an exception indicating a failure to get the module attachment for the deployment unit represented by
-     * the {@code deploymentUnit} parameter.
-     *
-     * @param deploymentUnit the deployment.
-     * @return a {@link DeploymentUnitProcessingException} for the error.
-     */
-    @Message(id = 38, value = "Failed to get module attachment for %s")
-    DeploymentUnitProcessingException failedToGetModuleAttachment(DeploymentUnit deploymentUnit);
+//    /**
+//     * Creates an exception indicating a failure to get the module attachment for the deployment unit represented by
+//     * the {@code deploymentUnit} parameter.
+//     *
+//     * @param deploymentUnit the deployment.
+//     * @return a {@link DeploymentUnitProcessingException} for the error.
+//     */
+    //@Message(id = 38, value = "Failed to get module attachment for %s")
+    //DeploymentUnitProcessingException failedToGetModuleAttachment(DeploymentUnit deploymentUnit);
 
     /**
      * Creates an exception indicating a failure to get the URL delimiter.
@@ -455,14 +455,14 @@ public interface ConnectorLogger extends BasicLogger {
     @Message(id = 47, value = "Connection is not valid")
     IllegalStateException invalidConnection();
 
-    /**
-     * A message indicating the parameter name is invalid.
-     *
-     * @param parameterName the invalid parameter name.
-     * @return the message.
-     */
-    @Message(id = 48, value = "Invalid parameter name: %s")
-    String invalidParameterName(String parameterName);
+//    /**
+//     * A message indicating the parameter name is invalid.
+//     *
+//     * @param parameterName the invalid parameter name.
+//     * @return the message.
+//     */
+//    @Message(id = 48, value = "Invalid parameter name: %s")
+//    String invalidParameterName(String parameterName);
 
     /**
      * Creates an exception indicating non-explicit JNDI bindings are not supported.
@@ -520,16 +520,16 @@ public interface ConnectorLogger extends BasicLogger {
     @Message(id = 54, value = "%s service [%s] is not available")
     String serviceNotAvailable(String serviceType, Object obj);
 
-    /**
-     * A message indicating the service, represented by the {@code serviceType} parameter, is not enabled on th object
-     * represented by the {@code obj} parameter.
-     *
-     * @param serviceType the service type.
-     * @param obj         the object.
-     * @return the message.
-     */
-    @Message(id = 55, value = "%s service [%s] is not enabled")
-    String serviceNotEnabled(String serviceType, Object obj);
+//    /**
+//     * A message indicating the service, represented by the {@code serviceType} parameter, is not enabled on th object
+//     * represented by the {@code obj} parameter.
+//     *
+//     * @param serviceType the service type.
+//     * @param obj         the object.
+//     * @return the message.
+//     */
+//    @Message(id = 55, value = "%s service [%s] is not enabled")
+//    String serviceNotEnabled(String serviceType, Object obj);
 
     /**
      * Creates an exception indicating the service is not started.
@@ -539,15 +539,15 @@ public interface ConnectorLogger extends BasicLogger {
     @Message(id = 56, value = "Service not started")
     IllegalStateException serviceNotStarted();
 
-    /**
-     * Creates an exception indicating the property type is unknown.
-     *
-     * @param propertyType the unknown property type.
-     * @param propertyName the name of the property.
-     * @return an {@link IllegalArgumentException} for the error.
-     */
-    @Message(id = 57, value = "Unknown property type: %s for property %s")
-    IllegalArgumentException unknownPropertyType(String propertyType, String propertyName);
+//    /**
+//     * Creates an exception indicating the property type is unknown.
+//     *
+//     * @param propertyType the unknown property type.
+//     * @param propertyName the name of the property.
+//     * @return an {@link IllegalArgumentException} for the error.
+//     */
+//    @Message(id = 57, value = "Unknown property type: %s for property %s")
+//    IllegalArgumentException unknownPropertyType(String propertyType, String propertyName);
 
     /**
      * Creates an exception indicating a variable is undefined.
@@ -558,23 +558,23 @@ public interface ConnectorLogger extends BasicLogger {
     @Message(id = 58, value = "%s is undefined")
     IllegalArgumentException undefinedVar(String name);
 
-    /**
-     * Creates an exception indicating that a service is already registered
-     *
-     * @param name the name of the service.
-     * @return an {@link IllegalStateException} for the error.
-     */
-    @Message(id = 59, value = "Service '%s' already registered")
-    IllegalStateException serviceAlreadyRegistered(String name);
+//    /**
+//     * Creates an exception indicating that a service is already registered
+//     *
+//     * @param name the name of the service.
+//     * @return an {@link IllegalStateException} for the error.
+//     */
+//    @Message(id = 59, value = "Service '%s' already registered")
+//    IllegalStateException serviceAlreadyRegistered(String name);
 
-    /**
-     * Creates an exception indicating that a service isn't registered
-     *
-     * @param name the name of the service.
-     * @return an {@link IllegalStateException} for the error.
-     */
-    @Message(id = 60, value = "Service '%s' isn't registered")
-    IllegalStateException serviceIsntRegistered(String name);
+//    /**
+//     * Creates an exception indicating that a service isn't registered
+//     *
+//     * @param name the name of the service.
+//     * @return an {@link IllegalStateException} for the error.
+//     */
+//    @Message(id = 60, value = "Service '%s' isn't registered")
+//    IllegalStateException serviceIsntRegistered(String name);
 
     /**
      * Failed to load native libraries
@@ -585,24 +585,24 @@ public interface ConnectorLogger extends BasicLogger {
     @Message(id = 61, value = "Failed to load native libraries")
     DeploymentUnitProcessingException failedToLoadNativeLibraries(@Cause Throwable cause);
 
-    /**
-     * Creates an exception indicating that the ServiceName doesn't belong to a resource adapter service
-     *
-     * @param serviceName The service name
-     * @return an {@link IllegalArgumentException} for the error.
-     */
-    @Message(id = 62, value = "%s isn't a resource adapter service")
-    IllegalArgumentException notResourceAdapterService(ServiceName serviceName);
+//    /**
+//     * Creates an exception indicating that the ServiceName doesn't belong to a resource adapter service
+//     *
+//     * @param serviceName The service name
+//     * @return an {@link IllegalArgumentException} for the error.
+//     */
+//    @Message(id = 62, value = "%s isn't a resource adapter service")
+//    IllegalArgumentException notResourceAdapterService(ServiceName serviceName);
 
-    /**
-     * Creates and returns an exception indicating that the param named <code>paramName</code> cannot be null
-     * or empty string.
-     *
-     * @param paramName The param name
-     * @return an {@link IllegalArgumentException} for the exception
-     */
-    @Message(id = 63, value = "%s cannot be null or empty")
-    IllegalArgumentException stringParamCannotBeNullOrEmpty(final String paramName);
+//    /**
+//     * Creates and returns an exception indicating that the param named <code>paramName</code> cannot be null
+//     * or empty string.
+//     *
+//     * @param paramName The param name
+//     * @return an {@link IllegalArgumentException} for the exception
+//     */
+//    @Message(id = 63, value = "%s cannot be null or empty")
+//    IllegalArgumentException stringParamCannotBeNullOrEmpty(final String paramName);
 
     @Message(id = 64, value = "Exception deploying datasource %s")
     DeploymentUnitProcessingException exceptionDeployingDatasource(@Cause Throwable cause, String datasource);
@@ -630,14 +630,14 @@ public interface ConnectorLogger extends BasicLogger {
     @Message(id = 67, value = "Unknown operation %s")
     IllegalStateException unknownOperation(String attributeName);
 
-    /**
-     * A message indicating the driver is not installed
-     *
-     * @param driverName the driver name.
-     * @return the message.
-     */
-    @Message(id = 68, value = "Driver named \"%s\" is not installed.")
-    String driverNotPresent(String driverName);
+//    /**
+//     * A message indicating the driver is not installed
+//     *
+//     * @param driverName the driver name.
+//     * @return the message.
+//     */
+//    @Message(id = 68, value = "Driver named \"%s\" is not installed.")
+//    String driverNotPresent(String driverName);
 
     /**
      * A message indicating that at least on xa-datasource-property is required
@@ -747,24 +747,24 @@ public interface ConnectorLogger extends BasicLogger {
     @Message(id = 80, value = "RAR '%s' not yet deployed.")
     OperationFailedException RARNotYetDeployed(String raName);
 
-    /**
-     * MDR empty during deployment of deployment annotation
-     *
-     * @param jndiName The JNDI name
-     * @return a {@link DeploymentUnitProcessingException} for the error.
-     */
-    @Message(id = 81, value = "Empty MDR while deploying %s")
-    DeploymentUnitProcessingException emptyMdr(String jndiName);
+//    /**
+//     * MDR empty during deployment of deployment annotation
+//     *
+//     * @param jndiName The JNDI name
+//     * @return a {@link DeploymentUnitProcessingException} for the error.
+//     */
+//    @Message(id = 81, value = "Empty MDR while deploying %s")
+//    DeploymentUnitProcessingException emptyMdr(String jndiName);
 
-    /**
-     * Resource adapter not found during deployment of deployment annotation
-     *
-     * @param ra       The resource adapter
-     * @param jndiName The JNDI name
-     * @return a {@link DeploymentUnitProcessingException} for the error.
-     */
-    @Message(id = 82, value = "Resource adapter (%s) not found while deploying %s")
-    DeploymentUnitProcessingException raNotFound(String ra, String jndiName);
+//    /**
+//     * Resource adapter not found during deployment of deployment annotation
+//     *
+//     * @param ra       The resource adapter
+//     * @param jndiName The JNDI name
+//     * @return a {@link DeploymentUnitProcessingException} for the error.
+//     */
+//    @Message(id = 82, value = "Resource adapter (%s) not found while deploying %s")
+//    DeploymentUnitProcessingException raNotFound(String ra, String jndiName);
 
     /**
      * Invalid connection factory interface defined
@@ -832,11 +832,11 @@ public interface ConnectorLogger extends BasicLogger {
     @Message(id = 93, value = "The '%s' operation is deprecated. Use of the 'add' or 'remove' operations is preferred, or if required the 'write-attribute' operation can used to set the deprecated 'enabled' attribute")
     void legacyDisableEnableOperation(String name);
 
-    @Message(id = 94, value = "Driver %s should be defined in a profile named 'default' activated on server where deploying *-ds.xml")
-    IllegalStateException driverNotDefinedInDefaultProfile(String driverName);
+//    @Message(id = 94, value = "Driver %s should be defined in a profile named 'default' activated on server where deploying *-ds.xml")
+//    IllegalStateException driverNotDefinedInDefaultProfile(String driverName);
 
-    @Message(id = 95, value = "At least one driver should be defined in a profile named 'default' activated on server where deploying *-ds.xml")
-    IllegalStateException noDriverDefinedInDefaultProfile();
+//    @Message(id = 95, value = "At least one driver should be defined in a profile named 'default' activated on server where deploying *-ds.xml")
+//    IllegalStateException noDriverDefinedInDefaultProfile();
 
     @LogMessage(level = ERROR)
     @Message(id = 96, value = "Error during recovery shutdown")
@@ -856,4 +856,59 @@ public interface ConnectorLogger extends BasicLogger {
 
     @Message(id = 100, value = "Operation %s is not supported")
     UnsupportedOperationException noSupportedOperation(String operation);
+
+    @Message(id = 101, value = "Thread pool: %s(type: %s) can not be added for workmanager: %s, only one thread pool is allowed for each type.")
+    OperationFailedException oneThreadPoolWorkManager(String threadPoolName, String threadPoolType, String workManagerName);
+
+    /**
+     * A message indicating that an attribute can only be set if another attribute is set as {@code true}.
+     *
+     * @param attribute          attribute that is invalid: it is defined but requires another attribute to be set as {@code true}
+     * @param requiredAttribute  attribute that is required to be defined as {@code true}
+     * @return the message.
+     */
+    @Message(id = 102, value = "Attribute %s can only be defined if %s is true")
+    OperationFailedException attributeRequiresTrueAttribute(String attribute, String requiredAttribute);
+
+    /**
+     * A message indicating that an attribute can only be set if another attribute is undefined or set as {@code false}.
+     *
+     * @param attribute               attribute that is invalid: it is defined but requires another attribute to be set as {@code false} or to be undefined
+     * @param requiredFalseAttribute  attribute that is required to be undefined or defined as {@code false}
+     * @return the message.
+     */
+    @Message(id = 103, value = "Attribute %s can only be defined if %s is undefined or false")
+    OperationFailedException attributeRequiresFalseOrUndefinedAttribute(String attribute, String requiredFalseAttribute);
+
+    @Message(id = 104, value = "Subject=%s\nSubject identity=%s")
+    String subject(Subject subject, String identity);
+
+    @LogMessage(level = INFO)
+    @Message(id = 106, value = "Elytron handler handle: %s")
+    void elytronHandlerHandle(String callbacks);
+
+    @Message(id = 107, value = "Execution subject was not provided to the callback handler")
+    SecurityException executionSubjectNotSetInHandler();
+
+    @Message(id = 108, value = "Supplied callback doesn't contain a security domain reference")
+    IllegalArgumentException invalidCallbackSecurityDomain();
+
+    @Message(id = 109, value = "Callback with security domain is required - use createCallbackHandler(Callback callback) instead")
+    UnsupportedOperationException unsupportedCreateCallbackHandlerMethod();
+
+    @Message(id = 110, value = "CredentialSourceSupplier is invalid for DSSecurity")
+    IllegalStateException invalidCredentialSourceSupplier(@Cause Throwable cause);
+
+    @Message(id = 111, value = "WorkManager hasn't elytron-enabled flag set accordingly with RA one")
+    IllegalStateException invalidElytronWorkManagerSetting();
+
+    @Message(id = 112, value = "Datasource %s is disabled")
+    IllegalArgumentException datasourceIsDisabled(String jndiName);
+
+    @LogMessage(level = ERROR)
+    @Message(id =113, value = "Unexcepted error during worker execution : %s")
+    void unexceptedWorkerCompletionError(String errorMessage, @Cause Throwable t);
+
+    @Message(id = 114, value = "Failed to load datasource class: %s")
+    IllegalStateException failedToLoadDataSourceClass(String clsName, @Cause Throwable t);
 }

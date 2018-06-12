@@ -2,13 +2,14 @@
 <!--  See src/resources/configuration/ReadMe.txt for how the configuration assembly works -->
 <config>
    <extension-module>org.jboss.as.transactions</extension-module>
-   <subsystem xmlns="urn:jboss:domain:transactions:3.1">
+   <subsystem xmlns="urn:jboss:domain:transactions:4.0">
        <core-environment>
            <process-id>
                <uuid/>
            </process-id>
        </core-environment>
        <recovery-environment socket-binding="txn-recovery-environment" status-socket-binding="txn-status-manager"/>
+       <object-store path="tx-object-store" relative-to="jboss.server.data.dir"/>
        <?JTS?>
 
    </subsystem>

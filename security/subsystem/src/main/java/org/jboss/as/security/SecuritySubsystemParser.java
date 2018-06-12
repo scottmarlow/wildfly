@@ -87,7 +87,6 @@ import org.jboss.staxmapper.XMLExtendedStreamReader;
  */
 public class SecuritySubsystemParser implements XMLStreamConstants, XMLElementReader<List<ModelNode>>, ModulesMap {
 
-    public static final SecuritySubsystemParser INSTANCE = new SecuritySubsystemParser();
     private Map<String, Integer> moduleNames;
 
     protected SecuritySubsystemParser() {
@@ -173,6 +172,10 @@ public class SecuritySubsystemParser implements XMLStreamConstants, XMLElementRe
             switch (attribute) {
                 case DEEP_COPY_SUBJECT_MODE: {
                     SecuritySubsystemRootResourceDefinition.DEEP_COPY_SUBJECT_MODE.parseAndSetParameter(value, operation, reader);
+                    break;
+                }
+                case INITIALIZE_JACC: {
+                    SecuritySubsystemRootResourceDefinition.INITIALIZE_JACC.parseAndSetParameter(value, operation, reader);
                     break;
                 }
                 default:

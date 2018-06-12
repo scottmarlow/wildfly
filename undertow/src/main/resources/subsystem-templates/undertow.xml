@@ -1,8 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!--
-  ~
   ~ JBoss, Home of Professional Open Source.
-  ~ Copyright 2013, Red Hat, Inc., and individual contributors
+  ~ Copyright 2017, Red Hat, Inc., and individual contributors
   ~ as indicated by the @author tags. See the copyright.txt file in the
   ~ distribution for a full listing of individual contributors.
   ~
@@ -20,13 +19,12 @@
   ~ License along with this software; if not, write to the Free
   ~ Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
-  ~
   -->
 
 <!--  See src/resources/configuration/ReadMe.txt for how the configuration assembly works -->
 <config>
     <extension-module>org.wildfly.extension.undertow</extension-module>
-    <subsystem xmlns="urn:jboss:domain:undertow:4.0">
+    <subsystem xmlns="urn:jboss:domain:undertow:6.0" default-server="default-server" default-virtual-host="default-host" default-servlet-container="default" default-security-domain="other">
         <buffer-cache name="default" />
         <server name="default-server">
             <?AJP?>
@@ -34,8 +32,7 @@
             <https-listener name="https" socket-binding="https" security-realm="ApplicationRealm" enable-http2="true" />
             <host name="default-host" alias="localhost">
                 <location name="/" handler="welcome-content" />
-                <filter-ref name="server-header"/>
-                <filter-ref name="x-powered-by-header"/>
+                <http-invoker security-realm="ApplicationRealm"/>
             </host>
         </server>
         <servlet-container name="default">
@@ -45,32 +42,10 @@
         <handlers>
             <file name="welcome-content" path="${jboss.home.dir}/welcome-content" />
         </handlers>
-        <filters>
-            <response-header name="server-header" header-name="Server" header-value="WildFly/10"/>
-            <response-header name="x-powered-by-header" header-name="X-Powered-By" header-value="Undertow/1"/>
-        </filters>
-        <?ELYTRON?>
     </subsystem>
     <supplement name="ha">
         <replacement placeholder="AJP">
             <ajp-listener name="ajp" socket-binding="ajp" />
-        </replacement>
-    </supplement>
-    <supplement name="elytron">
-        <replacement placeholder="ELYTRON">
-            <application-security-domains>
-                <application-security-domain security-domain="other" http-authentication-factory="application-http-authentication"/>
-            </application-security-domains>
-        </replacement>
-    </supplement>
-    <supplement name="ha-elytron">
-        <replacement placeholder="AJP">
-            <ajp-listener name="ajp" socket-binding="ajp" />
-        </replacement>
-        <replacement placeholder="ELYTRON">
-            <application-security-domains>
-                <application-security-domain security-domain="other" http-authentication-factory="application-http-authentication"/>
-            </application-security-domains>
         </replacement>
     </supplement>
     <socket-binding name="http" port="${jboss.http.port:8080}"/>

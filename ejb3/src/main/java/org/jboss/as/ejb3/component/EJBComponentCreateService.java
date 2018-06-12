@@ -49,10 +49,9 @@ import org.jboss.as.ee.component.ViewDescription;
 import org.jboss.as.ejb3.component.interceptors.ShutDownInterceptorFactory;
 import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponentDescription;
 import org.jboss.as.ejb3.deployment.ApplicationExceptions;
-import org.jboss.as.ejb3.remote.EJBRemoteTransactionsRepository;
 import org.jboss.as.ejb3.security.EJBSecurityMetaData;
 import org.jboss.as.ejb3.subsystem.ApplicationSecurityDomainService.ApplicationSecurityDomain;
-import org.jboss.as.ejb3.subsystem.ApplicationSecurityDomainService.Registration;
+import org.jboss.as.ejb3.suspend.EJBSuspendHandlerService;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.invocation.InterceptorFactory;
 import org.jboss.invocation.Interceptors;
@@ -60,9 +59,6 @@ import org.jboss.invocation.proxy.MethodIdentifier;
 import org.jboss.msc.inject.Injector;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.service.StartContext;
-import org.jboss.msc.service.StartException;
-import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
 import org.wildfly.extension.requestcontroller.ControlPoint;
 import org.wildfly.security.auth.server.SecurityDomain;
@@ -73,6 +69,7 @@ import org.wildfly.security.auth.server.SecurityDomain;
 public class EJBComponentCreateService extends BasicComponentCreateService {
 
     private final Map<MethodTransactionAttributeKey, TransactionAttributeType> txAttrs;
+    private final Map<MethodTransactionAttributeKey, Boolean> txExplicitAttrs;
 
     private final Map<MethodTransactionAttributeKey, Integer> txTimeouts;
 
@@ -102,7 +99,6 @@ public class EJBComponentCreateService extends BasicComponentCreateService {
     private final String distinctName;
     private final String policyContextID;
 
-    private final InjectedValue<EJBRemoteTransactionsRepository> ejbRemoteTransactionsRepository = new InjectedValue<EJBRemoteTransactionsRepository>();
     private final InjectedValue<TransactionManager> transactionManagerInjectedValue = new InjectedValue<>();
     private final InjectedValue<UserTransaction> userTransactionInjectedValue = new InjectedValue<>();
     private final InjectedValue<TransactionSynchronizationRegistry> transactionSynchronizationRegistryValue = new InjectedValue<TransactionSynchronizationRegistry>();
@@ -111,10 +107,11 @@ public class EJBComponentCreateService extends BasicComponentCreateService {
     private final InjectedValue<AtomicBoolean> exceptionLoggingEnabled = new InjectedValue<>();
     private final InjectedValue<ApplicationSecurityDomain> applicationSecurityDomain = new InjectedValue<>();
     private final InjectedValue<Function> identityOutflowFunction = new InjectedValue<>();
+    private final InjectedValue<EJBSuspendHandlerService> ejbSuspendHandler = new InjectedValue<>();
 
     private final ShutDownInterceptorFactory shutDownInterceptorFactory;
 
-    private Registration registration;
+    private final boolean securityRequired;
 
     /**
      * Construct a new instance.
@@ -135,9 +132,11 @@ public class EJBComponentCreateService extends BasicComponentCreateService {
         if (transactionManagementType.equals(TransactionManagementType.CONTAINER)) {
             this.txAttrs = new HashMap<MethodTransactionAttributeKey, TransactionAttributeType>();
             this.txTimeouts = new HashMap<MethodTransactionAttributeKey, Integer>();
+            this.txExplicitAttrs = new HashMap<>();
         } else {
             this.txAttrs = null;
             this.txTimeouts = null;
+            this.txExplicitAttrs = null;
         }
         // Setup the security metadata for the bean
         this.securityMetaData = new EJBSecurityMetaData(componentConfiguration);
@@ -214,26 +213,7 @@ public class EJBComponentCreateService extends BasicComponentCreateService {
         this.moduleName = componentConfiguration.getModuleName();
         this.distinctName = componentConfiguration.getComponentDescription().getModuleDescription().getDistinctName();
         this.shutDownInterceptorFactory = ejbComponentDescription.getShutDownInterceptorFactory();
-    }
-
-    @Override
-    public synchronized void start(final StartContext context) throws StartException {
-        super.start(context);
-        ApplicationSecurityDomain applicationSecurityDomain = getApplicationSecurityDomain();
-        Function<String, Registration> securityFunction = applicationSecurityDomain != null ? applicationSecurityDomain.getSecurityFunction() : null;
-        if (securityFunction != null) {
-            final DeploymentUnit deploymentUnit = getDeploymentUnitInjector().getValue();
-            final String deploymentName = deploymentUnit.getParent() == null ? deploymentUnit.getName() : deploymentUnit.getParent().getName() + "." + deploymentUnit.getName();
-            registration = securityFunction.apply(deploymentName);
-        }
-    }
-
-    @Override
-    public synchronized void stop(final StopContext context) {
-        super.stop(context);
-        if (registration != null) {
-            registration.cancel();
-        }
+        this.securityRequired = ejbComponentDescription.isSecurityRequired();
     }
 
     @Override
@@ -273,6 +253,10 @@ public class EJBComponentCreateService extends BasicComponentCreateService {
         return txAttrs;
     }
 
+    Map<MethodTransactionAttributeKey, Boolean> getExplicitTxAttrs() {
+        return txExplicitAttrs;
+    }
+
     Map<MethodTransactionAttributeKey, Integer> getTxTimeouts() {
         return txTimeouts;
     }
@@ -293,12 +277,14 @@ public class EJBComponentCreateService extends BasicComponentCreateService {
 
         MethodIntf defaultMethodIntf = (ejbComponentDescription instanceof MessageDrivenComponentDescription) ? MethodIntf.MESSAGE_ENDPOINT : MethodIntf.BEAN;
         TransactionAttributeType txAttr = ejbComponentDescription.getTransactionAttributes().getAttribute(methodIntf, method, defaultMethodIntf);
+        MethodTransactionAttributeKey key = new MethodTransactionAttributeKey(methodIntf, MethodIdentifier.getIdentifierForMethod(method));
         if(txAttr != null) {
-            txAttrs.put(new MethodTransactionAttributeKey(methodIntf, MethodIdentifier.getIdentifierForMethod(method)), txAttr);
+            txAttrs.put(key, txAttr);
+            txExplicitAttrs.put(key, ejbComponentDescription.getTransactionAttributes().isMethodLevel(methodIntf, method, defaultMethodIntf));
         }
         Integer txTimeout = ejbComponentDescription.getTransactionTimeouts().getAttribute(methodIntf, method, defaultMethodIntf);
         if (txTimeout != null) {
-            txTimeouts.put(new MethodTransactionAttributeKey(methodIntf, MethodIdentifier.getIdentifierForMethod(method)), txTimeout);
+            txTimeouts.put(key, txTimeout);
         }
     }
 
@@ -354,23 +340,6 @@ public class EJBComponentCreateService extends BasicComponentCreateService {
         return moduleName;
     }
 
-    public Injector<EJBRemoteTransactionsRepository> getEJBRemoteTransactionsRepositoryInjector() {
-        return this.ejbRemoteTransactionsRepository;
-    }
-
-    EJBRemoteTransactionsRepository getEJBRemoteTransactionsRepository() {
-        // remote tx repo is applicable only for remote views, hence the optionalValue
-        return this.ejbRemoteTransactionsRepository.getOptionalValue();
-    }
-
-    Injector<TransactionManager> getTransactionManagerInjector() {
-        return this.transactionManagerInjectedValue;
-    }
-
-    TransactionManager getTransactionManager() {
-        return this.transactionManagerInjectedValue.getValue();
-    }
-
     Injector<UserTransaction> getUserTransactionInjector() {
         return this.userTransactionInjectedValue;
     }
@@ -379,12 +348,12 @@ public class EJBComponentCreateService extends BasicComponentCreateService {
         return this.userTransactionInjectedValue.getValue();
     }
 
-    Injector<TransactionSynchronizationRegistry> getTransactionSynchronizationRegistryInjector() {
-        return transactionSynchronizationRegistryValue;
+    public Injector<EJBSuspendHandlerService> getEJBSuspendHandlerInjector() {
+        return this.ejbSuspendHandler;
     }
 
-    TransactionSynchronizationRegistry getTransactionSynchronizationRegistry() {
-        return transactionSynchronizationRegistryValue.getOptionalValue();
+    EJBSuspendHandlerService getEJBSuspendHandler() {
+        return this.ejbSuspendHandler.getValue();
     }
 
     ServerSecurityManager getServerSecurityManager() {
@@ -428,6 +397,11 @@ public class EJBComponentCreateService extends BasicComponentCreateService {
         return applicationSecurityDomain != null ? applicationSecurityDomain.getSecurityDomain() : null;
     }
 
+    public boolean isEnableJacc() {
+        ApplicationSecurityDomain applicationSecurityDomain = getApplicationSecurityDomain();
+        return applicationSecurityDomain != null ? applicationSecurityDomain.isEnableJacc() : false;
+    }
+
     Injector<Function> getIdentityOutflowFunctionInjector() {
         return identityOutflowFunction;
     }
@@ -438,5 +412,9 @@ public class EJBComponentCreateService extends BasicComponentCreateService {
 
     public ShutDownInterceptorFactory getShutDownInterceptorFactory() {
         return shutDownInterceptorFactory;
+    }
+
+    public boolean isSecurityRequired() {
+        return securityRequired;
     }
 }

@@ -26,28 +26,29 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import org.kohsuke.MetaInfServices;
 import org.wildfly.clustering.marshalling.Externalizer;
-import org.wildfly.clustering.web.infinispan.SessionIdentifierExternalizer;
 
 /**
  * @author Paul Ferraro
  */
-public class SessionFilterExternalizer<D> implements Externalizer<SessionFilter<D>> {
+@MetaInfServices(Externalizer.class)
+public class SessionFilterExternalizer<D, S> implements Externalizer<SessionFilter<D, S>> {
 
     @Override
-    public void writeObject(ObjectOutput output, SessionFilter<D> filter) throws IOException {
-        SessionIdentifierExternalizer.BASE64.writeObject(output, filter.getSessionId());
+    public void writeObject(ObjectOutput output, SessionFilter<D, S> filter) throws IOException {
+        output.writeObject(filter.getSession());
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public SessionFilter<D> readObject(ObjectInput input) throws IOException, ClassNotFoundException {
-        return new SessionFilter<>(SessionIdentifierExternalizer.BASE64.readObject(input));
+    public SessionFilter<D, S> readObject(ObjectInput input) throws IOException, ClassNotFoundException {
+        return new SessionFilter<>((S) input.readObject());
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings("unchecked")
     @Override
-    public Class<? extends SessionFilter<D>> getTargetClass() {
-        Class targetClass = SessionFilter.class;
-        return targetClass;
+    public Class<SessionFilter<D, S>> getTargetClass() {
+        return (Class<SessionFilter<D, S>>) (Class<?>) SessionFilter.class;
     }
 }

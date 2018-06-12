@@ -23,6 +23,7 @@
 package org.wildfly.extension.messaging.activemq;
 
 import static org.jboss.as.controller.SimpleAttributeDefinitionBuilder.create;
+import static org.jboss.as.controller.client.helpers.MeasurementUnit.BYTES;
 import static org.jboss.dmr.ModelType.BOOLEAN;
 import static org.jboss.dmr.ModelType.INT;
 import static org.jboss.dmr.ModelType.STRING;
@@ -36,14 +37,17 @@ import org.apache.activemq.artemis.api.config.ActiveMQDefaultConfiguration;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.AttributeMarshaller;
 import org.jboss.as.controller.AttributeParser;
+import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.PrimitiveListAttributeDefinition;
+import org.jboss.as.controller.ReloadRequiredWriteAttributeHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.StringListAttributeDefinition;
 import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraintDefinition;
 import org.jboss.as.controller.operations.validation.StringLengthValidator;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.security.CredentialReference;
 import org.jboss.dmr.ModelNode;
 
 /**
@@ -54,7 +58,7 @@ import org.jboss.dmr.ModelNode;
 public class BridgeDefinition extends PersistentResourceDefinition {
 
     public static final PrimitiveListAttributeDefinition CONNECTOR_REFS = new StringListAttributeDefinition.Builder(CommonAttributes.STATIC_CONNECTORS)
-            .setAllowNull(true)
+            .setRequired(true)
             .setElementValidator(new StringLengthValidator(1))
             .setAttributeParser(AttributeParser.STRING_LIST)
             .setAttributeMarshaller(AttributeMarshaller.STRING_LIST)
@@ -64,15 +68,17 @@ public class BridgeDefinition extends PersistentResourceDefinition {
             .build();
 
     public static final SimpleAttributeDefinition DISCOVERY_GROUP_NAME = create(CommonAttributes.DISCOVERY_GROUP, STRING)
-            .setAllowNull(true)
+            .setRequired(true)
             .setAlternatives(STATIC_CONNECTORS)
             .setRestartAllServices()
             .build();
 
     public static final SimpleAttributeDefinition INITIAL_CONNECT_ATTEMPTS = create("initial-connect-attempts", INT)
-            .setAllowNull(true)
+            .setRequired(false)
             .setDefaultValue(new ModelNode().set(ActiveMQDefaultConfiguration.getDefaultBridgeInitialConnectAttempts()))
             .setAllowExpression(true)
+            .setCorrector(InfiniteOrPositiveValidators.NEGATIVE_VALUE_CORRECTOR)
+            .setValidator(InfiniteOrPositiveValidators.INT_INSTANCE)
             .setRestartAllServices()
             .build();
 
@@ -81,17 +87,27 @@ public class BridgeDefinition extends PersistentResourceDefinition {
             .setRestartAllServices()
             .build();
 
-    public static final SimpleAttributeDefinition PASSWORD = create("password", STRING)
-            .setAllowNull(true)
+    public static final SimpleAttributeDefinition PRODUCER_WINDOW_SIZE = create("producer-window-size", INT)
+            .setDefaultValue(new ModelNode(ActiveMQDefaultConfiguration.getDefaultBridgeProducerWindowSize()))
+            .setMeasurementUnit(BYTES)
+            .setRequired(false)
+            .setAllowExpression(true)
+            .setCorrector(InfiniteOrPositiveValidators.NEGATIVE_VALUE_CORRECTOR)
+            .setValidator(InfiniteOrPositiveValidators.INT_INSTANCE)
+            .setRestartAllServices()
+            .build();
+
+    public static final SimpleAttributeDefinition PASSWORD = create("password", STRING, true)
             .setAllowExpression(true)
             .setDefaultValue(new ModelNode().set(ActiveMQDefaultConfiguration.getDefaultClusterPassword()))
             .setRestartAllServices()
             .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.CREDENTIAL)
             .addAccessConstraint(MESSAGING_SECURITY_SENSITIVE_TARGET)
+            .setAlternatives(CredentialReference.CREDENTIAL_REFERENCE)
             .build();
 
     public static final SimpleAttributeDefinition USER = create("user", STRING)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setDefaultValue(new ModelNode().set(ActiveMQDefaultConfiguration.getDefaultClusterUser()))
             .setRestartAllServices()
@@ -99,29 +115,39 @@ public class BridgeDefinition extends PersistentResourceDefinition {
             .addAccessConstraint(MESSAGING_SECURITY_SENSITIVE_TARGET)
             .build();
 
+    public static final ObjectTypeAttributeDefinition CREDENTIAL_REFERENCE =
+            CredentialReference.getAttributeBuilder(true, false)
+                    .setRestartAllServices()
+                    .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.CREDENTIAL)
+                    .addAccessConstraint(MESSAGING_SECURITY_SENSITIVE_TARGET)
+                    .setAlternatives(PASSWORD.getName())
+                    .build();
+
     public static final SimpleAttributeDefinition USE_DUPLICATE_DETECTION = create("use-duplicate-detection", BOOLEAN)
-            .setAllowNull(true)
+            .setRequired(false)
             .setDefaultValue(new ModelNode().set(ActiveMQDefaultConfiguration.isDefaultBridgeDuplicateDetection()))
             .setAllowExpression(true)
             .setRestartAllServices()
             .build();
 
     public static final SimpleAttributeDefinition RECONNECT_ATTEMPTS = create("reconnect-attempts", INT)
-            .setAllowNull(true)
+            .setRequired(false)
             .setDefaultValue(new ModelNode().set(ActiveMQDefaultConfiguration.getDefaultBridgeReconnectAttempts()))
             .setAllowExpression(true)
+            .setCorrector(InfiniteOrPositiveValidators.NEGATIVE_VALUE_CORRECTOR)
+            .setValidator(InfiniteOrPositiveValidators.INT_INSTANCE)
             .setRestartAllServices()
             .build();
 
     public static final SimpleAttributeDefinition RECONNECT_ATTEMPTS_ON_SAME_NODE = create("reconnect-attempts-on-same-node", INT)
-            .setAllowNull(true)
+            .setRequired(false)
             .setDefaultValue(new ModelNode().set(ActiveMQDefaultConfiguration.getDefaultBridgeConnectSameNode()))
             .setAllowExpression(true)
             .setRestartAllServices()
             .build();
 
     public static final SimpleAttributeDefinition FORWARDING_ADDRESS = create("forwarding-address", STRING)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setRestartAllServices()
             .build();
@@ -134,19 +160,21 @@ public class BridgeDefinition extends PersistentResourceDefinition {
             INITIAL_CONNECT_ATTEMPTS,
             RECONNECT_ATTEMPTS,
             RECONNECT_ATTEMPTS_ON_SAME_NODE,
-            USE_DUPLICATE_DETECTION, CommonAttributes.BRIDGE_CONFIRMATION_WINDOW_SIZE,
-            USER, PASSWORD,
+            USE_DUPLICATE_DETECTION,
+            PRODUCER_WINDOW_SIZE,
+            CommonAttributes.BRIDGE_CONFIRMATION_WINDOW_SIZE,
+            USER, PASSWORD, CREDENTIAL_REFERENCE,
             CONNECTOR_REFS, DISCOVERY_GROUP_NAME
     };
 
+    private final boolean registerRuntimeOnly;
 
-    static final BridgeDefinition INSTANCE = new BridgeDefinition();
-
-    private BridgeDefinition() {
+    BridgeDefinition(boolean registerRuntimeOnly) {
         super(MessagingExtension.BRIDGE_PATH,
                 MessagingExtension.getResourceDescriptionResolver(CommonAttributes.BRIDGE),
                 BridgeAdd.INSTANCE,
                 BridgeRemove.INSTANCE);
+        this.registerRuntimeOnly = registerRuntimeOnly;
     }
 
     @Override
@@ -156,9 +184,10 @@ public class BridgeDefinition extends PersistentResourceDefinition {
 
     @Override
     public void registerAttributes(ManagementResourceRegistration registry) {
+        ReloadRequiredWriteAttributeHandler reloadRequiredWriteAttributeHandler = new ReloadRequiredWriteAttributeHandler(ATTRIBUTES);
         for (AttributeDefinition attr : ATTRIBUTES) {
             if (!attr.getFlags().contains(AttributeAccess.Flag.STORAGE_RUNTIME)) {
-                registry.registerReadWriteAttribute(attr, null, BridgeWriteAttributeHandler.INSTANCE);
+                registry.registerReadWriteAttribute(attr, null, reloadRequiredWriteAttributeHandler);
             }
         }
 
@@ -168,6 +197,8 @@ public class BridgeDefinition extends PersistentResourceDefinition {
     @Override
     public void registerOperations(ManagementResourceRegistration registry) {
         super.registerOperations(registry);
-        BridgeControlHandler.INSTANCE.registerOperations(registry, getResourceDescriptionResolver());
+        if (registerRuntimeOnly) {
+            BridgeControlHandler.INSTANCE.registerOperations(registry, getResourceDescriptionResolver());
+        }
     }
 }

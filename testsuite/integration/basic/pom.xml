@@ -15,7 +15,11 @@
     <parent>
         <groupId>org.wildfly</groupId>
         <artifactId>wildfly-ts-integ</artifactId>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
     </parent>
 
     <!-- ********************************************************************************** -->
@@ -29,6 +33,7 @@
         <jbossas.ts.integ.dir>${basedir}/..</jbossas.ts.integ.dir>
         <jbossas.ts.dir>${jbossas.ts.integ.dir}/..</jbossas.ts.dir>
         <jbossas.project.dir>${jbossas.ts.dir}/..</jbossas.project.dir>
+        <surefire.forked.process.timeout>3600</surefire.forked.process.timeout>
     </properties>
 
     <dependencies>
@@ -45,6 +50,10 @@
         <dependency>
             <groupId>io.undertow</groupId>
             <artifactId>undertow-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.shrinkwrap.descriptors</groupId>
+            <artifactId>shrinkwrap-descriptors-impl-javaee</artifactId>
         </dependency>
     </dependencies>
 
@@ -63,32 +72,6 @@
             -->
             <build>
                 <plugins>
-
-                    <!-- Build the target/jbossas server configuration. -->
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-antrun-plugin</artifactId>
-                        <executions>
-                            <!-- Copy in some jars. -->
-                            <execution>
-                                <id>prepare-jars-basic-integration.server</id>
-                                <phase>process-test-resources</phase>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
-                                <configuration>
-                                    <target>
-                                        <property name="tests.resources.dir" value="${basedir}/../src/test/resources"/>
-                                        <property name="tests.output.dir" value="${project.build.directory}"/>
-                                        <ant antfile="${basedir}/../src/test/scripts/basic-integration-build.xml">
-                                            <target name="build-basic-integration"/>
-                                            <!-- TODO: Unify names, then call "recursively". -->
-                                        </ant>
-                                    </target>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
 
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
@@ -155,10 +138,13 @@
                                     <!-- Tests to execute. Overriden in webProfileExclusion.profile . -->
                                     <includes>
                                         <include>org/jboss/as/test/integration/ee/remotelookup/*TestCase*.java</include>
+                                        <include>org/jboss/as/test/integration/ee/injection/support/jpa/*TestCase*.java</include>
                                         <include>org/jboss/as/test/integration/ee/injection/resource/substitution/*TestCase*.java</include>
                                         <include>org/jboss/as/test/integration/ejb/iiop/**/*TestCase*.java</include>
+                                        <exclude>org/jboss/as/test/integration/ejb/**/jts/**/*TestCase*.java</exclude>
                                         <include>org/jboss/as/test/integration/*/security/**/*TestCase.java</include>
-                                        <include>org/jboss/as/test/integration/ejb/mdb/**/*TestCase*.java</include>
+                                        <include>org/jboss/as/test/integration/ejb/**/mdb/**/*TestCase*.java</include>
+                                        <include>org/jboss/as/test/integration/ejb/log/*TestCase.java</include>
                                         <include>org/jboss/as/test/integration/ejb/pool/**/*TestCase*.java</include>
                                         <include>org/jboss/as/test/integration/ejb/management/deployments/*TestCase.java</include>
                                         <include>org/jboss/as/test/integration/ejb/singleton/dependson/mdb/*TestCase.java</include>
@@ -174,6 +160,8 @@
                                         <include>org/jboss/as/test/integration/ee/injection/resource/enventry/EnvEntryTestCase.java</include>
                                         <include>org/jboss/as/test/integration/ee/injection/resource/basic/*TestCase.java</include>
                                         <include>org/jboss/as/test/integration/ee/naming/defaultbindings/**/*TestCase.java</include>
+                                        <include>org/jboss/as/test/integration/transaction/inflow/TransactionInflowTestCase.java</include>
+                                        <include>org/jboss/as/test/integration/jsr77/**/*TestCase*.java</include>
                                     </includes>
 
                                     <environmentVariables>
@@ -183,7 +171,7 @@
                                     <!-- Parameters to test cases. -->
                                     <systemPropertyVariables combine.children="append">
                                         <jboss.server.config.file.name>standalone-full.xml</jboss.server.config.file.name>
-                                        <jboss.inst>${basedir}/target/jbossas</jboss.inst>
+                                        <jboss.inst>${basedir}/target/wildfly</jboss.inst>
                                         <!-- Needed for the IIOP tests-->
                                         <com.sun.CORBA.ORBUseDynamicStub>true</com.sun.CORBA.ORBUseDynamicStub>
                                         <!-- EJB client library hack, see WFLY-4973-->
@@ -215,8 +203,9 @@
                                         <exclude>org/jboss/as/test/integration/ee/remotelookup/*TestCase*.java</exclude>
                                         <exclude>org/jboss/as/test/integration/ee/injection/resource/substitution/*TestCase*.java</exclude>
                                         <exclude>org/jboss/as/test/integration/ejb/iiop/**/*TestCase*.java</exclude>
+                                        <exclude>org/jboss/as/test/integration/ejb/**/jts/**/*TestCase*.java</exclude>
                                         <exclude>org/jboss/as/test/integration/*/security/**/*TestCase.java</exclude>
-                                        <exclude>org/jboss/as/test/integration/ejb/mdb/**/*TestCase*.java</exclude>
+                                        <exclude>org/jboss/as/test/integration/ejb/**/mdb/**/*TestCase*.java</exclude>
                                         <exclude>org/jboss/as/test/integration/ejb/pool/**/*TestCase*.java</exclude>
                                         <exclude>org/jboss/as/test/integration/ejb/management/deployments/*TestCase.java</exclude>
                                         <exclude>org/jboss/as/test/integration/ejb/singleton/dependson/mdb/*TestCase.java</exclude>
@@ -232,6 +221,8 @@
                                         <exclude>org/jboss/as/test/integration/ee/injection/resource/basic/*TestCase.java</exclude>
                                         <exclude>org/jboss/as/test/integration/ee/naming/defaultbindings/**/*TestCase.java</exclude>
                                         <exclude>org/jboss/as/test/integration/jca/moduledeployment/**/*TestCase*.java</exclude>
+                                        <exclude>org/jboss/as/test/integration/transaction/inflow/TransactionInflowTestCase.java</exclude>
+                                        <exclude>org/jboss/as/test/integration/jsr77/**/*TestCase*.java</exclude>
                                     </excludes>
 
                                     <environmentVariables>
@@ -302,10 +293,7 @@
                             </execution>
 
                         </executions>
-
                     </plugin>
-
-
                 </plugins>
             </build>
         </profile>
@@ -403,7 +391,7 @@
             </build>
         </profile>
 
-         <!-- IIOP/CORBA stub generation - manual stub generation for IBM JDK -->
+        <!-- IIOP/CORBA stub generation - manual stub generation for IBM JDK -->
         <profile>
             <id>ibmjdk.profile</id>
             <activation>
@@ -446,6 +434,7 @@
                 </plugins>
             </build>
         </profile>
+
     </profiles>
 
 </project>

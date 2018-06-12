@@ -24,35 +24,24 @@
 
 package org.jboss.as.connector.subsystems.datasources;
 
-import static org.jboss.as.connector.subsystems.datasources.Constants.ALLOW_MULTIPLE_USERS;
-import static org.jboss.as.connector.subsystems.datasources.Constants.CONNECTABLE;
 import static org.jboss.as.connector.subsystems.datasources.Constants.DATASOURCE_DISABLE;
 import static org.jboss.as.connector.subsystems.datasources.Constants.DATASOURCE_ENABLE;
 import static org.jboss.as.connector.subsystems.datasources.Constants.DUMP_QUEUED_THREADS;
-import static org.jboss.as.connector.subsystems.datasources.Constants.ENABLED;
 import static org.jboss.as.connector.subsystems.datasources.Constants.ENLISTMENT_TRACE;
 import static org.jboss.as.connector.subsystems.datasources.Constants.FLUSH_ALL_CONNECTION;
 import static org.jboss.as.connector.subsystems.datasources.Constants.FLUSH_GRACEFULLY_CONNECTION;
 import static org.jboss.as.connector.subsystems.datasources.Constants.FLUSH_IDLE_CONNECTION;
 import static org.jboss.as.connector.subsystems.datasources.Constants.FLUSH_INVALID_CONNECTION;
-import static org.jboss.as.connector.subsystems.datasources.Constants.MCP;
-import static org.jboss.as.connector.subsystems.datasources.Constants.STATISTICS_ENABLED;
 import static org.jboss.as.connector.subsystems.datasources.Constants.TEST_CONNECTION;
-import static org.jboss.as.connector.subsystems.datasources.Constants.TRACKING;
 import static org.jboss.as.connector.subsystems.datasources.Constants.XA_DATASOURCE;
 import static org.jboss.as.connector.subsystems.datasources.Constants.XA_DATASOURCE_ATTRIBUTE;
 import static org.jboss.as.connector.subsystems.datasources.Constants.XA_DATASOURCE_PROPERTIES_ATTRIBUTES;
 
 import java.util.List;
-import java.util.Map;
-
-import org.jboss.as.connector.logging.ConnectorLogger;
 import org.jboss.as.connector.subsystems.common.pool.PoolConfigurationRWHandler;
 import org.jboss.as.connector.subsystems.common.pool.PoolOperations;
-import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PropertiesAttributeDefinition;
-import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
 import org.jboss.as.controller.ReloadRequiredWriteAttributeHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
@@ -62,11 +51,6 @@ import org.jboss.as.controller.access.management.AccessConstraintDefinition;
 import org.jboss.as.controller.access.management.ApplicationTypeAccessConstraintDefinition;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
-import org.jboss.as.controller.transform.TransformationContext;
-import org.jboss.as.controller.transform.description.DiscardAttributeChecker;
-import org.jboss.as.controller.transform.description.RejectAttributeChecker;
-import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
-import org.jboss.dmr.ModelNode;
 
 /**
  * @author Stefano Maestri
@@ -86,7 +70,7 @@ public class XaDataSourceDefinition extends SimpleResourceDefinition {
         super(PATH_XA_DATASOURCE,
                 DataSourcesExtension.getResourceDescriptionResolver(XA_DATASOURCE),
                 deployed ? null : XaDataSourceAdd.INSTANCE,
-                deployed ? null : ReloadRequiredRemoveStepHandler.INSTANCE);
+                deployed ? null : DataSourceRemove.XA_INSTANCE);
         this.registerRuntimeOnly = registerRuntimeOnly;
         this.deployed = deployed;
         ApplicationTypeConfig atc = new ApplicationTypeConfig(DataSourcesExtension.SUBSYSTEM_NAME, XA_DATASOURCE);
@@ -116,6 +100,12 @@ public class XaDataSourceDefinition extends SimpleResourceDefinition {
     }
 
     @Override
+    public void registerCapabilities(ManagementResourceRegistration resourceRegistration) {
+        if (!deployed)
+            resourceRegistration.registerCapability(org.jboss.as.connector._private.Capabilities.DATA_SOURCE_CAPABILITY);
+    }
+
+    @Override
     public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
         if (deployed) {
             for (final SimpleAttributeDefinition attribute : XA_DATASOURCE_ATTRIBUTE) {
@@ -132,6 +122,8 @@ public class XaDataSourceDefinition extends SimpleResourceDefinition {
             for (final SimpleAttributeDefinition attribute : XA_DATASOURCE_ATTRIBUTE) {
                 if (PoolConfigurationRWHandler.ATTRIBUTES.contains(attribute.getName())) {
                     resourceRegistration.registerReadWriteAttribute(attribute, PoolConfigurationRWHandler.PoolConfigurationReadHandler.INSTANCE, PoolConfigurationRWHandler.LocalAndXaDataSourcePoolConfigurationWriteHandler.INSTANCE);
+                } else  if (attribute.getName().equals(ENLISTMENT_TRACE.getName())) {
+                    resourceRegistration.registerReadWriteAttribute(attribute, null, new EnlistmentTraceAttributeWriteHandler());
                 } else {
                     resourceRegistration.registerReadWriteAttribute(attribute, null, reloadRequiredWriteHandler);
                 }
@@ -162,97 +154,4 @@ public class XaDataSourceDefinition extends SimpleResourceDefinition {
     public List<AccessConstraintDefinition> getAccessConstraints() {
         return accessConstraints;
     }
-
-    static void registerTransformers120(ResourceTransformationDescriptionBuilder parentBuilder) {
-        ResourceTransformationDescriptionBuilder builder = parentBuilder.addChildResource(PATH_XA_DATASOURCE);
-        builder.getAttributeBuilder()
-                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(new ModelNode(false)), CONNECTABLE)
-                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(false, false, new ModelNode(true)), STATISTICS_ENABLED)
-                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(new ModelNode(true)), ENLISTMENT_TRACE)
-                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(new ModelNode(LEGACY_MCP)), MCP)
-                .addRejectCheck(RejectAttributeChecker.DEFINED, ENLISTMENT_TRACE)
-                .addRejectCheck(RejectAttributeChecker.DEFINED, MCP)
-                .addRejectCheck(new RejectAttributeChecker.DefaultRejectAttributeChecker() {
-
-                    @Override
-                    public String getRejectionLogMessage(Map<String, ModelNode> attributes) {
-                        return ConnectorLogger.ROOT_LOGGER.rejectAttributesMustBeTrue(attributes.keySet());
-                    }
-
-                    @Override
-                    protected boolean rejectAttribute(PathAddress address, String attributeName, ModelNode attributeValue,
-                                                      TransformationContext context) {
-                        //This will not get called if it was discarded, so reject if it is undefined (default==false) or if defined and != 'true'
-                        return !attributeValue.isDefined() || !attributeValue.asString().equals("true");
-                    }
-                }, STATISTICS_ENABLED)
-                .setDiscard(DiscardAttributeChecker.UNDEFINED, TRACKING)
-                .addRejectCheck(RejectAttributeChecker.DEFINED, TRACKING)
-                .addRejectCheck(RejectAttributeChecker.SIMPLE_EXPRESSIONS, ENABLED).end()
-                //We're rejecting operations when statistics-enabled=false, so let it through in the enable/disable ops which do not use that attribute
-                .addOperationTransformationOverride(DATASOURCE_ENABLE.getName())
-                .end()
-                .addOperationTransformationOverride(DATASOURCE_DISABLE.getName())
-                .end();
-    }
-
-    static void registerTransformers130(ResourceTransformationDescriptionBuilder parentBuilder) {
-        ResourceTransformationDescriptionBuilder builder = parentBuilder.addChildResource(PATH_XA_DATASOURCE);
-        builder.getAttributeBuilder()
-                .setDiscard(new DiscardAttributeChecker.DefaultDiscardAttributeChecker() {
-                    @Override
-                    protected boolean isValueDiscardable(PathAddress address, String attributeName, ModelNode attributeValue, TransformationContext context) {
-                        return attributeValue.equals(new ModelNode(false));
-                    }
-                }, TRACKING)
-                .addRejectCheck(RejectAttributeChecker.SIMPLE_EXPRESSIONS, ENABLED)
-                .addRejectCheck(RejectAttributeChecker.DEFINED, TRACKING).end();
-
-    }
-
-
-    static void registerTransformers200(ResourceTransformationDescriptionBuilder parentBuilder) {
-        ResourceTransformationDescriptionBuilder builder = parentBuilder.addChildResource(PATH_XA_DATASOURCE);
-        builder.getAttributeBuilder()
-                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(new ModelNode(false)), CONNECTABLE)
-                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(false, false, new ModelNode(true)), STATISTICS_ENABLED)
-                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(new ModelNode(true)), ENLISTMENT_TRACE)
-                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(new ModelNode(LEGACY_MCP)), MCP)
-                .addRejectCheck(RejectAttributeChecker.DEFINED, ENLISTMENT_TRACE)
-                .addRejectCheck(RejectAttributeChecker.DEFINED, MCP)
-                .addRejectCheck(new RejectAttributeChecker.DefaultRejectAttributeChecker() {
-
-                    @Override
-                    public String getRejectionLogMessage(Map<String, ModelNode> attributes) {
-                        return ConnectorLogger.ROOT_LOGGER.rejectAttributesMustBeTrue(attributes.keySet());
-                    }
-
-                    @Override
-                    protected boolean rejectAttribute(PathAddress address, String attributeName, ModelNode attributeValue,
-                                                      TransformationContext context) {
-                        //This will not get called if it was discarded, so reject if it is undefined (default==false) or if defined and != 'true'
-                        return !attributeValue.isDefined() || !attributeValue.asString().equals("true");
-                    }
-                }, STATISTICS_ENABLED)
-                .setDiscard(DiscardAttributeChecker.UNDEFINED, TRACKING)
-                .addRejectCheck(RejectAttributeChecker.DEFINED, TRACKING)
-                .addRejectCheck(RejectAttributeChecker.SIMPLE_EXPRESSIONS, ENABLED).end()
-                //We're rejecting operations when statistics-enabled=false, so let it through in the enable/disable ops which do not use that attribute
-                .addOperationTransformationOverride(DATASOURCE_ENABLE.getName())
-                .end()
-                .addOperationTransformationOverride(DATASOURCE_DISABLE.getName())
-                .end();
-    }
-
-    static void registerTransformers300(ResourceTransformationDescriptionBuilder parentBuilder) {
-        ResourceTransformationDescriptionBuilder builder = parentBuilder.addChildResource(PATH_XA_DATASOURCE);
-        builder.getAttributeBuilder()
-                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(new ModelNode(true)), ENLISTMENT_TRACE)
-                .setDiscard(new DiscardAttributeChecker.DiscardAttributeValueChecker(new ModelNode(LEGACY_MCP)), MCP)
-                .addRejectCheck(RejectAttributeChecker.SIMPLE_EXPRESSIONS, ALLOW_MULTIPLE_USERS)
-                .addRejectCheck(RejectAttributeChecker.DEFINED, ENLISTMENT_TRACE)
-                .addRejectCheck(RejectAttributeChecker.DEFINED, MCP)
-                .end();
-    }
-
 }

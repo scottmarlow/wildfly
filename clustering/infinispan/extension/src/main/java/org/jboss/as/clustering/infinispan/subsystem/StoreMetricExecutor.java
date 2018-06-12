@@ -19,33 +19,32 @@
 package org.jboss.as.clustering.infinispan.subsystem;
 
 import org.infinispan.Cache;
-import org.infinispan.interceptors.ActivationInterceptor;
+import org.infinispan.interceptors.impl.CacheLoaderInterceptor;
 import org.jboss.as.clustering.controller.Metric;
 import org.jboss.as.clustering.controller.MetricExecutor;
-import org.jboss.as.clustering.msc.ServiceContainerHelper;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.dmr.ModelNode;
-import org.wildfly.clustering.infinispan.spi.service.CacheServiceName;
+import org.wildfly.clustering.infinispan.spi.InfinispanCacheRequirement;
+import org.wildfly.clustering.service.PassiveServiceSupplier;
 
 /**
  * A handler for cache store metrics.
  *
  * @author Paul Ferraro
  */
-@SuppressWarnings("deprecation")
-public class StoreMetricExecutor implements MetricExecutor<ActivationInterceptor> {
+public class StoreMetricExecutor implements MetricExecutor<CacheLoaderInterceptor<?, ?>> {
 
     @Override
-    public ModelNode execute(OperationContext context, Metric<ActivationInterceptor> metric) throws OperationFailedException {
+    public ModelNode execute(OperationContext context, Metric<CacheLoaderInterceptor<?, ?>> metric) throws OperationFailedException {
         PathAddress cacheAddress = context.getCurrentAddress().getParent();
         String containerName = cacheAddress.getParent().getLastElement().getValue();
         String cacheName = cacheAddress.getLastElement().getValue();
 
-        Cache<?, ?> cache = ServiceContainerHelper.findValue(context.getServiceRegistry(false), CacheServiceName.CACHE.getServiceName(containerName, cacheName));
+        Cache<?, ?> cache = new PassiveServiceSupplier<Cache<?, ?>>(context.getServiceRegistry(true), InfinispanCacheRequirement.CACHE.getServiceName(context, containerName, cacheName)).get();
         if (cache != null) {
-            ActivationInterceptor interceptor = CacheMetric.findInterceptor(cache, ActivationInterceptor.class);
+            CacheLoaderInterceptor<?, ?> interceptor = CacheMetric.findInterceptor(cache, CacheLoaderInterceptor.class);
             if (interceptor != null) {
                 return metric.execute(interceptor);
             }

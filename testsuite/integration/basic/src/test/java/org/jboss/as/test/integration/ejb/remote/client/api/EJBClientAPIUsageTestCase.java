@@ -38,7 +38,6 @@ import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.ejb.client.Affinity;
 import org.jboss.ejb.client.EJBClient;
-import org.jboss.ejb.client.EJBClientTransactionContext;
 import org.jboss.ejb.client.StatefulEJBLocator;
 import org.jboss.ejb.client.StatelessEJBLocator;
 import org.jboss.logging.Logger;
@@ -49,7 +48,6 @@ import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -93,9 +91,10 @@ public class EJBClientAPIUsageTestCase {
      */
     @Before
     public void beforeTest() throws Exception {
-        final EJBClientTransactionContext localUserTxContext = EJBClientTransactionContext.createLocal();
+        // TODO Elytron: Determine how this should be adapted once the transaction client changes are in
+        //final EJBClientTransactionContext localUserTxContext = EJBClientTransactionContext.createLocal();
         // set the tx context
-        EJBClientTransactionContext.setGlobalContext(localUserTxContext);
+        //EJBClientTransactionContext.setGlobalContext(localUserTxContext);
 
     }
 
@@ -186,16 +185,16 @@ public class EJBClientAPIUsageTestCase {
         Assert.assertNotNull("Received a null proxy", counter);
         // invoke the bean
         final int initialCount = counter.getCount();
-        logger.info("Got initial count " + initialCount);
+        logger.trace("Got initial count " + initialCount);
         Assert.assertEquals("Unexpected initial count from stateful bean", 0, initialCount);
         final int NUM_TIMES = 50;
         for (int i = 1; i <= NUM_TIMES; i++) {
             final int count = counter.incrementAndGetCount();
-            logger.info("Got next count " + count);
+            logger.trace("Got next count " + count);
             Assert.assertEquals("Unexpected count after increment", i, count);
         }
         final int finalCount = counter.getCount();
-        logger.info("Got final count " + finalCount);
+        logger.trace("Got final count " + finalCount);
         Assert.assertEquals("Unexpected final count", NUM_TIMES, finalCount);
     }
 
@@ -206,11 +205,9 @@ public class EJBClientAPIUsageTestCase {
      * @throws Exception
      */
     @Test
-    @Ignore("No longer appropriate, since a proxy can no longer be created without a session, for a SFSB. " +
-            "Need to think if there's a different way to test this. Else just remove this test")
     public void testSFSBAccessFailureWithoutSession() throws Exception {
         // create a locator without a session
-        final StatefulEJBLocator<Counter> locator = new StatefulEJBLocator<Counter>(Counter.class, APP_NAME, MODULE_NAME, CounterBean.class.getSimpleName(), "", null, Affinity.NONE, null);
+        final StatelessEJBLocator<Counter> locator = new StatelessEJBLocator<Counter>(Counter.class, APP_NAME, MODULE_NAME, CounterBean.class.getSimpleName(), "", Affinity.NONE);
         final Counter counter = EJBClient.createProxy(locator);
         Assert.assertNotNull("Received a null proxy", counter);
         // invoke the bean without creating a session
@@ -219,7 +216,7 @@ public class EJBClientAPIUsageTestCase {
             Assert.fail("Expected an EJBException for calling a stateful session bean without creating a session");
         } catch (EJBException ejbe) {
             // expected
-            logger.info("Received the expected exception", ejbe);
+            logger.trace("Received the expected exception", ejbe);
 
         }
     }
@@ -239,9 +236,9 @@ public class EJBClientAPIUsageTestCase {
         try {
             nonExistentBean.echo("Hello world to a non-existent bean");
             Assert.fail("Expected an IllegalStateException");
-        } catch (IllegalStateException ise) {
+        } catch (IllegalStateException | EJBException ise) {
             // expected
-            logger.info("Received the expected exception", ise);
+            logger.trace("Received the expected exception", ise);
         }
     }
 
@@ -259,9 +256,9 @@ public class EJBClientAPIUsageTestCase {
         try {
             nonExistentBean.echo("Hello world to a non-existent view of a bean");
             Assert.fail("Expected an IllegalStateException");
-        } catch (IllegalStateException nsee) {
+        } catch (IllegalStateException | EJBException nsee) {
             // expected
-            logger.info("Received the expected exception", nsee);
+            logger.trace("Received the expected exception", nsee);
         }
     }
 
@@ -282,7 +279,7 @@ public class EJBClientAPIUsageTestCase {
             Assert.fail("Expected a " + StatefulApplicationException.class.getName() + " exception");
         } catch (StatefulApplicationException sae) {
             // expected
-            logger.info("Received the expected exception", sae);
+            logger.trace("Received the expected exception", sae);
             Assert.assertEquals("Unexpected state in the application exception", exceptionState, sae.getState());
         }
     }
@@ -303,7 +300,7 @@ public class EJBClientAPIUsageTestCase {
             Assert.fail("Expected a " + EJBException.class.getName() + " exception");
         } catch (EJBException ejbe) {
             // expected
-            logger.info("Received the expected exception", ejbe);
+            logger.trace("Received the expected exception", ejbe);
             final Throwable cause = ejbe.getCause();
             Assert.assertTrue("Unexpected cause in EJBException", cause instanceof RuntimeException);
             Assert.assertEquals("Unexpected state in the system exception", exceptionState, cause.getMessage());
@@ -327,7 +324,7 @@ public class EJBClientAPIUsageTestCase {
         // invoke the asynchronous method
         final Future<String> futureEcho = echoRemote.asyncEcho(message, DELAY);
         final long end = System.currentTimeMillis();
-        logger.info("Asynchronous invocation returned a Future: " + futureEcho + " in " + (end - start) + " milliseconds");
+        logger.trace("Asynchronous invocation returned a Future: " + futureEcho + " in " + (end - start) + " milliseconds");
         // test that the invocation did not act like a synchronous invocation and instead returned "immediately"
         Assert.assertFalse("Asynchronous invocation behaved like a synchronous invocation", (end - start) >= DELAY);
         Assert.assertNotNull("Future is null", futureEcho);
@@ -387,7 +384,7 @@ public class EJBClientAPIUsageTestCase {
                     proxy.nonSerializable();
                     Assert.fail();
                 } catch (Exception e) {
-                    logger.info("expected " + e);
+                    logger.trace("expected " + e);
                 }
                 Thread.sleep(1000);
                 Assert.assertEquals("hello", proxy.serializable());

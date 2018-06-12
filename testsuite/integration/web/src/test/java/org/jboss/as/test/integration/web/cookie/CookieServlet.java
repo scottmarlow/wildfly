@@ -46,13 +46,13 @@ public class CookieServlet extends HttpServlet {
         PrintWriter out = response.getWriter();
         out.println("<html>");
         out.println("<head><title>Cookie Servlet</title></head><body><pre>");
-        setRFC2019cookies(request, response);
+        setRFC2109cookies(request, response);
         out.println("sever set some cookies. verify on the client that you can see them");
         out.println("</pre></body></html>");
         out.close();
     }
 
-    private void setRFC2019cookies(HttpServletRequest request, HttpServletResponse response) {
+    private void setRFC2109cookies(HttpServletRequest request, HttpServletResponse response) {
         // A very simple cookie
         Cookie cookie = new Cookie("simpleCookie", "jboss");
         response.addCookie(cookie);

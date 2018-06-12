@@ -29,10 +29,16 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ENA
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
+import static org.jboss.as.test.shared.integration.ejb.security.PermissionUtils.createPermissionsXmlAsset;
+import static org.junit.Assert.fail;
 
+import java.lang.reflect.ReflectPermission;
 import java.sql.Connection;
 import java.util.HashMap;
 import java.util.Map;
+import java.io.FilePermission;
+import java.util.PropertyPermission;
+import java.util.concurrent.TimeUnit;
 import javax.annotation.Resource;
 import javax.sql.DataSource;
 
@@ -48,9 +54,11 @@ import org.jboss.as.test.integration.management.ManagementOperations;
 import org.jboss.as.test.integration.management.base.AbstractMgmtTestBase;
 import org.jboss.as.test.integration.management.base.ContainerResourceMgmtTestBase;
 import org.jboss.as.test.integration.management.util.MgmtOperationException;
+import org.jboss.as.test.shared.TimeoutUtil;
 import org.jboss.dmr.ModelNode;
 import org.jboss.jca.adapters.jdbc.WrapperDataSource;
 import org.jboss.jca.core.connectionmanager.pool.mcp.ManagedConnectionPool;
+import org.jboss.remoting3.security.RemotingPermission;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
@@ -70,7 +78,8 @@ public abstract class AbstractDatasourceCapacityPoliciesTestCase extends JcaMgmt
             .add("data-source", DS_NAME);
     protected static final ModelNode XA_DS_ADDRESS = new ModelNode().add(SUBSYSTEM, "datasources")
             .add("xa-data-source", DS_NAME);
-    private boolean xaDatasource;
+    private final ModelNode statisticsAddress;
+    private final boolean xaDatasource;
 
     static {
         DS_ADDRESS.protect();
@@ -79,6 +88,9 @@ public abstract class AbstractDatasourceCapacityPoliciesTestCase extends JcaMgmt
 
     public AbstractDatasourceCapacityPoliciesTestCase(boolean xaDatasource) {
         this.xaDatasource = xaDatasource;
+        statisticsAddress = xaDatasource ? XA_DS_ADDRESS.clone() : DS_ADDRESS.clone();
+        statisticsAddress.add("statistics", "pool");
+        statisticsAddress.protect();
     }
 
     @Resource(mappedName = "java:jboss/datasources/TestDatasource")
@@ -103,10 +115,19 @@ public abstract class AbstractDatasourceCapacityPoliciesTestCase extends JcaMgmt
                 MgmtOperationException.class,
                 AbstractDatasourceCapacityPoliciesTestCase.class,
                 DatasourceCapacityPoliciesTestCase.class,
-                JcaTestsUtil.class);
+                JcaTestsUtil.class,
+                TimeoutUtil.class);
         jar.addAsManifestResource(new StringAsset("Dependencies: javax.inject.api,org.jboss.as.connector," +
                 "org.jboss.as.controller,org.jboss.dmr,org.jboss.as.cli,org.jboss.staxmapper," +
-                "org.jboss.ironjacamar.impl, org.jboss.ironjacamar.jdbcadapters\n"), "MANIFEST.MF");
+                "org.jboss.ironjacamar.impl, org.jboss.ironjacamar.jdbcadapters,org.jboss.remoting\n"), "MANIFEST.MF");
+        jar.addAsManifestResource(createPermissionsXmlAsset(
+                new RemotingPermission("createEndpoint"),
+                new RemotingPermission("connect"),
+                new FilePermission(System.getProperty("jboss.inst") + "/standalone/tmp/auth/*", "read"),
+                new PropertyPermission("ts.timeout.factor", "read"),
+                new RuntimePermission("accessDeclaredMembers"),
+                new ReflectPermission("suppressAccessChecks")
+        ), "permissions.xml");
 
         return jar;
     }
@@ -125,20 +146,22 @@ public abstract class AbstractDatasourceCapacityPoliciesTestCase extends JcaMgmt
         Connection[] connections = new Connection[4];
         connections[0] = ds.getConnection();
 
-        // sometimes InUseCount is 2 and AvailableCount is 3 when statistics are checked right after
-        // ds.getConnection, hence this sleep. I guess it's caused by CapacityFiller
-        Thread.sleep(500);
+        // wait until IJ PoolFiller and CapacityFiller fill pool with expected number of connections,
+        // also remember initial destroyedCount, IJ fills pool with two threads (CapacityFiller and PoolFiller)
+        // and it can result in one connection created and immediately destroyed because pool has been already filled
+        // by other thread, for details see https://issues.jboss.org/browse/JBJCA-1344
+        int initialDestroyedCount = waitForPool(2000);
 
-        checkStatistics(4, 1, 5, 0);
+        checkStatistics(4, 1, 5, initialDestroyedCount);
 
         connections[1] = ds.getConnection();
-        checkStatistics(3, 2, 5, 0);
+        checkStatistics(3, 2, 5, initialDestroyedCount);
 
         connections[2] = ds.getConnection();
-        checkStatistics(2, 3, 5, 0);
+        checkStatistics(2, 3, 5, initialDestroyedCount);
 
         connections[3] = ds.getConnection();
-        checkStatistics(1, 4, 5, 0);
+        checkStatistics(1, 4, 5, initialDestroyedCount);
 
         for (int i = 0; i < 4; i++) {
             Connection c = connections[i];
@@ -149,23 +172,44 @@ public abstract class AbstractDatasourceCapacityPoliciesTestCase extends JcaMgmt
         ManagedConnectionPool mcp = JcaTestsUtil.extractManagedConnectionPool(wsds);
         JcaTestsUtil.callRemoveIdleConnections(mcp);
 
-        checkStatistics(5, 0, 2, 3);
+        checkStatistics(5, 0, 2, initialDestroyedCount + 3);
     }
 
     private void checkStatistics(int expectedAvailableCount, int expectedInUseCount,
                                  int expectedActiveCount, int expectedDestroyedCount) throws Exception {
-        ModelNode statsAddress = xaDatasource ? XA_DS_ADDRESS.clone() : DS_ADDRESS.clone();
-        statsAddress.add("statistics", "pool");
 
-        int availableCount = readAttribute(statsAddress, "AvailableCount").asInt();
-        int inUseCount = readAttribute(statsAddress, "InUseCount").asInt();
-        int activeCount = readAttribute(statsAddress, "ActiveCount").asInt();
-        int destroyedCount = readAttribute(statsAddress, "DestroyedCount").asInt();
+        int availableCount = readStatisticsAttribute("AvailableCount");
+        int inUseCount = readStatisticsAttribute("InUseCount");
+        int activeCount = readStatisticsAttribute("ActiveCount");
+        int destroyedCount = readStatisticsAttribute("DestroyedCount");
 
         Assert.assertEquals("Unexpected AvailableCount", expectedAvailableCount, availableCount);
         Assert.assertEquals("Unexpected InUseCount", expectedInUseCount, inUseCount);
         Assert.assertEquals("Unexpected ActiveCount", expectedActiveCount, activeCount);
         Assert.assertEquals("Unexpected DestroyedCount", expectedDestroyedCount, destroyedCount);
+    }
+
+    private int readStatisticsAttribute(final String attributeName) throws Exception {
+        return readAttribute(statisticsAddress, attributeName).asInt();
+    }
+
+    private int waitForPool(final int timeout) throws Exception {
+        long waitTimeout = TimeoutUtil.adjust(timeout);
+        long sleep = 50L;
+        while (true) {
+            int availableCount = readStatisticsAttribute("AvailableCount");
+            int inUseCount = readStatisticsAttribute("InUseCount");
+            int activeCount = readStatisticsAttribute("ActiveCount");
+
+            if (availableCount == 4 && inUseCount == 1 && activeCount == 5)
+                return readStatisticsAttribute("DestroyedCount");
+            TimeUnit.MILLISECONDS.sleep(sleep);
+
+            waitTimeout -= sleep;
+            if (waitTimeout <= 0) {
+                fail("Pool hasn't been filled with expected connections within specified timeout");
+            }
+        }
     }
 
     abstract static class AbstractDatasourceCapacityPoliciesServerSetup extends JcaMgmtServerSetupTask {
@@ -201,7 +245,7 @@ public abstract class AbstractDatasourceCapacityPoliciesTestCase extends JcaMgmt
             addOperation.get("max-pool-size").set(5);
             addOperation.get("user-name").set("sa");
             addOperation.get("password").set("sa");
-            if (!xa) { addOperation.get("connection-url").set("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"); }
+            if (!xa) { addOperation.get("connection-url").set("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"); }
 
             if (capacityConfiguration != null) {
                 // add capacity-decrementer-class

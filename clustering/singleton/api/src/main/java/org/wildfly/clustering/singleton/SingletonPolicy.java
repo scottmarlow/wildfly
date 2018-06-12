@@ -29,12 +29,29 @@ import org.wildfly.clustering.service.Builder;
 /**
  * Defines a singleton policy.
  * @author Paul Ferraro
+ * @deprecated Replaced by {@link org.wildfly.clustering.singleton.service.SingletonPolicy}.
  */
-public interface SingletonPolicy {
-    /**
-     * @deprecated Use {@link SingletonRequirement#SINGLETON_POLICY} instead.
-     */
-    @Deprecated String CAPABILITY_NAME = SingletonRequirement.SINGLETON_POLICY.getName();
+@Deprecated
+public interface SingletonPolicy extends org.wildfly.clustering.singleton.service.SingletonPolicy {
 
+    /**
+     * Creates a singleton service builder.
+     * @param name the name of the service
+     * @param service the service to run when elected as the primary node
+     * @return a builder
+     * @deprecated Use {@link #createSingletonServiceConfigurator(ServiceName)} instead.
+     */
+    @Deprecated
     <T> Builder<T> createSingletonServiceBuilder(ServiceName name, Service<T> service);
+
+    /**
+     * Creates a singleton service builder.
+     * @param name the name of the service
+     * @param primaryService the service to run when elected as the primary node
+     * @param backupService the service to run when not elected as the primary node
+     * @return a builder
+     * @deprecated Use {@link #createSingletonServiceConfigurator(ServiceName)} instead.
+     */
+    @Deprecated
+    <T> Builder<T> createSingletonServiceBuilder(ServiceName name, Service<T> primaryService, Service<T> backupService);
 }

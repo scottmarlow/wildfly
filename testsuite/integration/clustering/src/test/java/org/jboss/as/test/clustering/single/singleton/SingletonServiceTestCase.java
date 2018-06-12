@@ -21,9 +21,8 @@
  */
 package org.jboss.as.test.clustering.single.singleton;
 
-import static org.jboss.as.test.clustering.ClusteringTestConstants.NODE_1;
+import static org.jboss.as.test.clustering.cluster.AbstractClusteringTestCase.NODE_1;
 import static org.jboss.as.test.shared.integration.ejb.security.PermissionUtils.createPermissionsXmlAsset;
-import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.net.URI;
@@ -37,13 +36,11 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.jboss.arquillian.container.test.api.Deployment;
-import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.server.security.ServerPermission;
-import org.jboss.as.test.clustering.cluster.singleton.service.MyService;
-import org.jboss.as.test.clustering.cluster.singleton.service.MyServiceActivator;
-import org.jboss.as.test.clustering.cluster.singleton.service.MyServiceServlet;
+import org.jboss.as.test.clustering.cluster.singleton.service.NodeServiceActivator;
+import org.jboss.as.test.clustering.cluster.singleton.service.NodeServiceServlet;
 import org.jboss.as.test.http.util.TestHttpClientUtils;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -58,35 +55,36 @@ import org.junit.runner.RunWith;
  * @author Paul Ferraro
  */
 @RunWith(Arquillian.class)
-@RunAsClient
 public class SingletonServiceTestCase {
+    private static final String MODULE_NAME = SingletonServiceTestCase.class.getSimpleName();
 
-    @Deployment
+    @Deployment(testable = false)
     public static Archive<?> deployment() {
-        WebArchive war = ShrinkWrap.create(WebArchive.class, "singleton.war");
-        war.addPackage(MyService.class.getPackage());
+        WebArchive war = ShrinkWrap.create(WebArchive.class, MODULE_NAME + ".war");
+        war.addPackage(NodeServiceServlet.class.getPackage());
         war.setManifest(new StringAsset("Manifest-Version: 1.0\nDependencies: org.jboss.as.server\n"));
         war.addAsManifestResource(createPermissionsXmlAsset(
                 new RuntimePermission("getClassLoader"), // See org.jboss.as.server.deployment.service.ServiceActivatorProcessor#deploy()
                 new ServerPermission("useServiceRegistry"), // See org.jboss.as.server.deployment.service.SecuredServiceRegistry
                 new ServerPermission("getCurrentServiceContainer")
         ), "permissions.xml");
-        war.addAsServiceProvider(org.jboss.msc.service.ServiceActivator.class, MyServiceActivator.class);
+        war.addAsServiceProvider(org.jboss.msc.service.ServiceActivator.class, NodeServiceActivator.class);
         return war;
     }
 
     @Test
-    public void testSingletonService(@ArquillianResource(MyServiceServlet.class) URL baseURL) throws IOException, URISyntaxException {
+    public void testSingletonService(@ArquillianResource(NodeServiceServlet.class) URL baseURL) throws IOException, URISyntaxException {
 
         // URLs look like "http://IP:PORT/singleton/service"
-        URI defaultURI = MyServiceServlet.createURI(baseURL, MyServiceActivator.DEFAULT_SERVICE_NAME);
-        URI quorumURI = MyServiceServlet.createURI(baseURL, MyServiceActivator.QUORUM_SERVICE_NAME);
+        URI defaultURI = NodeServiceServlet.createURI(baseURL, NodeServiceActivator.DEFAULT_SERVICE_NAME);
+        URI quorumURI = NodeServiceServlet.createURI(baseURL, NodeServiceActivator.QUORUM_SERVICE_NAME);
 
         try (CloseableHttpClient client = TestHttpClientUtils.promiscuousCookieHttpClient()) {
             HttpResponse response = client.execute(new HttpGet(defaultURI));
             try {
                 Assert.assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
-                Assert.assertEquals(NODE_1, response.getFirstHeader("node").getValue());
+                Assert.assertTrue(response.containsHeader(NodeServiceServlet.NODE_HEADER));
+                Assert.assertEquals(NODE_1, response.getFirstHeader(NodeServiceServlet.NODE_HEADER).getValue());
             } finally {
                 HttpClientUtils.closeQuietly(response);
             }
@@ -94,8 +92,9 @@ public class SingletonServiceTestCase {
             // Service should be started regardless of whether a quorum was required.
             response = client.execute(new HttpGet(quorumURI));
             try {
-                assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
-                Assert.assertEquals(NODE_1, response.getFirstHeader("node").getValue());
+                Assert.assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
+                Assert.assertTrue(response.containsHeader(NodeServiceServlet.NODE_HEADER));
+                Assert.assertEquals(NODE_1, response.getFirstHeader(NodeServiceServlet.NODE_HEADER).getValue());
             } finally {
                 HttpClientUtils.closeQuietly(response);
             }

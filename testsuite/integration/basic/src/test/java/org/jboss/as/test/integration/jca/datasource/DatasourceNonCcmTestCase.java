@@ -26,7 +26,9 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.REMOVE;
+import static org.jboss.as.test.shared.integration.ejb.security.PermissionUtils.createPermissionsXmlAsset;
 
+import java.io.FilePermission;
 import java.sql.Connection;
 
 import javax.annotation.Resource;
@@ -46,6 +48,7 @@ import org.jboss.as.test.integration.management.base.ContainerResourceMgmtTestBa
 import org.jboss.as.test.integration.management.jca.DsMgmtTestBase;
 import org.jboss.as.test.integration.management.util.MgmtOperationException;
 import org.jboss.dmr.ModelNode;
+import org.jboss.remoting3.security.RemotingPermission;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
@@ -175,9 +178,22 @@ public class DatasourceNonCcmTestCase extends JcaMgmtBase {
                 MgmtOperationException.class,
                 DsMgmtTestBase.class,
                 JcaTestsUtil.class);
-        jar.addAsManifestResource(new StringAsset("Dependencies: javax.inject.api,org.jboss.as.connector," +
-                "org.jboss.as.controller,org.jboss.dmr,org.jboss.as.cli,org.jboss.staxmapper," +
-                "org.jboss.ironjacamar.impl, org.jboss.ironjacamar.jdbcadapters\n"), "MANIFEST.MF");
+        jar.addAsManifestResource(new StringAsset(
+                "Dependencies: javax.inject.api,org.jboss.as.connector," +
+                    "org.jboss.as.controller, " +
+                    "org.jboss.dmr,org.jboss.as.cli, " +
+                    "org.jboss.staxmapper,  " +
+                    "org.jboss.ironjacamar.impl, " +
+                    "org.jboss.ironjacamar.jdbcadapters, " +
+                    "org.jboss.remoting3\n"
+        ), "MANIFEST.MF");
+
+        jar.addAsManifestResource(createPermissionsXmlAsset(
+                new RemotingPermission("createEndpoint"),
+                new RemotingPermission("connect"),
+                new FilePermission(System.getProperty("jboss.inst") + "/standalone/tmp/auth/*", "read")
+        ), "permissions.xml");
+
         return jar;
     }
 

@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 
-<host xmlns="urn:jboss:domain:5.0">
+<host xmlns="urn:jboss:domain:7.0">
     <extensions>
         <?EXTENSIONS?>
     </extensions>
@@ -9,8 +9,7 @@
         <security-realms>
             <security-realm name="ManagementRealm">
                 <server-identities>
-                    <!-- Replace this with either a base64 password of your own, or use a vault with a vault expression -->
-                    <secret value="c2xhdmVfdXNlcl9wYXNzd29yZA=="/>
+                    <secret value="c2xhdmVfdXMzcl9wYXNzd29yZA=="/>
                 </server-identities>
 
                 <authentication>
@@ -24,7 +23,7 @@
             <security-realm name="ApplicationRealm">
                 <server-identities>
                     <ssl>
-                        <keystore path="application.keystore" relative-to="jboss.server.config.dir" keystore-password="password" alias="server" key-password="password" generate-self-signed-certificate-host="localhost"/>
+                        <keystore path="application.keystore" relative-to="jboss.domain.config.dir" keystore-password="password" alias="server" key-password="password" generate-self-signed-certificate-host="localhost"/>
                     </ssl>
                 </server-identities>
                 <authentication>
@@ -78,12 +77,9 @@
             <inet-address value="${jboss.bind.address:127.0.0.1}"/>
         </interface>
         <interface name="private">
-            <!-- Used for JGroups sockets in the standard configuration. -->
             <inet-address value="${jboss.bind.address.private:127.0.0.1}"/>
         </interface>
         <interface name="unsecure">
-            <!-- Used for IIOP sockets in the standard configuration.
-                 To secure JacORB you need to setup SSL -->
             <inet-address value="${jboss.bind.address.unsecure:127.0.0.1}"/>
         </interface>
     </interfaces>
@@ -102,8 +98,6 @@
     <servers>
         <server name="server-one" group="main-server-group"/>
         <server name="server-two" group="other-server-group">
-            <!-- server-two avoids port conflicts by incrementing the ports in
-                 the default socket-group declared in the server-group -->
             <socket-bindings port-offset="150"/>
         </server>
     </servers>

@@ -462,7 +462,17 @@ public class NamingContext implements EventContext {
     /** {@inheritDoc} */
     public Name composeName(Name name, Name prefix) throws NamingException {
         final Name result = (Name) prefix.clone();
-        result.addAll(name);
+        if (name instanceof CompositeName) {
+            if (name.size() == 1) {
+                // name could be a nested name
+                final String firstComponent = name.get(0);
+                result.addAll(parseName(firstComponent));
+            } else {
+                result.addAll(name);
+            }
+        } else {
+            result.addAll(new CompositeName(name.toString()));
+        }
         return result;
     }
 
@@ -585,7 +595,16 @@ public class NamingContext implements EventContext {
                     absoluteName.addAll(name.getSuffix(1));
                 } else {
                     absoluteName.addAll(prefix);
-                    absoluteName.addAll(name);
+                    if(name instanceof CompositeName) {
+                        if (name.size() == 1) {
+                            // name could be a nested name
+                            absoluteName.addAll(parseName(firstComponent));
+                        } else {
+                            absoluteName.addAll(name);
+                        }
+                    } else {
+                        absoluteName.addAll(new CompositeName(name.toString()));
+                    }
                 }
             }
             sm.checkPermission(new JndiPermission(absoluteName.toString(), actions));

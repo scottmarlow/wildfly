@@ -21,14 +21,14 @@
  */
 package org.wildfly.clustering.server.registry;
 
-import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.Map;
 
+import org.wildfly.clustering.Registration;
 import org.wildfly.clustering.group.Group;
 import org.wildfly.clustering.group.Node;
 import org.wildfly.clustering.registry.Registry;
-import org.wildfly.clustering.registry.RegistryEntryProvider;
+import org.wildfly.clustering.registry.RegistryListener;
 
 /**
  * Non-clustered {@link Registry} implementation.
@@ -39,11 +39,13 @@ import org.wildfly.clustering.registry.RegistryEntryProvider;
 public class LocalRegistry<K, V> implements Registry<K, V> {
 
     private final Group group;
+    private final Runnable closeTask;
     private volatile Map.Entry<K, V> entry;
 
-    public LocalRegistry(Group group, RegistryEntryProvider<K, V> provider) {
+    public LocalRegistry(Group group, Map.Entry<K, V> entry, Runnable closeTask) {
         this.group = group;
-        this.entry = new AbstractMap.SimpleImmutableEntry<>(provider.getKey(), provider.getValue());
+        this.closeTask = closeTask;
+        this.entry = entry;
     }
 
     @Override
@@ -52,10 +54,12 @@ public class LocalRegistry<K, V> implements Registry<K, V> {
     }
 
     @Override
-    public void addListener(Registry.Listener<K, V> listener) {
+    public Registration register(RegistryListener<K, V> object) {
         // if there are no remote nodes, any registered listener would never get triggered
+        return () -> {};
     }
 
+    @Deprecated
     @Override
     public void removeListener(Registry.Listener<K, V> listener) {
         // if there are no remote nodes, any registered listener would never get triggered
@@ -75,5 +79,6 @@ public class LocalRegistry<K, V> implements Registry<K, V> {
     @Override
     public void close() {
         this.entry = null;
+        this.closeTask.run();
     }
 }

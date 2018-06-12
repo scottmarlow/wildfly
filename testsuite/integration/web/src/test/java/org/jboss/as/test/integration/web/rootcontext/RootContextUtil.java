@@ -22,8 +22,10 @@
 package org.jboss.as.test.integration.web.rootcontext;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ALLOW_RESOURCE_SERVICE_RESTART;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DEPLOYMENT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OPERATION_HEADERS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.REMOVE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
@@ -37,8 +39,9 @@ import java.util.List;
 
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.OperationBuilder;
@@ -48,13 +51,12 @@ import org.jboss.logging.Logger;
 /**
  * @author lbarreiro@redhat.com
  */
-public class RootContextUtil {
+    public class RootContextUtil {
 
     private static Logger log = Logger.getLogger(RootContextUtil.class);
     private static String SERVER = "server";
     private static String HOST = "host";
 
-    private static String ENABLE_WELCOME_ROOT = "enable-welcome-root";
     private static final String WEB_SUBSYSTEM_NAME = "undertow";
 
     public static void createVirutalHost(ModelControllerClient client, String virtualHost) throws Exception {
@@ -65,6 +67,8 @@ public class RootContextUtil {
         op.get(OP_ADDR).add(SUBSYSTEM, WEB_SUBSYSTEM_NAME);
         op.get(OP_ADDR).add(SERVER, "default-server");
         op.get(OP_ADDR).add(HOST, virtualHost);
+        op.get(OPERATION_HEADERS, ALLOW_RESOURCE_SERVICE_RESTART).set(true);
+        op.get("default-web-module").set("somewar.war");
 
         updates.add(op);
 
@@ -79,6 +83,7 @@ public class RootContextUtil {
         op.get(OP_ADDR).add(SUBSYSTEM, WEB_SUBSYSTEM_NAME);
         op.get(OP_ADDR).add(SERVER, "default-server");
         op.get(OP_ADDR).add(HOST, virtualHost);
+        op.get(OPERATION_HEADERS, ALLOW_RESOURCE_SERVICE_RESTART).set(true);
         updates.add(op);
 
         applyUpdates(updates, client);
@@ -95,13 +100,13 @@ public class RootContextUtil {
         applyUpdates(updates, client);
     }
 
-    public static void applyUpdates(final List<ModelNode> updates, final ModelControllerClient client) throws Exception {
+    private static void applyUpdates(final List<ModelNode> updates, final ModelControllerClient client) throws Exception {
         for (ModelNode update : updates) {
-            log.debug("+++ Update on " + client + ":\n" + update.toString());
+            log.trace("+++ Update on " + client + ":\n" + update.toString());
             ModelNode result = client.execute(new OperationBuilder(update).build());
             if (result.hasDefined("outcome") && "success".equals(result.get("outcome").asString())) {
                 if (result.hasDefined("result"))
-                    log.info(result.get("result"));
+                    log.trace(result.get("result"));
             } else if (result.hasDefined("failure-description")) {
                 throw new RuntimeException(result.get("failure-description").toString());
             } else {
@@ -113,12 +118,12 @@ public class RootContextUtil {
     /**
      * Access http://localhost/
      */
-    public static String hitRootContext(Logger log, URL url, String serverName) throws Exception {
+    public static String hitRootContext(URL url, String serverName) throws Exception {
         HttpGet httpget = new HttpGet(url.toURI());
-        DefaultHttpClient httpclient = new DefaultHttpClient();
+        HttpClient httpclient = HttpClients.createDefault();
         httpget.setHeader("Host", serverName);
 
-        log.info("executing request" + httpget.getRequestLine());
+        log.trace("executing request" + httpget.getRequestLine());
         HttpResponse response = httpclient.execute(httpget);
 
         int statusCode = response.getStatusLine().getStatusCode();

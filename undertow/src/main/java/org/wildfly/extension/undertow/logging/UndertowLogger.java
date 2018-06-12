@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -29,8 +29,10 @@ import static org.jboss.logging.Logger.Level.WARN;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
 
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.dmr.ModelNode;
@@ -42,7 +44,6 @@ import org.jboss.logging.annotations.Cause;
 import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
-import org.jboss.modules.ModuleIdentifier;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.StartException;
 import org.jboss.vfs.VirtualFile;
@@ -151,12 +152,12 @@ public interface UndertowLogger extends BasicLogger {
 
 
     @LogMessage(level = INFO)
-    @Message(id = 21, value = "Registered web context: %s")
-    void registerWebapp(String webappPath);
+    @Message(id = 21, value = "Registered web context: '%s' for server '%s'")
+    void registerWebapp(String webappPath, String serverName);
 
     @LogMessage(level = INFO)
-    @Message(id = 22, value = "Unregistered web context: %s")
-    void unregisterWebapp(String webappPath);
+    @Message(id = 22, value = "Unregistered web context: '%s' from server '%s'")
+    void unregisterWebapp(String webappPath, String serverName);
 
     @LogMessage(level = INFO)
     @Message(id = 23, value = "Skipped SCI for jar: %s.")
@@ -241,7 +242,7 @@ public interface UndertowLogger extends BasicLogger {
     String failToProcessWebInfLib(VirtualFile xmlFile);
 
     @Message(id = 49, value = "Error loading SCI from module: %s")
-    DeploymentUnitProcessingException errorLoadingSCIFromModule(ModuleIdentifier identifier, @Cause Exception e);
+    DeploymentUnitProcessingException errorLoadingSCIFromModule(String identifier, @Cause Exception e);
 
     @Message(id = 50, value = "Unable to resolve annotation index for deployment unit: %s")
     DeploymentUnitProcessingException unableToResolveAnnotationIndex(DeploymentUnit deploymentUnit);
@@ -308,9 +309,9 @@ public interface UndertowLogger extends BasicLogger {
     @Message(id = 70, value = "Could not load handler %s from %s module")
     RuntimeException couldNotLoadHandlerFromModule(String className, String moduleName, @Cause Exception e);
 
-    @LogMessage(level = ERROR)
-    @Message(id = 71, value = "Jetty ALPN not found. HTTP2 and SPDY are not available. Please make sure Jetty ALPN is on the boot class path.")
-    void alpnNotFound();
+    @LogMessage(level = WARN)
+    @Message(id = 71, value = "No ALPN provider found, HTTP/2 will not be enabled. To remove this message set enable-http2 to false on the listener %s in the Undertow subsystem.")
+    void alpnNotFound(String listener);
 
     @Message(id = 72, value = "Could not find configured external path %s")
     DeploymentUnitProcessingException couldNotFindExternalPath(File path);
@@ -356,10 +357,54 @@ public interface UndertowLogger extends BasicLogger {
     @Message(id = 84, value = "There are no mechanisms available from the HttpAuthenticationFactory.")
     IllegalStateException noMechanismsAvailable();
 
-    @Message(id = 85, value = "The required mechanism '%s' is not available from the HttpAuthenticationFactory.")
-    IllegalStateException requiredMechanismNotAvailable(String mechanismName);
+    @Message(id = 85, value = "The required mechanism '%s' is not available in mechanisms %s from the HttpAuthenticationFactory.")
+    IllegalStateException requiredMechanismNotAvailable(String mechanismName, Collection<String> availableMechanisms);
 
     @Message(id = 86, value = "No authentication mechanisms have been selected.")
     IllegalStateException noMechanismsSelected();
 
+    @Message(id = 87, value = "Duplicate default web module '%s' configured on server '%s', host '%s'")
+    IllegalArgumentException duplicateDefaultWebModuleMapping(String defaultDeploymentName, String serverName, String hostName);
+
+//    @LogMessage(level = WARN)
+//    @Message(id = 88, value = "HTTP/2 will not be enabled as TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 is not enabled. You may need to install JCE to enable strong ciphers to allow HTTP/2 to function.")
+//    void noStrongCiphers();
+
+    @Message(id = 89, value = "Predicate %s was not valid, message was: %s")
+    String predicateNotValid(String predicate, String error);
+
+    @Message(id = 90, value = "Key alias %s does not exist in the configured key store")
+    IllegalArgumentException missingKeyStoreEntry(String alias);
+
+    @Message(id = 91, value = "Key store entry %s is not a private key entry")
+    IllegalArgumentException keyStoreEntryNotPrivate(String alias);
+
+    @Message(id = 92, value = "Credential alias %s does not exist in the configured credential store")
+    IllegalArgumentException missingCredential(String alias);
+
+    @Message(id = 93, value = "Credential %s is not a clear text password")
+    IllegalArgumentException credentialNotClearPassword(String alias);
+
+    @Message(id = 94, value = "Configuration option [%s] ignored when using Elytron subsystem")
+    @LogMessage(level = WARN)
+    void configurationOptionIgnoredWhenUsingElytron(String option);
+
+    @Message(id = 95, value = "the path ['%s'] doesn't exist on file system")
+    String unableAddHandlerForPath(String path);
+
+    @Message(id = 96, value = "Unable to obtain identity for name %s")
+    IllegalStateException unableToObtainIdentity(String name, @Cause Throwable cause);
+
+    @Message(id = 97, value = "If http-upgrade is enabled, remoting worker and http(s) worker must be the same. Please adjust values if need be.")
+    String workerValueInHTTPListenerMustMatchRemoting();
+
+    @LogMessage(level = ERROR)
+    @Message(id = 98, value = "Unexpected Authentication Error: %s")
+    void unexceptedAuthentificationError(String errorMessage, @Cause Throwable t);
+
+    @Message(id = 99, value = "Session manager not available")
+    OperationFailedException sessionManagerNotAvailable();
+
+    @Message(id = 100, value = "Session %s not found")
+    OperationFailedException sessionNotFound(String sessionId);
 }

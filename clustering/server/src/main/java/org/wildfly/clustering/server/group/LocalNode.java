@@ -29,23 +29,17 @@ import org.wildfly.clustering.group.Node;
  * Non-clustered {@link Node} implementation.
  * @author Paul Ferraro
  */
-public class LocalNode implements Node {
+public class LocalNode implements Node, Comparable<LocalNode> {
 
-    private final String cluster;
     private final String name;
 
-    public LocalNode(String cluster, String name) {
-        this.cluster = cluster;
+    public LocalNode(String name) {
         this.name = name;
     }
 
     @Override
     public String getName() {
         return this.name;
-    }
-
-    public String getCluster() {
-        return this.cluster;
     }
 
     @Override
@@ -57,16 +51,21 @@ public class LocalNode implements Node {
     public boolean equals(Object object) {
         if (!(object instanceof LocalNode)) return false;
         LocalNode node = (LocalNode) object;
-        return this.cluster.equals(node.cluster) && this.name.equals(node.name);
+        return this.name.equals(node.name);
     }
 
     @Override
     public int hashCode() {
-        return this.cluster.hashCode() ^ this.name.hashCode();
+        return this.name.hashCode();
     }
 
     @Override
     public String toString() {
         return this.name;
+    }
+
+    @Override
+    public int compareTo(LocalNode node) {
+        return this.name.compareTo(node.name);
     }
 }

@@ -31,12 +31,19 @@ import static org.jboss.as.test.integration.management.jca.ComplexPropertiesPars
 import static org.jboss.as.test.integration.management.jca.ComplexPropertiesParseUtils.setOperationParams;
 import static org.jboss.as.test.integration.management.jca.ComplexPropertiesParseUtils.xaDsProperties;
 
+import java.security.InvalidParameterException;
 import java.util.List;
 import java.util.Properties;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.as.arquillian.api.ServerSetup;
+import org.jboss.as.arquillian.api.ServerSetupTask;
+import org.jboss.as.arquillian.container.ManagementClient;
+import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.operations.common.Util;
+import org.jboss.as.test.integration.management.jca.ConnectionSecurityType;
 import org.jboss.as.test.integration.management.jca.DsMgmtTestBase;
 import org.jboss.dmr.ModelNode;
 import org.jboss.shrinkwrap.api.Archive;
@@ -53,10 +60,29 @@ import org.junit.runner.RunWith;
  * @author <a href="mailto:stefano.maestri@redhat.com">Stefano Maestri</a>
  * @author <a href="mailto:jeff.zhang@jboss.org">Jeff Zhang</a>
  * @author <a href="mailto:vrastsel@redhat.com">Vladimir Rastseluev</a>
+ * @author Flavia Rainone
  */
 @RunWith(Arquillian.class)
 @RunAsClient
+@ServerSetup(DataSourceOperationsUnitTestCase.ServerSetup.class)
 public class DataSourceOperationsUnitTestCase extends DsMgmtTestBase {
+
+    public static class ServerSetup implements ServerSetupTask {
+
+        @Override
+        public void setup(ManagementClient managementClient, String containerId) throws Exception {
+            ModelNode authContextAdd = Util.createAddOperation(PathAddress.pathAddress("subsystem", "elytron").append("authentication-context", "HsqlAuthCtxt"));
+            ModelNode response = managementClient.getControllerClient().execute(authContextAdd);
+            Assert.assertEquals(response.toString(), "success", response.get("outcome").asString());
+        }
+
+        @Override
+        public void tearDown(ManagementClient managementClient, String containerId) throws Exception {
+            ModelNode authContextRemove = Util.createRemoveOperation(PathAddress.pathAddress("subsystem", "elytron").append("authentication-context", "HsqlAuthCtxt"));
+            ModelNode response = managementClient.getControllerClient().execute(authContextRemove);
+            Assert.assertEquals(response.toString(), "success", response.get("outcome").asString());
+        }
+    }
 
     @Deployment
     public static Archive<?> fakeDeployment() {
@@ -83,7 +109,7 @@ public class DataSourceOperationsUnitTestCase extends DsMgmtTestBase {
         operation.get("driver-name").set("h2");
         operation.get("pool-name").set("MyNewDs_Pool");
 
-        operation.get("connection-url").set("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1");
+        operation.get("connection-url").set("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE");
         operation.get("user-name").set("sa");
         operation.get("password").set("sa");
 
@@ -120,7 +146,7 @@ public class DataSourceOperationsUnitTestCase extends DsMgmtTestBase {
         operation.get("driver-name").set("h2");
         operation.get("pool-name").set(dsName + "_Pool");
 
-        operation.get("connection-url").set("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1");
+        operation.get("connection-url").set("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE");
         operation.get("user-name").set("sa");
         operation.get("password").set("sa");
 
@@ -160,7 +186,7 @@ public class DataSourceOperationsUnitTestCase extends DsMgmtTestBase {
         operation.get("driver-name").set("h2");
         operation.get("pool-name").set(dsName + "_Pool");
 
-        operation.get("connection-url").set("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1");
+        operation.get("connection-url").set("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE");
         operation.get("user-name").set("sa");
         operation.get("password").set("sa");
 
@@ -204,8 +230,7 @@ public class DataSourceOperationsUnitTestCase extends DsMgmtTestBase {
         final ModelNode xaDatasourcePropertyOperation = new ModelNode();
         xaDatasourcePropertyOperation.get(OP).set("add");
         xaDatasourcePropertyOperation.get(OP_ADDR).set(xaDatasourcePropertiesAddress);
-        xaDatasourcePropertyOperation.get("value").set("jdbc:h2:mem:test");
-
+        xaDatasourcePropertyOperation.get("value").set("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE");
         executeOperation(xaDatasourcePropertyOperation);
 
         remove(address);
@@ -364,20 +389,42 @@ public class DataSourceOperationsUnitTestCase extends DsMgmtTestBase {
      */
     @Test
     public void testAddComplexDsUsername() throws Exception {
-        testAddComplexDs(true);
+        testAddComplexDs(ConnectionSecurityType.USER_PASSWORD);
+    }
+
+    @Test
+    public void testAddComplexDsElytron() throws Exception {
+        testAddComplexDs(ConnectionSecurityType.ELYTRON);
+    }
+
+    @Test
+    public void testAddComplexDsElytronAuthenticationContext() throws Exception {
+        testAddComplexDs(ConnectionSecurityType.ELYTRON_AUTHENTICATION_CONTEXT);
     }
 
     @Test
     public void testAddComplexDsSecurityDomain() throws Exception {
-        testAddComplexDs(false);
+        testAddComplexDs(ConnectionSecurityType.SECURITY_DOMAIN);
     }
 
-    private void testAddComplexDs(boolean userName) throws Exception {
+    private void testAddComplexDs(ConnectionSecurityType connectionSecurityType) throws Exception {
         final String complexDs;
-        if (userName) {
-            complexDs = "complexDsWithUserName";
-        } else {
-            complexDs = "complexDs";
+        switch(connectionSecurityType) {
+            case ELYTRON:
+                complexDs = "complexDsElytronWithOutAuthCtx";
+                break;
+            case ELYTRON_AUTHENTICATION_CONTEXT:
+                complexDs = "complexDsElytronWithAuthCtx";
+                break;
+            case SECURITY_DOMAIN:
+                complexDs = "complexDs";
+                break;
+            case USER_PASSWORD:
+                complexDs = "complexDsWithUserName";
+                break;
+            default:
+                throw new InvalidParameterException("Unsupported connection security type for Data Sources: " +
+                        connectionSecurityType);
         }
         final String complexDsJndi = "java:jboss/datasources/" + complexDs;
         final ModelNode address = new ModelNode();
@@ -385,7 +432,7 @@ public class DataSourceOperationsUnitTestCase extends DsMgmtTestBase {
         address.add("data-source", complexDs);
         address.protect();
 
-        Properties params = nonXaDsProperties(complexDsJndi, userName);
+        Properties params = nonXaDsProperties(complexDsJndi, connectionSecurityType);
 
         final ModelNode operation = new ModelNode();
         operation.get(OP).set("add");
@@ -433,21 +480,44 @@ public class DataSourceOperationsUnitTestCase extends DsMgmtTestBase {
      */
     @Test
     public void testAddComplexXaDsUsername() throws Exception {
-        testAddComplexXaDs(true);
+        testAddComplexXaDs(ConnectionSecurityType.USER_PASSWORD);
+    }
+
+    @Test
+    public void testAddComplexXaDsElytron() throws Exception {
+        testAddComplexXaDs(ConnectionSecurityType.ELYTRON);
+    }
+
+    @Test
+    public void testAddComplexXaDsElytronAuthenticationContext() throws Exception {
+        testAddComplexXaDs(ConnectionSecurityType.ELYTRON_AUTHENTICATION_CONTEXT);
     }
 
     @Test
     public void testAddComplexXaDsComplexDs() throws Exception {
-        testAddComplexXaDs(false);
+        testAddComplexXaDs(ConnectionSecurityType.SECURITY_DOMAIN);
     }
 
-    private void testAddComplexXaDs(boolean userName) throws Exception {
+    private void testAddComplexXaDs(ConnectionSecurityType connectionSecurityType) throws Exception {
         final String complexXaDs;
-        if (userName) {
-           complexXaDs = "complexXaDsWithUserName";
-        } else {
-            complexXaDs = "complexXaDs";
+        switch (connectionSecurityType) {
+            case ELYTRON:
+                complexXaDs = "complexXaDsWithElytron";
+                break;
+            case ELYTRON_AUTHENTICATION_CONTEXT:
+                complexXaDs = "complexXaDsWithElytronCtxt";
+                break;
+            case SECURITY_DOMAIN:
+                complexXaDs = "complexXaDs";
+                break;
+            case USER_PASSWORD:
+                complexXaDs = "complexXaDsWithUserName";
+                break;
+            default:
+                throw new InvalidParameterException("Unsupported connection security type in data sources: " +
+                connectionSecurityType);
         }
+
         final String complexXaDsJndi = "java:jboss/xa-datasources/" + complexXaDs;
 
         final ModelNode address = new ModelNode();
@@ -460,7 +530,7 @@ public class DataSourceOperationsUnitTestCase extends DsMgmtTestBase {
         operation.get(OP_ADDR).set(address);
         operation.get("enabled").set(false);
 
-        Properties params = xaDsProperties(complexXaDsJndi, userName);
+        Properties params = xaDsProperties(complexXaDsJndi, connectionSecurityType);
         setOperationParams(operation, params);
         addExtensionProperties(operation);
         operation.get("recovery-plugin-properties", "name").set("Property5");
@@ -498,6 +568,4 @@ public class DataSourceOperationsUnitTestCase extends DsMgmtTestBase {
 
         Assert.assertNotNull("xa-datasource-properties not propagated ", findNodeWithProperty(newList, "value", "jdbc:h2:mem:test"));
     }
-
-
 }

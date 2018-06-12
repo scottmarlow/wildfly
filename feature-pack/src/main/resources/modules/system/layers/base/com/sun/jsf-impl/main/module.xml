@@ -22,7 +22,7 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<module xmlns="urn:jboss:module:1.3" name="com.sun.jsf-impl">
+<module xmlns="urn:jboss:module:1.8" name="com.sun.jsf-impl">
     <properties>
         <property name="jboss.api" value="private"/>
     </properties>
@@ -41,10 +41,22 @@
              reexported by javaee.api. -->
         <module name="javax.xml.rpc.api"/>
         <module name="javax.rmi.api"/>
-        <module name="org.omg.api"/>
     </dependencies>
 
     <resources>
-        <artifact name="${com.sun.faces:jsf-impl}"/>
+        <!--
+            This EE 7 jsf-impl version is being hardcoded temporarily for now.
+            This will be removed once EE 8 support is complete.
+        -->
+        <artifact name="com.sun.faces:jsf-impl:2.2.13.SP5"> <!-- ${version.com.sun.faces-2.2} -->
+            <conditions>
+                <property-not-equal name="ee8.preview.mode" value="true" />
+            </conditions>
+        </artifact>
+        <artifact name="${com.sun.faces:jsf-impl}">
+            <conditions>
+                <property-equal name="ee8.preview.mode" value="true" />
+            </conditions>
+        </artifact>
     </resources>
 </module>

@@ -87,7 +87,7 @@ public class OperationsTestCase extends OperationTestCaseBase {
      */
     @SuppressWarnings("deprecation")
     @Test
-    public void testDistributedCacheMixedJDBCStoreReadWriteOperation() throws Exception {
+    public void testDistributedCacheJDBCStoreReadWriteOperation() throws Exception {
 
         ModelNode stringKeyedTable = createStringKeyedTable();
 
@@ -96,21 +96,21 @@ public class OperationsTestCase extends OperationTestCaseBase {
         KernelServices servicesA = this.createKernelServicesBuilder().setSubsystemXml(subsystemXml).build();
 
         // read the distributed cache mixed-keyed-jdbc-store datasource attribute
-        ModelNode result = servicesA.executeOperation(getMixedKeyedJDBCCacheStoreReadOperation("maximal", DistributedCacheResourceDefinition.WILDCARD_PATH.getKey(), "dist", JDBCStoreResourceDefinition.Attribute.DATA_SOURCE));
+        ModelNode result = servicesA.executeOperation(getJDBCCacheStoreReadOperation("maximal", DistributedCacheResourceDefinition.WILDCARD_PATH.getKey(), "dist", JDBCStoreResourceDefinition.Attribute.DATA_SOURCE));
         Assert.assertEquals(result.toString(), SUCCESS, result.get(OUTCOME).asString());
         Assert.assertEquals("ExampleDS", result.get(RESULT).asString());
 
         // write the batching attribute
-        result = servicesA.executeOperation(getMixedKeyedJDBCCacheStoreWriteOperation("maximal", DistributedCacheResourceDefinition.WILDCARD_PATH.getKey(), "dist", JDBCStoreResourceDefinition.Attribute.DATA_SOURCE, "new-datasource"));
+        result = servicesA.executeOperation(getJDBCCacheStoreWriteOperation("maximal", DistributedCacheResourceDefinition.WILDCARD_PATH.getKey(), "dist", JDBCStoreResourceDefinition.Attribute.DATA_SOURCE, "new-datasource"));
         Assert.assertEquals(result.toString(), SUCCESS, result.get(OUTCOME).asString());
 
         // re-read the batching attribute
-        result = servicesA.executeOperation(getMixedKeyedJDBCCacheStoreReadOperation("maximal", DistributedCacheResourceDefinition.WILDCARD_PATH.getKey(), "dist", JDBCStoreResourceDefinition.Attribute.DATA_SOURCE));
+        result = servicesA.executeOperation(getJDBCCacheStoreReadOperation("maximal", DistributedCacheResourceDefinition.WILDCARD_PATH.getKey(), "dist", JDBCStoreResourceDefinition.Attribute.DATA_SOURCE));
         Assert.assertEquals(result.toString(), SUCCESS, result.get(OUTCOME).asString());
         Assert.assertEquals("new-datasource", result.get(RESULT).asString());
 
          // read the string-keyed-table attribute
-        result = servicesA.executeOperation(getMixedKeyedJDBCCacheStoreReadOperation("maximal", DistributedCacheResourceDefinition.WILDCARD_PATH.getKey(), "dist", MixedKeyedJDBCStoreResourceDefinition.DeprecatedAttribute.STRING_TABLE));
+        result = servicesA.executeOperation(getJDBCCacheStoreReadOperation("maximal", DistributedCacheResourceDefinition.WILDCARD_PATH.getKey(), "dist", MixedKeyedJDBCStoreResourceDefinition.DeprecatedAttribute.STRING_TABLE));
         Assert.assertEquals(result.toString(), SUCCESS, result.get(OUTCOME).asString());
         Assert.assertEquals(stringKeyedTable.asPropertyList().size(), result.get(RESULT).asPropertyList().size());
         for (Property property : stringKeyedTable.asPropertyList()) {
@@ -119,25 +119,26 @@ public class OperationsTestCase extends OperationTestCaseBase {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private static ModelNode createStringKeyedTable() {
 
         // create a string-keyed-table complex attribute
         ModelNode stringKeyedTable = new ModelNode().setEmptyObject();
-        stringKeyedTable.get(StringTableResourceDefinition.Attribute.PREFIX.getDefinition().getName()).set("ispn_bucket");
-        stringKeyedTable.get(TableResourceDefinition.Attribute.BATCH_SIZE.getDefinition().getName()).set(100);
-        stringKeyedTable.get(TableResourceDefinition.Attribute.FETCH_SIZE.getDefinition().getName()).set(100);
+        stringKeyedTable.get(StringTableResourceDefinition.Attribute.PREFIX.getName()).set("ispn_bucket");
+        stringKeyedTable.get(TableResourceDefinition.DeprecatedAttribute.BATCH_SIZE.getName()).set(100);
+        stringKeyedTable.get(TableResourceDefinition.Attribute.FETCH_SIZE.getName()).set(100);
 
-        ModelNode idColumn = stringKeyedTable.get(TableResourceDefinition.ColumnAttribute.ID.getDefinition().getName()).setEmptyObject();
-        idColumn.get(TableResourceDefinition.ColumnAttribute.ID.getColumnName().getDefinition().getName()).set("id");
-        idColumn.get(TableResourceDefinition.ColumnAttribute.ID.getColumnType().getDefinition().getName()).set("VARCHAR");
+        ModelNode idColumn = stringKeyedTable.get(TableResourceDefinition.ColumnAttribute.ID.getName()).setEmptyObject();
+        idColumn.get(TableResourceDefinition.ColumnAttribute.ID.getColumnName().getName()).set("id");
+        idColumn.get(TableResourceDefinition.ColumnAttribute.ID.getColumnType().getName()).set("VARCHAR");
 
-        ModelNode dataColumn = stringKeyedTable.get(TableResourceDefinition.ColumnAttribute.DATA.getDefinition().getName()).setEmptyObject();
-        dataColumn.get(TableResourceDefinition.ColumnAttribute.DATA.getColumnName().getDefinition().getName()).set("datum");
-        dataColumn.get(TableResourceDefinition.ColumnAttribute.DATA.getColumnType().getDefinition().getName()).set("BINARY");
+        ModelNode dataColumn = stringKeyedTable.get(TableResourceDefinition.ColumnAttribute.DATA.getName()).setEmptyObject();
+        dataColumn.get(TableResourceDefinition.ColumnAttribute.DATA.getColumnName().getName()).set("datum");
+        dataColumn.get(TableResourceDefinition.ColumnAttribute.DATA.getColumnType().getName()).set("BINARY");
 
-        ModelNode timestampColumn = stringKeyedTable.get(TableResourceDefinition.ColumnAttribute.TIMESTAMP.getDefinition().getName()).setEmptyObject();
-        timestampColumn.get(TableResourceDefinition.ColumnAttribute.TIMESTAMP.getColumnName().getDefinition().getName()).set("version");
-        timestampColumn.get(TableResourceDefinition.ColumnAttribute.TIMESTAMP.getColumnType().getDefinition().getName()).set("BIGINT");
+        ModelNode timestampColumn = stringKeyedTable.get(TableResourceDefinition.ColumnAttribute.TIMESTAMP.getName()).setEmptyObject();
+        timestampColumn.get(TableResourceDefinition.ColumnAttribute.TIMESTAMP.getColumnName().getName()).set("version");
+        timestampColumn.get(TableResourceDefinition.ColumnAttribute.TIMESTAMP.getColumnType().getName()).set("BIGINT");
 
         return stringKeyedTable;
     }

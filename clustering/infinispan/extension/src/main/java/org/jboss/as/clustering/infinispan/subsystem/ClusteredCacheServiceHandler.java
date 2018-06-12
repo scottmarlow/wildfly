@@ -22,16 +22,15 @@
 
 package org.jboss.as.clustering.infinispan.subsystem;
 
-import org.infinispan.configuration.cache.Configuration;
-import org.jboss.as.clustering.controller.ResourceServiceBuilderFactory;
-import org.wildfly.clustering.spi.DistributedCacheGroupBuilderProvider;
+import org.jboss.as.clustering.controller.ResourceServiceConfiguratorFactory;
+import org.wildfly.clustering.spi.DistributedCacheServiceConfiguratorProvider;
 
 /**
  * @author Paul Ferraro
  */
 public class ClusteredCacheServiceHandler extends CacheServiceHandler {
 
-    ClusteredCacheServiceHandler(ResourceServiceBuilderFactory<Configuration> builderFactory) {
-        super(builderFactory, DistributedCacheGroupBuilderProvider.class);
+    ClusteredCacheServiceHandler(ResourceServiceConfiguratorFactory configuratorFactory) {
+        super(configuratorFactory, DistributedCacheServiceConfiguratorProvider.class);
     }
 }

@@ -57,7 +57,10 @@ public class OperationTestCaseBase extends AbstractSubsystemTest {
     }
 
     AdditionalInitialization createAdditionalInitialization() {
-        return new JGroupsSubsystemInitialization().require(CommonUnaryRequirement.OUTBOUND_SOCKET_BINDING, "hotrod-server-1", "hotrod-server-2");
+        return new JGroupsSubsystemInitialization()
+                .require(CommonUnaryRequirement.OUTBOUND_SOCKET_BINDING, "hotrod-server-1", "hotrod-server-2")
+                .require(CommonUnaryRequirement.DATA_SOURCE, "ExampleDS", "new-datasource")
+                ;
     }
 
     // cache container access
@@ -83,7 +86,7 @@ public class OperationTestCaseBase extends AbstractSubsystemTest {
     // cache access
     protected static ModelNode getCacheAddOperation(String containerName, String cacheType, String cacheName) {
         PathAddress address = getCacheAddress(containerName, cacheType, cacheName);
-        return Operations.createAddOperation(address, Collections.<Attribute, ModelNode>singletonMap(CacheResourceDefinition.Attribute.JNDI_NAME, new ModelNode("java:/fred/was/here")));
+        return Operations.createAddOperation(address, Collections.emptyMap());
     }
 
     protected static ModelNode getCacheReadOperation(String containerName, String cacheType, String cacheName, Attribute attribute) {
@@ -107,12 +110,12 @@ public class OperationTestCaseBase extends AbstractSubsystemTest {
         return Operations.createWriteAttributeOperation(getCustomCacheStoreAddress(containerName,  cacheType, cacheName), attribute, new ModelNode(value));
     }
 
-    protected static ModelNode getMixedKeyedJDBCCacheStoreReadOperation(String containerName, String cacheType, String cacheName, Attribute attribute) {
-        return Operations.createReadAttributeOperation(getMixedKeyedJDBCCacheStoreAddress(containerName, cacheType, cacheName), attribute);
+    protected static ModelNode getJDBCCacheStoreReadOperation(String containerName, String cacheType, String cacheName, Attribute attribute) {
+        return Operations.createReadAttributeOperation(getJDBCCacheStoreAddress(containerName, cacheType, cacheName), attribute);
     }
 
-    protected static ModelNode getMixedKeyedJDBCCacheStoreWriteOperation(String containerName, String cacheType, String cacheName, Attribute attribute, String value) {
-        return Operations.createWriteAttributeOperation(getMixedKeyedJDBCCacheStoreAddress(containerName, cacheType, cacheName), attribute, new ModelNode(value));
+    protected static ModelNode getJDBCCacheStoreWriteOperation(String containerName, String cacheType, String cacheName, Attribute attribute, String value) {
+        return Operations.createWriteAttributeOperation(getJDBCCacheStoreAddress(containerName, cacheType, cacheName), attribute, new ModelNode(value));
     }
 
     // cache store property access
@@ -133,7 +136,7 @@ public class OperationTestCaseBase extends AbstractSubsystemTest {
     }
 
     protected static ModelNode getCacheStoreUndefinePropertiesOperation(PathAddress cacheStoreAddress) {
-        return Util.getUndefineAttributeOperation(cacheStoreAddress, StoreResourceDefinition.Attribute.PROPERTIES.getDefinition().getName());
+        return Util.getUndefineAttributeOperation(cacheStoreAddress, StoreResourceDefinition.Attribute.PROPERTIES.getName());
     }
 
     protected static ModelNode getCacheStorePropertyAddOperation(String containerName, String cacheName, String cacheType, String propertyName, String value) {
@@ -153,6 +156,10 @@ public class OperationTestCaseBase extends AbstractSubsystemTest {
         return getCustomCacheStoreAddress(containerName, cacheType, cacheName).append(StorePropertyResourceDefinition.pathElement(propertyName));
     }
 
+    protected static PathAddress getJDBCCacheStoreAddress(String containerName, String cacheType, String cacheName) {
+        return getCacheAddress(containerName, cacheType, cacheName).append(JDBCStoreResourceDefinition.PATH);
+    }
+
     protected static PathAddress getMixedKeyedJDBCCacheStoreAddress(String containerName, String cacheType, String cacheName) {
         return getCacheAddress(containerName, cacheType, cacheName).append(MixedKeyedJDBCStoreResourceDefinition.PATH);
     }
@@ -170,7 +177,7 @@ public class OperationTestCaseBase extends AbstractSubsystemTest {
     }
 
     protected static PathAddress getStringKeyedJDBCCacheStoreAddress(String containerName, String cacheType, String cacheName) {
-        return getCacheAddress(containerName, cacheType, cacheName).append(StringKeyedJDBCStoreResourceDefinition.PATH);
+        return getCacheAddress(containerName, cacheType, cacheName).append(StringKeyedJDBCStoreResourceDefinition.STRING_JDBC_PATH);
     }
 
     protected static PathAddress getStringKeyedJDBCCacheStoreLegacyAddress(String containerName, String cacheType, String cacheName) {

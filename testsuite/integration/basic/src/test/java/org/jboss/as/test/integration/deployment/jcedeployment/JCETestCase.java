@@ -70,13 +70,13 @@ public class JCETestCase {
         JavaArchive signedJce;
         if (isJCETestable())  {
             // see genkey-jcetest-keystore in pom.xml for the keystore creation
-            final JarSignerUtil signer = new JarSignerUtil(new File("../jcetest.keystore"), "password", "password", /* alias */ "test");
+            final JarSignerUtil signer = new JarSignerUtil(new File("target/jcetest.keystore"), "password", "password", /* alias */ "test");
             signer.sign(jceJar, signedJceJar);
             signer.verify(signedJceJar);
             signedJce = ShrinkWrap.create(ZipImporter.class, "jcetestsigned.jar")
                 .importFrom(signedJceJar).as(JavaArchive.class);
         } else {
-            log.info("skipping the test since it can run on Oracle JDK only");
+            log.trace("skipping the test since it can run on Oracle JDK only");
             signedJce = jce;
         }
         final WebArchive war = ShrinkWrap.create(WebArchive.class, "test.war")
@@ -89,7 +89,7 @@ public class JCETestCase {
 
         // ControllerServlet and DummyProvider need the following perms for their "dirty" game
         ear.addAsManifestResource(createPermissionsXmlAsset(
-                new FilePermission("../jcetest.keystore", "read"),
+                new FilePermission("target/jcetest.keystore", "read"),
                 new RuntimePermission("accessDeclaredMembers"),
                 new ReflectPermission("suppressAccessChecks"),
                 new RuntimePermission("accessClassInPackage.sun.security.validator"),

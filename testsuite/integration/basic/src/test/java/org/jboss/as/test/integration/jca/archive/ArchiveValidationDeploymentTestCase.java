@@ -23,8 +23,6 @@ package org.jboss.as.test.integration.jca.archive;
 
 import static org.junit.Assert.fail;
 
-import java.util.logging.Logger;
-
 import org.jboss.arquillian.container.test.api.Deployer;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
@@ -37,6 +35,7 @@ import org.jboss.as.test.integration.jca.JcaMgmtServerSetupTask;
 import org.jboss.as.test.integration.jca.rar.MultipleConnectionFactory1;
 import org.jboss.as.test.integration.management.base.AbstractMgmtTestBase;
 import org.jboss.as.test.integration.management.util.MgmtOperationException;
+import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
@@ -44,7 +43,6 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.ResourceAdapterArchive;
 import org.jboss.staxmapper.XMLElementReader;
 import org.jboss.staxmapper.XMLElementWriter;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -54,7 +52,6 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 @RunAsClient
 @ServerSetup(ArchiveValidationDeploymentTestCase.ArchiveValidationDeploymentTestCaseSetup.class)
-@Ignore("AS7-4188")
 public class ArchiveValidationDeploymentTestCase extends JcaMgmtBase {
 
     private static Logger log = Logger.getLogger("ArchiveValidationDeploymentTestCase");
@@ -69,12 +66,12 @@ public class ArchiveValidationDeploymentTestCase extends JcaMgmtBase {
             enabled = getArchiveValidationAttribute("enabled");
             failingOnError = getArchiveValidationAttribute("fail-on-error");
             failingOnWarning = getArchiveValidationAttribute("fail-on-warn");
-            log.info("//save//" + enabled + "//" + failingOnError + "//" + failingOnWarning);
+            log.trace("//save//" + enabled + "//" + failingOnError + "//" + failingOnWarning);
         }
 
         @Override
         public void tearDown(ManagementClient managementClient, String containerId) throws Exception {
-            log.info("//restore//" + enabled + "//" + failingOnError + "//" + failingOnWarning);
+            log.trace("//restore//" + enabled + "//" + failingOnError + "//" + failingOnWarning);
             setArchiveValidation(enabled, failingOnError, failingOnWarning);
 
         }
@@ -87,9 +84,12 @@ public class ArchiveValidationDeploymentTestCase extends JcaMgmtBase {
     /**
      * Define the deployment
      *
+     * create rar archive either valid or invalid where archive validation reports warning or error
+     * WARNING: triggered by wrong config property type in MultipleWarningResourceAdapter, int instead of Integer (name property)
+     * ERROR: triggered by missing equals and hashCode in MultipleErrorResourceAdapter
+     *
      * @return The deployment archive
      */
-
     public static ResourceAdapterArchive createDeployment(String name) throws Exception {
 
         ResourceAdapterArchive raa = ShrinkWrap.create(ResourceAdapterArchive.class, name + ".rar");

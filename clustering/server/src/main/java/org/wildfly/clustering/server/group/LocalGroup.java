@@ -21,58 +21,21 @@
  */
 package org.wildfly.clustering.server.group;
 
-import java.util.Collections;
-import java.util.List;
-
-import org.wildfly.clustering.group.Group;
+import org.jgroups.Address;
 import org.wildfly.clustering.group.Node;
 
 /**
  * Non-clustered {@link Group} implementation
  * @author Paul Ferraro
  */
-public class LocalGroup implements Group {
+public class LocalGroup extends AbstractLocalGroup<Address> {
 
-    private final String name;
-    private final Node node;
-
-    public LocalGroup(String name, Node node) {
-        this.name = name;
-        this.node = node;
+    public LocalGroup(String nodeName) {
+        super(nodeName);
     }
 
     @Override
-    public void addListener(Listener listener) {
-        // membership of a non-clustered group will never change
-    }
-
-    @Override
-    public void removeListener(Listener listener) {
-        // membership of a non-clustered group will never change
-    }
-
-    @Override
-    public String getName() {
-        return this.name;
-    }
-
-    @Override
-    public boolean isCoordinator() {
-        return true;
-    }
-
-    @Override
-    public Node getLocalNode() {
-        return this.node;
-    }
-
-    @Override
-    public Node getCoordinatorNode() {
-        return this.node;
-    }
-
-    @Override
-    public List<Node> getNodes() {
-        return Collections.singletonList(this.node);
+    public Address getAddress(Node node) {
+        return null;
     }
 }

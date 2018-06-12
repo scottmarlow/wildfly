@@ -23,12 +23,13 @@ package org.jboss.as.clustering.infinispan.subsystem;
 
 import java.util.EnumSet;
 
+import org.jboss.as.clustering.controller.ContextualSubsystemRegistration;
+import org.jboss.as.clustering.controller.descriptions.SubsystemResourceDescriptionResolver;
 import org.jboss.as.controller.Extension;
 import org.jboss.as.controller.ExtensionContext;
-import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.SubsystemRegistration;
 import org.jboss.as.controller.parsing.ExtensionParsingContext;
-import org.jboss.as.controller.transform.description.TransformationDescription;
+import org.kohsuke.MetaInfServices;
 
 /**
  * Defines the Infinispan subsystem and its addressable resources.
@@ -36,37 +37,24 @@ import org.jboss.as.controller.transform.description.TransformationDescription;
  * @author Paul Ferraro
  * @author Richard Achmatowicz
  */
+@MetaInfServices(Extension.class)
 public class InfinispanExtension implements Extension {
 
     public static final String SUBSYSTEM_NAME = "infinispan";
 
-    /**
-     * {@inheritDoc}
-     * @see org.jboss.as.controller.Extension#initialize(org.jboss.as.controller.ExtensionContext)
-     */
+    public static final SubsystemResourceDescriptionResolver SUBSYSTEM_RESOLVER = new SubsystemResourceDescriptionResolver(SUBSYSTEM_NAME, InfinispanExtension.class);
+
     @Override
     public void initialize(ExtensionContext context) {
         SubsystemRegistration registration = context.registerSubsystem(SUBSYSTEM_NAME, InfinispanModel.CURRENT.getVersion());
 
-        new InfinispanSubsystemResourceDefinition(context.getProcessType().isServer() ? context.getPathManager() : null, context.isRuntimeOnlyRegistrationValid()).register(registration);
+        new InfinispanSubsystemResourceDefinition().register(new ContextualSubsystemRegistration(registration, context));
         registration.registerXMLElementWriter(new InfinispanSubsystemXMLWriter());
-
-        if (context.isRegisterTransformers()) {
-            // Register transformers for all but the current model
-            for (InfinispanModel model: EnumSet.complementOf(EnumSet.of(InfinispanModel.CURRENT))) {
-                ModelVersion version = model.getVersion();
-                TransformationDescription.Tools.register(InfinispanSubsystemResourceDefinition.buildTransformation(version), registration, version);
-            }
-        }
     }
 
-    /**
-     * {@inheritDoc}
-     * @see org.jboss.as.controller.Extension#initializeParsers(org.jboss.as.controller.parsing.ExtensionParsingContext)
-     */
     @Override
     public void initializeParsers(ExtensionParsingContext context) {
-        for (InfinispanSchema schema: InfinispanSchema.values()) {
+        for (InfinispanSchema schema : EnumSet.allOf(InfinispanSchema.class)) {
             context.setSubsystemXmlMapping(SUBSYSTEM_NAME, schema.getNamespaceUri(), new InfinispanSubsystemXMLReader(schema));
         }
         context.setProfileParsingCompletionHandler(new InfinispanProfileParsingCompletionHandler());

@@ -260,16 +260,28 @@ public class EJB3SubsystemXMLPersister implements XMLElementWriter<SubsystemMars
             writer.writeEndElement();
         }
 
+        // graceful txn shutdown
+        if (model.hasDefined(ENABLE_GRACEFUL_TXN_SHUTDOWN)) {
+            writer.writeStartElement(EJB3SubsystemXMLElement.ENABLE_GRACEFUL_TXN_SHUTDOWN.getLocalName());
+            writer.writeAttribute(EJB3SubsystemXMLAttribute.VALUE.getLocalName(), model.get(EJB3SubsystemModel.ENABLE_GRACEFUL_TXN_SHUTDOWN).asString());
+            writer.writeEndElement();
+        }
+
         // statistics element
-        if (model.hasDefined(ENABLE_STATISTICS)) {
+        if (model.hasDefined(STATISTICS_ENABLED)) {
             writer.writeStartElement(EJB3SubsystemXMLElement.STATISTICS.getLocalName());
-            writer.writeAttribute(EJB3SubsystemXMLAttribute.ENABLED.getLocalName(), model.get(EJB3SubsystemModel.ENABLE_STATISTICS).asString());
+            writer.writeAttribute(EJB3SubsystemXMLAttribute.ENABLED.getLocalName(), model.get(EJB3SubsystemModel.STATISTICS_ENABLED).asString());
             writer.writeEndElement();
         }
 
         if (model.hasDefined(LOG_SYSTEM_EXCEPTIONS)) {
             writer.writeStartElement(EJB3SubsystemXMLElement.LOG_SYSTEM_EXCEPTIONS.getLocalName());
             writer.writeAttribute(EJB3SubsystemXMLAttribute.VALUE.getLocalName(), model.get(EJB3SubsystemModel.LOG_SYSTEM_EXCEPTIONS).asString());
+            writer.writeEndElement();
+        }
+        if (model.hasDefined(ALLOW_EJB_NAME_REGEX)) {
+            writer.writeStartElement(EJB3SubsystemXMLElement.ALLOW_EJB_NAME_REGEX.getLocalName());
+            writer.writeAttribute(EJB3SubsystemXMLAttribute.VALUE.getLocalName(), model.get(EJB3SubsystemModel.ALLOW_EJB_NAME_REGEX).asString());
             writer.writeEndElement();
         }
     }
@@ -578,6 +590,7 @@ public class EJB3SubsystemXMLPersister implements XMLElementWriter<SubsystemMars
             if(profileNode.hasDefined(REMOTING_EJB_RECEIVER)){
                 writeRemotingEjbReceivers(writer, profileNode);
             }
+            StaticEJBDiscoveryDefinition.INSTANCE.marshallAsElement(profileNode, writer);
             writer.writeEndElement();
         }
     }
@@ -609,6 +622,7 @@ public class EJB3SubsystemXMLPersister implements XMLElementWriter<SubsystemMars
         writer.writeStartElement(APPLICATION_SECURITY_DOMAIN);
         writer.writeAttribute(EJB3SubsystemXMLAttribute.NAME.getLocalName(), property.getName());
         ApplicationSecurityDomainDefinition.SECURITY_DOMAIN.marshallAsAttribute(property.getValue(), writer);
+        ApplicationSecurityDomainDefinition.ENABLE_JACC.marshallAsAttribute(property.getValue(), writer);
         writer.writeEndElement();
     }
 

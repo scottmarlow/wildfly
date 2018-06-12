@@ -142,7 +142,7 @@ public class HTTPSWebConnectorTestCase {
 
     @Deployment(name = APP_CONTEXT, testable = false, managed = false)
     public static WebArchive deployment() {
-        LOGGER.info("Start deployment " + APP_CONTEXT);
+        LOGGER.trace("Start deployment " + APP_CONTEXT);
         final WebArchive war = ShrinkWrap.create(WebArchive.class, APP_CONTEXT + ".war");
         war.addClasses(AddRoleLoginModule.class, SimpleServlet.class, SimpleSecuredServlet.class,
                 PrincipalPrintingServlet.class);
@@ -155,13 +155,13 @@ public class HTTPSWebConnectorTestCase {
     @InSequence(-1)
     public void startAndSetupContainer() throws Exception {
 
-        LOGGER.info("*** starting server");
+        LOGGER.trace("*** starting server");
         containerController.start(CONTAINER);
         ModelControllerClient client = TestSuiteEnvironment.getModelControllerClient();
         ManagementClient managementClient = new ManagementClient(client, TestSuiteEnvironment.getServerAddress(),
                 TestSuiteEnvironment.getServerPort(), "http-remoting");
 
-        LOGGER.info("*** will configure server now");
+        LOGGER.trace("*** will configure server now");
         serverSetup(managementClient);
 
         deployer.deploy(APP_CONTEXT);
@@ -321,10 +321,10 @@ public class HTTPSWebConnectorTestCase {
         final ModelControllerClient client = TestSuiteEnvironment.getModelControllerClient();
         final ManagementClient managementClient = new ManagementClient(client, TestSuiteEnvironment.getServerAddress(),
                 TestSuiteEnvironment.getServerPort(), "http-remoting");
-        LOGGER.info("*** reseting test configuration");
+        LOGGER.trace("*** reseting test configuration");
         serverTearDown(managementClient);
 
-        LOGGER.info("*** stopping container");
+        LOGGER.trace("*** stopping container");
         containerController.stop(CONTAINER);
     }
 
@@ -342,7 +342,8 @@ public class HTTPSWebConnectorTestCase {
         WORK_DIR.mkdirs();
         Utils.createKeyMaterial(WORK_DIR);
 
-        TRACE_SECURITY.setup(managementClient, null);
+        // Uncomment if TRACE logging is necessary. Don't leave it on all the time; CI resources aren't free.
+        //TRACE_SECURITY.setup(managementClient, null);
 
         SecurityDomainsSetup.INSTANCE.setup(managementClient, null);
 
@@ -366,7 +367,7 @@ public class HTTPSWebConnectorTestCase {
         // operation.get("alias").set("management");
         Utils.applyUpdate(operation, client);
 
-        LOGGER.info("*** restarting server");
+        LOGGER.trace("*** restarting server");
         containerController.stop(CONTAINER);
         containerController.start(CONTAINER);
 
@@ -406,19 +407,16 @@ public class HTTPSWebConnectorTestCase {
         final ModelControllerClient client = managementClient.getControllerClient();
 
         // delete https web connectors
-        ModelNode operation = createOpNode("subsystem=undertow/server=default-server/https-listener=" + HTTPS,
-                ModelDescriptionConstants.REMOVE);
-        Utils.applyUpdate(operation, client);
-
         rmHttpsConnector(HTTPS_NAME_VERIFY_NOT_REQUESTED, client);
         rmHttpsConnector(HTTPS_NAME_VERIFY_REQUESTED, client);
         rmHttpsConnector(HTTPS_NAME_VERIFY_REQUIRED, client);
 
-        operation = createOpNode("core-service=management/security-realm=" + HTTPS_REALM, ModelDescriptionConstants.REMOVE);
+        ModelNode operation = createOpNode("core-service=management/security-realm=" + HTTPS_REALM, ModelDescriptionConstants.REMOVE);
         Utils.applyUpdate(operation, client);
 
         FileUtils.deleteDirectory(WORK_DIR);
-        TRACE_SECURITY.tearDown(managementClient, null);
+        // Uncomment if TRACE logging is necessary. Don't leave it on all the time; CI resources aren't free.
+        //TRACE_SECURITY.tearDown(managementClient, null);
     }
 
     private void rmHttpsConnector(String httpsName, ModelControllerClient client) throws Exception {

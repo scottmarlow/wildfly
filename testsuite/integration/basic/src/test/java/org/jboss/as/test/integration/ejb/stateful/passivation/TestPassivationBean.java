@@ -30,6 +30,7 @@ import javax.ejb.EJB;
 import javax.ejb.PostActivate;
 import javax.ejb.PrePassivate;
 import javax.ejb.Remote;
+import javax.ejb.Remove;
 import javax.ejb.Stateful;
 import javax.inject.Inject;
 import javax.interceptor.Interceptors;
@@ -106,6 +107,13 @@ public class TestPassivationBean extends PassivationSuperClass implements TestPa
     }
 
     @Override
+    public void removeEntity(final int id) {
+        Employee e = entityManager.find(Employee.class, id);
+        entityManager.remove(e);
+        entityManager.flush();
+    }
+
+    @Override
     public void setManagedBeanMessage(String message) {
         this.managedBean.setMessage(message);
     }
@@ -119,29 +127,30 @@ public class TestPassivationBean extends PassivationSuperClass implements TestPa
     public void postConstruct() {
         Random r = new Random();
         this.identificator = new Integer(r.nextInt(999)).toString();
-        log.info("Bean [" + this.identificator + "] created");
+        log.trace("Bean [" + this.identificator + "] created");
     }
 
     @PreDestroy
     public void preDestroy() {
-        log.info("Bean [" + this.identificator + "] destroyed");
+        log.trace("Bean [" + this.identificator + "] destroyed");
     }
 
     @PrePassivate
     public void setPassivateFlag() {
-        log.info(this.toString() + " PrePassivation [" + this.identificator + "]");
+        log.trace(this.toString() + " PrePassivation [" + this.identificator + "]");
         this.beenPassivated = true;
     }
 
     @PostActivate
     public void setActivateFlag() {
-        log.info(this.toString() + " PostActivation [" + this.identificator + "]");
+        log.trace(this.toString() + " PostActivation [" + this.identificator + "]");
         this.beenActivated = true;
     }
 
+    @Remove
     @Override
     public void close() {
-        log.info("Bean [" + this.identificator + "] removing");
+        log.trace("Bean [" + this.identificator + "] removing");
         this.nestledBean.close();
     }
 }

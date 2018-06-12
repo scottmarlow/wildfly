@@ -4,7 +4,7 @@
   Set these VM properties in your IDE debugger
 
   -Djava.util.logging.manager=org.jboss.logmanager.LogManager
-  -Djboss.home=${workspace_loc:jboss-as-build}/target/jboss-as-11.0.0.Alpha1-SNAPSHOT
+  -Djboss.home=${workspace_loc:jboss-as-build}/target/jboss-as-14.0.0.Beta1-SNAPSHOT
   -DallowConnectingToRunningServer=true
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
@@ -15,7 +15,11 @@
     <parent>
         <groupId>org.wildfly</groupId>
         <artifactId>wildfly-ts-integ</artifactId>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
     </parent>
 
     <!-- ********************************************************************************** -->
@@ -98,7 +102,6 @@
                                 <id>ts.config-as.copy-rbac-users</id>
                                 <phase>generate-test-resources</phase>
                                 <goals><goal>copy-resources</goal></goals>
-                                <inherited>true</inherited>
                                 <configuration>
                                     <outputDirectory>${basedir}/target/jbossas/standalone/configuration</outputDirectory>
                                     <overwrite>true</overwrite>
@@ -134,7 +137,6 @@
                                     <!-- Parameters to test cases. -->
                                     <systemPropertyVariables>
                                         <jboss.server.config.file.name>standalone-full.xml</jboss.server.config.file.name>
-                                        <jboss.inst>${basedir}/target/jbossas</jboss.inst>
                                     </systemPropertyVariables>
 
                                     <additionalClasspathElements>
@@ -143,9 +145,7 @@
                                 </configuration>
                             </execution>
                         </executions>
-
                     </plugin>
-
                 </plugins>
             </build>
         </profile>

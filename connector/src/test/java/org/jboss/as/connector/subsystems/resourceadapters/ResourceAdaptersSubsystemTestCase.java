@@ -21,10 +21,18 @@
 */
 package org.jboss.as.connector.subsystems.resourceadapters;
 
+import static org.jboss.as.connector.subsystems.resourceadapters.Constants.AUTHENTICATION_CONTEXT;
+import static org.jboss.as.connector.subsystems.resourceadapters.Constants.AUTHENTICATION_CONTEXT_AND_APPLICATION;
+import static org.jboss.as.connector.subsystems.resourceadapters.Constants.ELYTRON_ENABLED;
+import static org.jboss.as.connector.subsystems.resourceadapters.Constants.MCP;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.MODULE;
+import static org.jboss.as.connector.subsystems.resourceadapters.Constants.RECOVERY_AUTHENTICATION_CONTEXT;
+import static org.jboss.as.connector.subsystems.resourceadapters.Constants.RECOVERY_CREDENTIAL_REFERENCE;
+import static org.jboss.as.connector.subsystems.resourceadapters.Constants.RECOVERY_ELYTRON_ENABLED;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.RESOURCEADAPTER_NAME;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.STATISTICS_ENABLED;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.TRACKING;
+import static org.jboss.as.connector.subsystems.resourceadapters.Constants.WM_ELYTRON_SECURITY_DOMAIN;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.WM_SECURITY;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.WM_SECURITY_DOMAIN;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.WM_SECURITY_MAPPING_REQUIRED;
@@ -69,7 +77,7 @@ public class ResourceAdaptersSubsystemTestCase extends AbstractSubsystemBaseTest
 
     @Override
     protected String getSubsystemXsdPath() throws Exception {
-        return "schema/wildfly-resource-adapters_4_0.xsd";
+        return "schema/wildfly-resource-adapters_5_0.xsd";
     }
 
     @Override
@@ -78,6 +86,12 @@ public class ResourceAdaptersSubsystemTestCase extends AbstractSubsystemBaseTest
                 "/subsystem-templates/resource-adapters.xml",
                 "/subsystem-templates/resource-adapters-genericjms.xml"
         };
+    }
+
+    @Test
+    @Override
+    public void testSchemaOfSubsystemTemplates() throws Exception {
+        super.testSchemaOfSubsystemTemplates();
     }
 
     @Override
@@ -112,12 +126,6 @@ public class ResourceAdaptersSubsystemTestCase extends AbstractSubsystemBaseTest
         standardSubsystemTest("resource-adapters-xapool-expression.xml", "resource-adapters-xapool.xml", true);
     }
 
-
-    @Test
-    public void testRejectinMcpEnlistmentTrace() throws Exception {
-        testRejectingTransformer300("resource-adapters-pool-20.xml", ModelTestControllerVersion.WILDFLY_8_1_0_FINAL, ModelVersion.create(3, 0, 0));
-    }
-
     @Test
     public void testTransformerEAP62() throws Exception {
         testRejectingTransformer("resource-adapters-pool-20.xml", ModelTestControllerVersion.EAP_6_2_0, ModelVersion.create(1, 3, 0));
@@ -128,6 +136,17 @@ public class ResourceAdaptersSubsystemTestCase extends AbstractSubsystemBaseTest
         //this file contain expression for all supported fields except bean-validation-groups and recovery-plugin-properties
         // for a limitation in test suite not permitting to have expression in type LIST or OBJECT for legacyServices
         testTransformer("resource-adapters-xapool-expression2.xml", ModelTestControllerVersion.EAP_6_2_0, ModelVersion.create(1, 3, 0));
+    }
+
+    @Test
+    public void testElytronEnabledEAP62() throws Exception {
+        testRejectingTransformerElytronEnabled("resource-adapters-pool-elytron-enabled.xml", ModelTestControllerVersion.EAP_6_2_0, ModelVersion.create(1, 3, 0));
+    }
+
+
+    @Test
+    public void testElytronEnabledEAP7() throws Exception {
+        testRejectingTransformer7ElytronEnabled("resource-adapters-pool-elytron-enabled.xml", ModelTestControllerVersion.EAP_7_0_0, ModelVersion.create(4, 0, 0));
     }
 
     /**
@@ -216,11 +235,7 @@ public class ResourceAdaptersSubsystemTestCase extends AbstractSubsystemBaseTest
 
                             @Override
                             protected boolean checkValue(String attrName, ModelNode attribute, boolean isWriteAttribute) {
-                                if (attribute.isDefined()) {
-                                    return true;
-                                } else {
-                                    return false;
-                                }
+                                return attribute.isDefined();
                             }
 
                             @Override
@@ -257,11 +272,7 @@ public class ResourceAdaptersSubsystemTestCase extends AbstractSubsystemBaseTest
 
                                     @Override
                                     protected boolean checkValue(String attrName, ModelNode attribute, boolean isWriteAttribute) {
-                                        if (attribute.isDefined()) {
-                                            return true;
-                                        } else {
-                                            return false;
-                                        }
+                                        return attribute.isDefined();
                                     }
 
                                     @Override
@@ -271,8 +282,50 @@ public class ResourceAdaptersSubsystemTestCase extends AbstractSubsystemBaseTest
                                 }).build()));
     }
 
+    /**
+     * Tests transformation of model from current to passed one
+     *
+     * @throws Exception
+     */
+    private void testRejectingTransformer7ElytronEnabled(String subsystemXml, ModelTestControllerVersion controllerVersion, ModelVersion modelVersion) throws Exception {
+        //Use the non-runtime version of the extension which will happen on the HC
+        KernelServicesBuilder builder = createKernelServicesBuilder(AdditionalInitialization.MANAGEMENT);
+        //.setSubsystemXmlResource(subsystemXml);
+        String artifactId = ":wildfly-connector:";
+        String ironJacamarVersion = "1.3.3.Final-redhat-1";
+        // Add legacy subsystems
+        builder.createLegacyKernelServicesBuilder(null, controllerVersion, modelVersion)
+                .addMavenResourceURL(controllerVersion.getMavenGroupId() + artifactId  + controllerVersion.getMavenGavVersion())
+                .addMavenResourceURL("org.jboss.ironjacamar:ironjacamar-spec-api:" + ironJacamarVersion)
+                .addMavenResourceURL("org.jboss.ironjacamar:ironjacamar-common-api:" + ironJacamarVersion)
+                .setExtensionClassName("org.jboss.as.connector.subsystems.resourceadapters.ResourceAdaptersExtension")
+                .addOperationValidationResolve("add", PathAddress.pathAddress(
+                        PathElement.pathElement(SUBSYSTEM, getMainSubsystemName()),
+                        PathElement.pathElement("resource-adapter", "*"),
+                        PathElement.pathElement("connection-definitions", "*")))
+                .excludeFromParent(SingleClassFilter.createFilter(ConnectorLogger.class)).skipReverseControllerCheck();
 
-    private void testRejectingTransformer300(String subsystemXml, ModelTestControllerVersion controllerVersion, ModelVersion modelVersion) throws Exception {
+        KernelServices mainServices = builder.build();
+        org.junit.Assert.assertTrue(mainServices.isSuccessfulBoot());
+        KernelServices legacyServices = mainServices.getLegacyServices(modelVersion);
+        org.junit.Assert.assertTrue(legacyServices.isSuccessfulBoot());
+        org.junit.Assert.assertNotNull(legacyServices);
+
+        List<ModelNode> ops = builder.parseXmlResource(subsystemXml);
+        PathAddress subsystemAddress = PathAddress.pathAddress(ResourceAdaptersExtension.SUBSYSTEM_PATH);
+        ModelTestUtils.checkFailedTransformedBootOperations(mainServices, modelVersion, ops, new FailedOperationTransformationConfig()
+                .addFailedAttribute(subsystemAddress.append(PathElement.pathElement(RESOURCEADAPTER_NAME)),
+                        new FailedOperationTransformationConfig.NewAttributesConfig( WM_ELYTRON_SECURITY_DOMAIN))
+                .addFailedAttribute(subsystemAddress.append(PathElement.pathElement(RESOURCEADAPTER_NAME), ConnectionDefinitionResourceDefinition.PATH),
+                        new FailedOperationTransformationConfig.NewAttributesConfig(ELYTRON_ENABLED, AUTHENTICATION_CONTEXT, AUTHENTICATION_CONTEXT_AND_APPLICATION,
+                                        RECOVERY_ELYTRON_ENABLED, RECOVERY_AUTHENTICATION_CONTEXT, RECOVERY_CREDENTIAL_REFERENCE)));
+    }
+    /**
+     * Tests transformation of model from current to passed one
+     *
+     * @throws Exception
+     */
+    private void testRejectingTransformerElytronEnabled(String subsystemXml, ModelTestControllerVersion controllerVersion, ModelVersion modelVersion) throws Exception {
         //Use the non-runtime version of the extension which will happen on the HC
         KernelServicesBuilder builder = createKernelServicesBuilder(AdditionalInitialization.MANAGEMENT);
         //.setSubsystemXmlResource(subsystemXml);
@@ -298,8 +351,63 @@ public class ResourceAdaptersSubsystemTestCase extends AbstractSubsystemBaseTest
         List<ModelNode> ops = builder.parseXmlResource(subsystemXml);
         PathAddress subsystemAddress = PathAddress.pathAddress(ResourceAdaptersExtension.SUBSYSTEM_PATH);
         ModelTestUtils.checkFailedTransformedBootOperations(mainServices, modelVersion, ops, new FailedOperationTransformationConfig()
+                .addFailedAttribute(subsystemAddress.append(PathElement.pathElement(RESOURCEADAPTER_NAME)),
+                        new FailedOperationTransformationConfig.AttributesPathAddressConfig(WM_SECURITY.getName(), WM_SECURITY_MAPPING_REQUIRED.getName(),
+                                WM_ELYTRON_SECURITY_DOMAIN.getName(), MODULE.getName(), STATISTICS_ENABLED.getName()) {
+                            @Override
+                            protected boolean isAttributeWritable(String attributeName) {
+                                return false;
+                            }
+
+                            @Override
+                            protected boolean checkValue(String attrName, ModelNode attribute, boolean isWriteAttribute) {
+                                return attribute.isDefined();
+                            }
+
+                            @Override
+                            protected ModelNode correctValue(ModelNode toResolve, boolean isWriteAttribute) {
+                                return new ModelNode();
+                            }
+
+
+                        })
                 .addFailedAttribute(subsystemAddress.append(PathElement.pathElement(RESOURCEADAPTER_NAME), ConnectionDefinitionResourceDefinition.PATH),
-                        FailedOperationTransformationConfig.REJECTED_RESOURCE));
+                        FailedOperationTransformationConfig.ChainedConfig.createBuilder(Constants.CONNECTABLE, Constants.TRACKING)
+                                .addConfig(new FailedOperationTransformationConfig.RejectExpressionsConfig(Constants.CONNECTABLE) {
+
+                                    @Override
+                                    protected boolean checkValue(String attrName, ModelNode attribute, boolean isWriteAttribute) {
+                                        if (super.checkValue(attrName, attribute, isWriteAttribute)) {
+                                            return true;
+                                        }
+                                        return attribute.asBoolean();
+                                    }
+
+                                    @Override
+                                    protected ModelNode correctValue(ModelNode toResolve, boolean isWriteAttribute) {
+                                        return new ModelNode(false);
+                                    }
+
+                                })
+                                .addConfig(new FailedOperationTransformationConfig.AttributesPathAddressConfig(TRACKING.getName(),
+                                        ELYTRON_ENABLED.getName(), AUTHENTICATION_CONTEXT.getName(), MCP.getName(), AUTHENTICATION_CONTEXT_AND_APPLICATION.getName(),
+                                        RECOVERY_ELYTRON_ENABLED.getName(), RECOVERY_AUTHENTICATION_CONTEXT.getName(), RECOVERY_CREDENTIAL_REFERENCE.getName()) {
+
+                                    @Override
+                                    protected boolean isAttributeWritable(String attributeName) {
+                                        return false;
+                                    }
+
+                                    @Override
+                                    protected boolean checkValue(String attrName, ModelNode attribute, boolean isWriteAttribute) {
+                                        return attribute.isDefined();
+                                    }
+
+                                    @Override
+                                    protected ModelNode correctValue(ModelNode toResolve, boolean isWriteAttribute) {
+                                        return new ModelNode();
+                                    }
+                                }).build()));
     }
 
 

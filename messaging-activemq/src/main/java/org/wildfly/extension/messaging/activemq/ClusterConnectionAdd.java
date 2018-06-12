@@ -22,9 +22,6 @@
 
 package org.wildfly.extension.messaging.activemq;
 
-import static org.wildfly.extension.messaging.activemq.ClusterConnectionDefinition.CONNECTOR_REFS;
-import static org.wildfly.extension.messaging.activemq.ClusterConnectionDefinition.DISCOVERY_GROUP_NAME;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,8 +56,6 @@ public class ClusterConnectionAdd extends AbstractAddStepHandler {
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
 
         model.setEmptyObject();
-
-        AlternativeAttributeCheckHandler.checkAlternatives(operation, CONNECTOR_REFS.getName(), (DISCOVERY_GROUP_NAME.getName()), true);
 
         for (final AttributeDefinition attributeDefinition : ClusterConnectionDefinition.ATTRIBUTES) {
             attributeDefinition.validateAndSet(operation, model);
@@ -105,10 +100,11 @@ public class ClusterConnectionAdd extends AbstractAddStepHandler {
 
         final int maxHops = ClusterConnectionDefinition.MAX_HOPS.resolveModelAttribute(context, model).asInt();
         final int confirmationWindowSize = CommonAttributes.BRIDGE_CONFIRMATION_WINDOW_SIZE.resolveModelAttribute(context, model).asInt();
+        final int producerWindowSize = ClusterConnectionDefinition.PRODUCER_WINDOW_SIZE.resolveModelAttribute(context, model).asInt();
         final ModelNode discoveryNode = ClusterConnectionDefinition.DISCOVERY_GROUP_NAME.resolveModelAttribute(context, model);
         final int minLargeMessageSize = CommonAttributes.MIN_LARGE_MESSAGE_SIZE.resolveModelAttribute(context, model).asInt();
         final long callTimeout = CommonAttributes.CALL_TIMEOUT.resolveModelAttribute(context, model).asLong();
-        final long callFailoverTimeout = CommonAttributes.CALL_FAILOVER_TIMEOUT.resolveModelAttribute(context, model).asLong();
+        final long callFailoverTimeout = ClusterConnectionDefinition.CALL_FAILOVER_TIMEOUT.resolveModelAttribute(context, model).asLong();
         final long clusterNotificationInterval = ClusterConnectionDefinition.NOTIFICATION_INTERVAL.resolveModelAttribute(context, model).asLong();
         final int clusterNotificationAttempts = ClusterConnectionDefinition.NOTIFICATION_ATTEMPTS.resolveModelAttribute(context, model).asInt();
 
@@ -130,6 +126,7 @@ public class ClusterConnectionAdd extends AbstractAddStepHandler {
                 .setMessageLoadBalancingType(MessageLoadBalancingType.valueOf(messageLoadBalancingType))
                 .setMaxHops(maxHops)
                 .setConfirmationWindowSize(confirmationWindowSize)
+                .setProducerWindowSize(producerWindowSize)
                 .setClusterNotificationInterval(clusterNotificationInterval)
                 .setClusterNotificationAttempts(clusterNotificationAttempts);
 

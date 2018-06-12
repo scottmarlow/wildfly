@@ -1,7 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 
-<host xmlns="urn:jboss:domain:5.0">
-
+<host xmlns="urn:jboss:domain:7.0">
     <extensions>
         <?EXTENSIONS?>
     </extensions>
@@ -10,8 +9,7 @@
         <security-realms>
             <security-realm name="ManagementRealm">
                 <server-identities>
-                    <!-- Replace this with either a base64 password of your own, or use a vault with a vault expression -->
-                    <secret value="c2xhdmVfdXNlcl9wYXNzd29yZA=="/>
+                    <secret value="c2xhdmVfdXMzcl9wYXNzd29yZA=="/>
                 </server-identities>
 
                 <authentication>
@@ -90,6 +88,7 @@
                 <option value="-server"/>
                 <option value="-XX:MetaspaceSize=96m"/>
                 <option value="-XX:MaxMetaspaceSize=256m"/>
+                <option value="--add-exports=java.base/sun.nio.ch=ALL-UNNAMED"/>
             </jvm-options>
         </jvm>
     </jvms>
@@ -97,8 +96,6 @@
     <servers>
         <server name="server-one" group="main-server-group"/>
         <server name="server-two" group="other-server-group">
-            <!-- server-two avoids port conflicts by incrementing the ports in
-                 the default socket-group declared in the server-group -->
             <socket-bindings port-offset="150"/>
         </server>
     </servers>

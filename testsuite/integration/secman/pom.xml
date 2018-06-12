@@ -8,7 +8,11 @@
     <parent>
         <groupId>org.wildfly</groupId>
         <artifactId>wildfly-ts-integ</artifactId>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
     </parent>
 
 
@@ -35,56 +39,14 @@
             <build>
                 <plugins>
                     <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
-                        <executions>
-
-                            <!-- Disable default-test execution. -->
-                            <execution>
-                                <id>default-test</id>
-                                <goals>
-                                    <goal>test</goal>
-                                </goals>
-                                <phase>none</phase>
-                            </execution>
-
-                            <execution>
-                                <id>secman-integration.surefire</id>
-                                <phase>test</phase>
-                                <goals>
-                                    <goal>test</goal>
-                                </goals>
-                                <configuration>
-                                    <includes>
-                                        <include>org/jboss/as/testsuite/integration/secman/**/*Test*.java</include>
-                                    </includes>
-
-                                    <environmentVariables>
-                                        <JBOSS_HOME>${jboss.dist}</JBOSS_HOME>
-                                    </environmentVariables>
-
-                                    <systemPropertyVariables>
-                                        <jboss.server.config.file.name>standalone-full.xml</jboss.server.config.file.name>
-                                        <jboss.inst>${basedir}/target/jbossas</jboss.inst>
-                                    </systemPropertyVariables>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <artifactId>maven-checkstyle-plugin</artifactId>
                         <configuration>
-                            <!-- workaround for not working includeTestSourceDirectory parameter -->
-                            <sourceDirectory>${project.build.testSourceDirectory}</sourceDirectory>
+                            <environmentVariables>
+                                <JBOSS_HOME>${jboss.dist}</JBOSS_HOME>
+                            </environmentVariables>
                         </configuration>
-                        <executions>
-                            <execution>
-                                <id>check-style</id>
-                                <phase>test-compile</phase>
-                                <goals>
-                                    <goal>checkstyle</goal>
-                                </goals>
-                            </execution>
-                        </executions>
+
                     </plugin>
                 </plugins>
             </build>

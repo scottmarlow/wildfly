@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2014, Red Hat, Inc., and individual contributors
+ * Copyright 2016, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -28,7 +28,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 
-import org.jboss.as.controller.AbstractAddStepHandler;
+import javax.net.ssl.SSLContext;
+
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
@@ -38,6 +39,7 @@ import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.PropertiesAttributeDefinition;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.naming.InitialContext;
+import org.jboss.as.naming.service.DefaultNamespaceContextSelectorService;
 import org.jboss.as.network.SocketBinding;
 import org.jboss.as.server.AbstractDeploymentChainStep;
 import org.jboss.as.server.DeploymentProcessorTarget;
@@ -56,19 +58,24 @@ import org.omg.PortableServer.IdAssignmentPolicyValue;
 import org.omg.PortableServer.LifespanPolicyValue;
 import org.omg.PortableServer.POA;
 import org.wildfly.iiop.openjdk.csiv2.CSIV2IORToSocketInfo;
+import org.wildfly.iiop.openjdk.csiv2.ElytronSASClientInterceptor;
 import org.wildfly.iiop.openjdk.deployment.IIOPDependencyProcessor;
 import org.wildfly.iiop.openjdk.deployment.IIOPMarkerProcessor;
 import org.wildfly.iiop.openjdk.logging.IIOPLogger;
 import org.wildfly.iiop.openjdk.naming.jndi.JBossCNCtxFactory;
 import org.wildfly.iiop.openjdk.rmi.DelegatingStubFactoryFactory;
-import org.wildfly.iiop.openjdk.security.SocketFactory;
+import org.wildfly.iiop.openjdk.security.NoSSLSocketFactory;
+import org.wildfly.iiop.openjdk.security.LegacySSLSocketFactory;
+import org.wildfly.iiop.openjdk.security.SSLSocketFactory;
 import org.wildfly.iiop.openjdk.service.CorbaNamingService;
 import org.wildfly.iiop.openjdk.service.CorbaORBService;
 import org.wildfly.iiop.openjdk.service.CorbaPOAService;
 import org.wildfly.iiop.openjdk.service.IORSecConfigMetaDataService;
+import org.wildfly.security.auth.client.AuthenticationContext;
 import org.wildfly.security.manager.WildFlySecurityManager;
 
 import com.sun.corba.se.impl.orbutil.ORBConstants;
+import org.jboss.as.controller.AbstractBoottimeAddStepHandler;
 
 /**
  * <p>
@@ -85,22 +92,14 @@ import com.sun.corba.se.impl.orbutil.ORBConstants;
  * @author <a href="mailto:sguilhen@redhat.com">Stefan Guilhen</a>
  * @author <a href="mailto:tadamski@redhat.com">Tomasz Adamski</a>
  */
-public class IIOPSubsystemAdd extends AbstractAddStepHandler {
-
-//    static final IIOPSubsystemAdd INSTANCE = new IIOPSubsystemAdd();
-//
-//    protected IIOPSubsystemAdd() {
-//    }
+public class IIOPSubsystemAdd extends AbstractBoottimeAddStepHandler {
 
     public IIOPSubsystemAdd(final Collection<? extends AttributeDefinition> attributes) {
         super(attributes);
     }
 
-    private static final ServiceName SECURITY_DOMAIN_SERVICE_NAME = ServiceName.JBOSS.append("security").append(
-            "security-domain");
-
     @Override
-    protected void performRuntime(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
+    protected void performBoottime(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
 
         // This needs to run after all child resources so that they can detect a fresh state
         context.addStep(new OperationStepHandler() {
@@ -115,8 +114,14 @@ public class IIOPSubsystemAdd extends AbstractAddStepHandler {
         }, OperationContext.Stage.RUNTIME);
     }
 
-    protected void launchServices(final OperationContext context, final ModelNode model) throws OperationFailedException {
+    @Override
+    protected void populateModel(final OperationContext context, final ModelNode operation, final Resource resource) throws OperationFailedException {
+        super.populateModel(context, operation, resource);
+        final ModelNode model = resource.getModel();
+        ConfigValidator.validateConfig(context, model);
+    }
 
+    protected void launchServices(final OperationContext context, final ModelNode model) throws OperationFailedException {
 
         IIOPLogger.ROOT_LOGGER.activatingSubsystem();
 
@@ -141,8 +146,8 @@ public class IIOPSubsystemAdd extends AbstractAddStepHandler {
         context.addStep(new AbstractDeploymentChainStep() {
             public void execute(DeploymentProcessorTarget processorTarget) {
                 processorTarget.addDeploymentProcessor(IIOPExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES,
-                        Phase.DEPENDENCIES_JDKORB, new IIOPDependencyProcessor());
-                processorTarget.addDeploymentProcessor(IIOPExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_JDKORB,
+                        Phase.DEPENDENCIES_IIOP_OPENJDK, new IIOPDependencyProcessor());
+                processorTarget.addDeploymentProcessor(IIOPExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_IIOP_OPENJDK,
                         new IIOPMarkerProcessor());
             }
         }, OperationContext.Stage.RUNTIME);
@@ -157,24 +162,46 @@ public class IIOPSubsystemAdd extends AbstractAddStepHandler {
         final boolean sslConfigured = this.setupSSLFactories(props);
 
         // create the service that initializes and starts the CORBA ORB.
-
-
         CorbaORBService orbService = new CorbaORBService(props);
         final ServiceBuilder<ORB> builder = context.getServiceTarget().addService(CorbaORBService.SERVICE_NAME, orbService);
-        org.jboss.as.server.Services.addServerExecutorDependency(builder, orbService.getExecutorInjector(), false);
+        org.jboss.as.server.Services.addServerExecutorDependency(builder, orbService.getExecutorInjector());
 
         // if a security domain has been specified, add a dependency to the domain service.
         String securityDomain = props.getProperty(Constants.SECURITY_SECURITY_DOMAIN);
-        if (securityDomain != null && !securityDomain.isEmpty())
-            builder.addDependency(SECURITY_DOMAIN_SERVICE_NAME.append(securityDomain));
+        if (securityDomain != null) {
+            builder.addDependency(context.getCapabilityServiceName(Capabilities.LEGACY_SECURITY_DOMAIN_CAPABILITY, securityDomain, null));
+            builder.addDependency(DefaultNamespaceContextSelectorService.SERVICE_NAME);
+        }
+
+        // add dependencies to the ssl context services if needed.
+        final String serverSSLContextName = props.getProperty(Constants.SERVER_SSL_CONTEXT);
+        if (serverSSLContextName != null) {
+            ServiceName serverContextServiceName = context.getCapabilityServiceName(Capabilities.SSL_CONTEXT_CAPABILITY, serverSSLContextName, SSLContext.class);
+            builder.addDependency(serverContextServiceName);
+        }
+        final String clientSSLContextName = props.getProperty(Constants.CLIENT_SSL_CONTEXT);
+        if (clientSSLContextName != null) {
+            ServiceName clientContextServiceName = context.getCapabilityServiceName(Capabilities.SSL_CONTEXT_CAPABILITY, clientSSLContextName, SSLContext.class);
+            builder.addDependency(clientContextServiceName);
+        }
+
+        // if an authentication context has ben specified, add a dependency to its service.
+        final String authContext = props.getProperty(Constants.ORB_INIT_AUTH_CONTEXT);
+        if (authContext != null) {
+            ServiceName authContextServiceName = context.getCapabilityServiceName(Capabilities.AUTH_CONTEXT_CAPABILITY, authContext, AuthenticationContext.class);
+            builder.addDependency(authContextServiceName);
+        }
 
         // inject the socket bindings that specify IIOP and IIOP/SSL ports.
         String socketBinding = props.getProperty(Constants.ORB_SOCKET_BINDING);
         builder.addDependency(SocketBinding.JBOSS_BINDING_NAME.append(socketBinding), SocketBinding.class,
                 orbService.getIIOPSocketBindingInjector());
+
         String sslSocketBinding = props.getProperty(Constants.ORB_SSL_SOCKET_BINDING);
-        builder.addDependency(SocketBinding.JBOSS_BINDING_NAME.append(sslSocketBinding), SocketBinding.class,
-                orbService.getIIOPSSLSocketBindingInjector());
+        if(sslSocketBinding != null) {
+            builder.addDependency(SocketBinding.JBOSS_BINDING_NAME.append(sslSocketBinding), SocketBinding.class,
+                    orbService.getIIOPSSLSocketBindingInjector());
+        }
 
         // create the IOR security config metadata service.
         final IORSecurityConfigMetaData securityConfigMetaData = this.createIORSecurityConfigMetaData(context,
@@ -299,6 +326,10 @@ public class IIOPSubsystemAdd extends AbstractAddStepHandler {
             orbInitializers.addAll(Arrays.asList(IIOPInitializer.SECURITY_CLIENT.getInitializerClasses()));
         } else if (installSecurity.equalsIgnoreCase(Constants.IDENTITY)) {
             orbInitializers.addAll(Arrays.asList(IIOPInitializer.SECURITY_IDENTITY.getInitializerClasses()));
+        } else if (installSecurity.equalsIgnoreCase(Constants.ELYTRON)) {
+            final String authContext = props.getProperty(Constants.ORB_INIT_AUTH_CONTEXT);
+            ElytronSASClientInterceptor.setAuthenticationContextName(authContext);
+            orbInitializers.addAll(Arrays.asList(IIOPInitializer.SECURITY_ELYTRON.getInitializerClasses()));
         }
 
         String installTransaction = (String) props.remove(Constants.ORB_INIT_TRANSACTIONS);
@@ -325,22 +356,31 @@ public class IIOPSubsystemAdd extends AbstractAddStepHandler {
      *         security domain has been specified).
      */
     private boolean setupSSLFactories(final Properties props) throws OperationFailedException {
-        boolean supportSSL = "true".equalsIgnoreCase(props.getProperty(Constants.SECURITY_SUPPORT_SSL));
+        final boolean supportSSL = "true".equalsIgnoreCase(props.getProperty(Constants.SECURITY_SUPPORT_SSL));
 
+        final boolean sslConfigured;
         if (supportSSL) {
-            // if SSL is to be used, check if a security domain has been specified.
-            String securityDomain = props.getProperty(Constants.SECURITY_SECURITY_DOMAIN);
-            if (securityDomain == null || securityDomain.isEmpty())
-                throw IIOPLogger.ROOT_LOGGER.noSecurityDomainSpecified();
-
-            // add the domain socket factories.
-            SocketFactory.setSecurityDomain(securityDomain);
-            props.setProperty(ORBConstants.SOCKET_FACTORY_CLASS_PROPERTY, SocketFactory.class.getName());
-
-            return true;
+            // if the config is using Elytron supplied SSL contexts, install the SSLSocketFactory.
+            final String serverSSLContextName = props.getProperty(Constants.SERVER_SSL_CONTEXT);
+            final String clientSSLContextName = props.getProperty(Constants.CLIENT_SSL_CONTEXT);
+            if (serverSSLContextName != null && clientSSLContextName != null) {
+                SSLSocketFactory.setServerSSLContextName(serverSSLContextName);
+                SSLSocketFactory.setClientSSLContextName(clientSSLContextName);
+                props.setProperty(ORBConstants.SOCKET_FACTORY_CLASS_PROPERTY, SSLSocketFactory.class.getName());
+            }
+            else {
+                // if the config only has a legacy JSSE domain reference, install the LegacySSLSocketFactory.
+                final String securityDomain = props.getProperty(Constants.SECURITY_SECURITY_DOMAIN);
+                LegacySSLSocketFactory.setSecurityDomain(securityDomain);
+                props.setProperty(ORBConstants.SOCKET_FACTORY_CLASS_PROPERTY, LegacySSLSocketFactory.class.getName());
+            }
+            sslConfigured = true;
+        } else {
+            props.setProperty(ORBConstants.SOCKET_FACTORY_CLASS_PROPERTY, NoSSLSocketFactory.class.getName());
+            sslConfigured = false;
         }
 
-        return false;
+        return sslConfigured;
     }
 
     private IORSecurityConfigMetaData createIORSecurityConfigMetaData(final OperationContext context, final ModelNode resourceModel, final boolean sslConfigured)
@@ -359,29 +399,46 @@ public class IIOPSubsystemAdd extends AbstractAddStepHandler {
         asContextMetaData.setRequired(IIOPRootDefinition.REQUIRED.resolveModelAttribute(context, resourceModel).asBoolean());
         securityConfigMetaData.setAsContext(asContextMetaData);
 
+        final boolean serverRequiresSsl = IIOPRootDefinition.SERVER_REQUIRES_SSL.resolveModelAttribute(context, resourceModel).asBoolean();
+
         final IORTransportConfigMetaData transportConfigMetaData = new IORTransportConfigMetaData();
-        transportConfigMetaData.setIntegrity(IIOPRootDefinition.INTEGRITY.resolveModelAttribute(context, resourceModel).asString());
-        transportConfigMetaData.setConfidentiality(IIOPRootDefinition.CONFIDENTIALITY.resolveModelAttribute(context, resourceModel).asString());
-        transportConfigMetaData.setEstablishTrustInTarget(IIOPRootDefinition.TRUST_IN_TARGET.resolveModelAttribute(context, resourceModel).asString());
-        transportConfigMetaData.setEstablishTrustInClient(IIOPRootDefinition.TRUST_IN_CLIENT.resolveModelAttribute(context, resourceModel).asString());
-        transportConfigMetaData.setDetectMisordering(IIOPRootDefinition.DETECT_MISORDERING.resolveModelAttribute(context, resourceModel).asString());
-        transportConfigMetaData.setDetectReplay(IIOPRootDefinition.DETECT_REPLAY.resolveModelAttribute(context, resourceModel).asString());
-        securityConfigMetaData.setTransportConfig(transportConfigMetaData);
-
-        final boolean sslRequired = IORTransportConfigMetaData.INTEGRITY_REQUIRED.equals(transportConfigMetaData.getIntegrity())
-                || IORTransportConfigMetaData.CONFIDENTIALITY_REQUIRED.equals(transportConfigMetaData.getConfidentiality())
-                || IORTransportConfigMetaData.ESTABLISH_TRUST_IN_CLIENT_REQUIRED.equals(transportConfigMetaData.getEstablishTrustInClient());
-
-        if (sslRequired && !sslConfigured) {
-            throw IIOPLogger.ROOT_LOGGER.sslNotConfigured();
+        final ModelNode integrityNode = IIOPRootDefinition.INTEGRITY.resolveModelAttribute(context, resourceModel);
+        if(integrityNode.isDefined()){
+            transportConfigMetaData.setIntegrity(integrityNode.asString());
+        } else {
+            transportConfigMetaData.setIntegrity(sslConfigured ? (serverRequiresSsl ? Constants.IOR_REQUIRED : Constants.IOR_SUPPORTED) : Constants.NONE);
         }
 
+        final ModelNode confidentialityNode = IIOPRootDefinition.CONFIDENTIALITY.resolveModelAttribute(context, resourceModel);
+        if(confidentialityNode.isDefined()){
+            transportConfigMetaData.setConfidentiality(confidentialityNode.asString());
+        } else {
+            transportConfigMetaData.setConfidentiality(sslConfigured ? (serverRequiresSsl ? Constants.IOR_REQUIRED: Constants.IOR_SUPPORTED) : Constants.IOR_NONE);
+        }
+
+        final ModelNode establishTrustInTargetNode = IIOPRootDefinition.TRUST_IN_TARGET.resolveModelAttribute(context, resourceModel);
+        if (establishTrustInTargetNode.isDefined()) {
+            transportConfigMetaData.setEstablishTrustInTarget(confidentialityNode.asString());
+        } else {
+            transportConfigMetaData.setEstablishTrustInTarget(sslConfigured ? Constants.IOR_SUPPORTED : Constants.NONE);
+        }
+
+        final ModelNode establishTrustInClientNode = IIOPRootDefinition.TRUST_IN_CLIENT.resolveModelAttribute(context, resourceModel);
+        if(establishTrustInClientNode.isDefined()){
+            transportConfigMetaData.setEstablishTrustInClient(establishTrustInClientNode.asString());
+        } else {
+            transportConfigMetaData.setEstablishTrustInClient(sslConfigured ? (serverRequiresSsl ? Constants.IOR_REQUIRED : Constants.IOR_SUPPORTED) : Constants.NONE);
+        }
+
+        transportConfigMetaData.setDetectMisordering(Constants.IOR_SUPPORTED);
+        transportConfigMetaData.setDetectReplay(Constants.IOR_SUPPORTED);
+
+        securityConfigMetaData.setTransportConfig(transportConfigMetaData);
         return securityConfigMetaData;
     }
 
     private void configureClientSecurity(final Properties props) {
-        final SSLConfigValue clientRequiresSSL = SSLConfigValue
-                .fromValue(props.getProperty(Constants.SECURITY_CLIENT_REQUIRES));
-        CSIV2IORToSocketInfo.setClientTransportConfigMetaData(clientRequiresSSL);
+        final boolean clientRequiresSSL = Boolean.getBoolean(props.getProperty(Constants.SECURITY_CLIENT_REQUIRES_SSL));
+        CSIV2IORToSocketInfo.setClientRequiresSSL(clientRequiresSSL);
     }
 }

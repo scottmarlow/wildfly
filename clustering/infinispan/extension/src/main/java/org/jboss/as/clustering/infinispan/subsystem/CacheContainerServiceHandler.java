@@ -22,14 +22,20 @@
 
 package org.jboss.as.clustering.infinispan.subsystem;
 
-import static org.jboss.as.clustering.infinispan.subsystem.CacheContainerResourceDefinition.Attribute.*;
+import static org.jboss.as.clustering.infinispan.subsystem.CacheContainerResourceDefinition.DEFAULT_CAPABILITIES;
+import static org.jboss.as.clustering.infinispan.subsystem.CacheContainerResourceDefinition.DEFAULT_CLUSTERING_CAPABILITIES;
+import static org.jboss.as.clustering.infinispan.subsystem.CacheContainerResourceDefinition.Attribute.DEFAULT_CACHE;
+import static org.jboss.as.clustering.infinispan.subsystem.CacheContainerResourceDefinition.Attribute.MODULE;
 
+import java.util.EnumSet;
+import java.util.Map;
 import java.util.ServiceLoader;
 
-import org.infinispan.Cache;
+import org.jboss.as.clustering.controller.Capability;
+import org.jboss.as.clustering.controller.CapabilityServiceConfigurator;
+import org.jboss.as.clustering.controller.ModuleServiceConfigurator;
 import org.jboss.as.clustering.controller.ResourceServiceHandler;
-import org.jboss.as.clustering.dmr.ModelNodes;
-import org.jboss.as.clustering.naming.BinderServiceBuilder;
+import org.jboss.as.clustering.naming.BinderServiceConfigurator;
 import org.jboss.as.clustering.naming.JndiNameFactory;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
@@ -38,17 +44,16 @@ import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.registry.Resource;
-import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.dmr.ModelNode;
+import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceTarget;
-import org.wildfly.clustering.infinispan.spi.CacheContainer;
-import org.wildfly.clustering.infinispan.spi.service.CacheContainerServiceName;
-import org.wildfly.clustering.infinispan.spi.service.CacheServiceName;
-import org.wildfly.clustering.service.AliasServiceBuilder;
-import org.wildfly.clustering.service.Builder;
-import org.wildfly.clustering.service.GroupServiceNameFactory;
-import org.wildfly.clustering.service.SubGroupServiceNameFactory;
-import org.wildfly.clustering.spi.CacheGroupAliasBuilderProvider;
+import org.wildfly.clustering.infinispan.spi.InfinispanCacheRequirement;
+import org.wildfly.clustering.service.IdentityServiceConfigurator;
+import org.wildfly.clustering.service.ServiceNameProvider;
+import org.wildfly.clustering.spi.IdentityCacheServiceConfiguratorProvider;
+import org.wildfly.clustering.spi.CapabilityServiceNameRegistry;
+import org.wildfly.clustering.spi.ClusteringCacheRequirement;
+import org.wildfly.clustering.spi.ServiceNameRegistry;
 
 /**
  * @author Paul Ferraro
@@ -57,14 +62,15 @@ public class CacheContainerServiceHandler implements ResourceServiceHandler {
 
     @Override
     public void installServices(OperationContext context, ModelNode model) throws OperationFailedException {
+        PathAddress address = context.getCurrentAddress();
         String name = context.getCurrentAddressValue();
 
         // Handle case where ejb subsystem has already installed services for this cache-container
         // This can happen if the ejb cache-container is added to a running server
         if (context.getProcessType().isServer() && !context.isBooting() && name.equals("ejb")) {
-            Resource rootResource = context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS);
             PathElement ejbPath = PathElement.pathElement(ModelDescriptionConstants.SUBSYSTEM, "ejb3");
-            if (rootResource.hasChild(ejbPath) && rootResource.getChild(ejbPath).hasChild(PathElement.pathElement("service", "remote"))) {
+            Resource ejbResource = safeGetResource(context, ejbPath);
+            if (ejbResource != null && ejbResource.hasChild(PathElement.pathElement("service", "remote"))) {
                 // Following restart, these services will be installed by this handler, rather than the ejb remote handler
                 context.addStep(new OperationStepHandler() {
                     @Override
@@ -79,30 +85,34 @@ public class CacheContainerServiceHandler implements ResourceServiceHandler {
 
         ServiceTarget target = context.getServiceTarget();
 
-        new GlobalConfigurationBuilder(name).configure(context, model).build(target).install();
+        new ModuleServiceConfigurator(CacheContainerComponent.MODULE.getServiceName(address), MODULE).configure(context, model).build(target).setInitialMode(ServiceController.Mode.PASSIVE).install();
 
-        String defaultCache = ModelNodes.asString(DEFAULT_CACHE.getDefinition().resolveModelAttribute(context, model));
-        new CacheContainerBuilder(name).setDefaultCache(defaultCache).configure(context, model).build(target).install();
+        GlobalConfigurationServiceConfigurator configBuilder = new GlobalConfigurationServiceConfigurator(address);
+        configBuilder.configure(context, model).build(target).install();
 
-        new KeyAffinityServiceFactoryBuilder(name).build(target).install();
+        CacheContainerServiceConfigurator containerBuilder = new CacheContainerServiceConfigurator(address).configure(context, model);
+        containerBuilder.build(target).install();
 
-        String jndiName = ModelNodes.asString(CacheContainerResourceDefinition.Attribute.JNDI_NAME.getDefinition().resolveModelAttribute(context, model));
-        BinderServiceBuilder<?> bindingBuilder = new BinderServiceBuilder<>(InfinispanBindingFactory.createCacheContainerBinding(name), CacheContainerServiceName.CACHE_CONTAINER.getServiceName(name), CacheContainer.class);
-        if (jndiName != null) {
-            bindingBuilder.alias(ContextNames.bindInfoFor(JndiNameFactory.parse(jndiName).getAbsoluteName()));
-        }
-        bindingBuilder.build(target).install();
+        new KeyAffinityServiceFactoryServiceConfigurator(address).build(target).install();
 
-        if ((defaultCache != null) && !defaultCache.equals(CacheServiceName.DEFAULT_CACHE)) {
-            for (SubGroupServiceNameFactory nameFactory : CacheServiceName.values()) {
-                new AliasServiceBuilder<>(nameFactory.getServiceName(name), nameFactory.getServiceName(name, defaultCache), Object.class).build(target).install();
+        new BinderServiceConfigurator(InfinispanBindingFactory.createCacheContainerBinding(name), containerBuilder.getServiceName()).build(target).install();
+
+        String defaultCache = DEFAULT_CACHE.resolveModelAttribute(context, model).asString(null);
+        if (defaultCache != null) {
+            for (Map.Entry<InfinispanCacheRequirement, Capability> entry : DEFAULT_CAPABILITIES.entrySet()) {
+                new IdentityServiceConfigurator<>(entry.getValue().getServiceName(address), entry.getKey().getServiceName(context, name, defaultCache)).build(target).install();
             }
 
-            new BinderServiceBuilder<>(InfinispanBindingFactory.createCacheBinding(name, CacheServiceName.DEFAULT_CACHE), CacheServiceName.CACHE.getServiceName(name), Cache.class).build(target).install();
+            if (!defaultCache.equals(JndiNameFactory.DEFAULT_LOCAL_NAME)) {
+                new BinderServiceConfigurator(InfinispanBindingFactory.createCacheBinding(name, JndiNameFactory.DEFAULT_LOCAL_NAME), DEFAULT_CAPABILITIES.get(InfinispanCacheRequirement.CACHE).getServiceName(address)).build(target).install();
+                new BinderServiceConfigurator(InfinispanBindingFactory.createCacheConfigurationBinding(name, JndiNameFactory.DEFAULT_LOCAL_NAME), DEFAULT_CAPABILITIES.get(InfinispanCacheRequirement.CONFIGURATION).getServiceName(address)).build(target).install();
+            }
 
-            for (CacheGroupAliasBuilderProvider provider : ServiceLoader.load(CacheGroupAliasBuilderProvider.class, CacheGroupAliasBuilderProvider.class.getClassLoader())) {
-                for (Builder<?> builder : provider.getBuilders(name, CacheServiceName.DEFAULT_CACHE, defaultCache)) {
-                    builder.build(target).install();
+            ServiceNameRegistry<ClusteringCacheRequirement> registry = new CapabilityServiceNameRegistry<>(DEFAULT_CLUSTERING_CAPABILITIES, address);
+
+            for (IdentityCacheServiceConfiguratorProvider provider : ServiceLoader.load(IdentityCacheServiceConfiguratorProvider.class, IdentityCacheServiceConfiguratorProvider.class.getClassLoader())) {
+                for (CapabilityServiceConfigurator configurator : provider.getServiceConfigurators(registry, name, null, defaultCache)) {
+                    configurator.configure(context).build(target).install();
                 }
             }
         }
@@ -110,27 +120,44 @@ public class CacheContainerServiceHandler implements ResourceServiceHandler {
 
     @Override
     public void removeServices(OperationContext context, ModelNode model) throws OperationFailedException {
+        PathAddress address = context.getCurrentAddress();
         String name = context.getCurrentAddressValue();
 
-        String defaultCache = ModelNodes.asString(CacheContainerResourceDefinition.Attribute.DEFAULT_CACHE.getDefinition().resolveModelAttribute(context, model));
-        if ((defaultCache != null) && !defaultCache.equals(CacheServiceName.DEFAULT_CACHE)) {
-            for (CacheGroupAliasBuilderProvider provider : ServiceLoader.load(CacheGroupAliasBuilderProvider.class, CacheGroupAliasBuilderProvider.class.getClassLoader())) {
-                for (Builder<?> builder : provider.getBuilders(name, CacheServiceName.DEFAULT_CACHE, defaultCache)) {
-                    context.removeService(builder.getServiceName());
+        String defaultCache = DEFAULT_CACHE.resolveModelAttribute(context, model).asString(null);
+        if (defaultCache != null) {
+            ServiceNameRegistry<ClusteringCacheRequirement> registry = new CapabilityServiceNameRegistry<>(DEFAULT_CLUSTERING_CAPABILITIES, address);
+
+            for (IdentityCacheServiceConfiguratorProvider provider : ServiceLoader.load(IdentityCacheServiceConfiguratorProvider.class, IdentityCacheServiceConfiguratorProvider.class.getClassLoader())) {
+                for (ServiceNameProvider configurator : provider.getServiceConfigurators(registry, name, null, defaultCache)) {
+                    context.removeService(configurator.getServiceName());
                 }
             }
 
-            context.removeService(new BinderServiceBuilder<>(InfinispanBindingFactory.createCacheBinding(name, CacheServiceName.DEFAULT_CACHE), CacheServiceName.CACHE.getServiceName(name), Cache.class).getServiceName());
+            if (!defaultCache.equals(JndiNameFactory.DEFAULT_LOCAL_NAME)) {
+                context.removeService(InfinispanBindingFactory.createCacheBinding(name, JndiNameFactory.DEFAULT_LOCAL_NAME).getBinderServiceName());
+                context.removeService(InfinispanBindingFactory.createCacheConfigurationBinding(name, JndiNameFactory.DEFAULT_LOCAL_NAME).getBinderServiceName());
+            }
 
-            for (SubGroupServiceNameFactory nameFactory : CacheServiceName.values()) {
-                context.removeService(nameFactory.getServiceName(name));
+            for (Capability capability : DEFAULT_CAPABILITIES.values()) {
+                context.removeService(capability.getServiceName(address));
             }
         }
 
         context.removeService(InfinispanBindingFactory.createCacheContainerBinding(name).getBinderServiceName());
 
-        for (GroupServiceNameFactory factory : CacheContainerServiceName.values()) {
-            context.removeService(factory.getServiceName(name));
+        context.removeService(CacheContainerComponent.MODULE.getServiceName(address));
+
+        for (Capability capability : EnumSet.allOf(CacheContainerResourceDefinition.Capability.class)) {
+            context.removeService(capability.getServiceName(address));
+        }
+    }
+
+    private static Resource safeGetResource(OperationContext context, PathElement path) {
+        try {
+            return context.readResourceFromRoot(PathAddress.pathAddress(path), false);
+        } catch (RuntimeException e) {
+            // No such resource
+            return null;
         }
     }
 }

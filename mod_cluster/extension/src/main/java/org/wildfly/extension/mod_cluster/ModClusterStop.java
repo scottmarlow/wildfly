@@ -22,6 +22,9 @@
 
 package org.wildfly.extension.mod_cluster;
 
+import static org.wildfly.extension.mod_cluster.ModClusterLogger.ROOT_LOGGER;
+import static org.wildfly.extension.mod_cluster.ModClusterSubsystemResourceDefinition.WAIT_TIME;
+
 import java.util.concurrent.TimeUnit;
 
 import org.jboss.as.controller.OperationContext;
@@ -32,13 +35,10 @@ import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
 import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
 import org.jboss.dmr.ModelNode;
 import org.jboss.modcluster.ModClusterServiceMBean;
-import org.jboss.msc.service.ServiceController;
-
-import static org.wildfly.extension.mod_cluster.ModClusterLogger.ROOT_LOGGER;
-import static org.wildfly.extension.mod_cluster.ModClusterSubsystemResourceDefinition.WAIT_TIME;
+import org.wildfly.clustering.service.ActiveServiceSupplier;
 
 /**
- * {@link OperationStepHandler} that enables all web application context for all engines.
+ * {@link OperationStepHandler} that attempts to gracefully stop all web applications, within the specified timeout.
  *
  * @author Jean-Frederic Clere
  * @author Radoslav Husar
@@ -56,17 +56,17 @@ public class ModClusterStop implements OperationStepHandler {
 
     @Override
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-        if (context.isNormalServer() && context.getServiceRegistry(false).getService(ContainerEventHandlerService.SERVICE_NAME) != null) {
+        if (context.isNormalServer() && context.getServiceRegistry(false).getService(ContainerEventHandlerServiceConfigurator.SERVICE_NAME) != null) {
             context.addStep(new OperationStepHandler() {
                 @Override
                 public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                    ServiceController<?> controller = context.getServiceRegistry(false).getService(ContainerEventHandlerService.SERVICE_NAME);
-                    final ModClusterServiceMBean service = (ModClusterServiceMBean) controller.getValue();
-                    ROOT_LOGGER.debugf("enable: %s", operation);
+                    ModClusterServiceMBean service = new ActiveServiceSupplier<ModClusterServiceMBean>(context.getServiceRegistry(true), ContainerEventHandlerServiceConfigurator.SERVICE_NAME).get();
+                    ROOT_LOGGER.debugf("stop: %s", operation);
 
                     final int waitTime = WAIT_TIME.resolveModelAttribute(context, operation).asInt();
 
-                    service.stop(waitTime, TimeUnit.SECONDS);
+                    boolean success = service.stop(waitTime, TimeUnit.SECONDS);
+                    context.getResult().get(CommonAttributes.SESSION_DRAINING_COMPLETE).set(success);
 
                     context.completeStep(new OperationContext.RollbackHandler() {
                         @Override
@@ -78,7 +78,5 @@ public class ModClusterStop implements OperationStepHandler {
                 }
             }, OperationContext.Stage.RUNTIME);
         }
-
-        context.stepCompleted();
-    }
+   }
 }

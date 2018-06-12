@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -33,7 +33,6 @@ import org.jboss.as.controller.ServiceRemoveStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.operations.validation.IntRangeValidator;
-import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 
@@ -42,22 +41,22 @@ import org.jboss.dmr.ModelType;
  */
 public class BufferCacheDefinition extends PersistentResourceDefinition {
     protected static final SimpleAttributeDefinition BUFFER_SIZE = new SimpleAttributeDefinitionBuilder(Constants.BUFFER_SIZE, ModelType.INT)
-            .setAllowNull(true)
-            .setFlags(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
+            .setRequired(false)
+            .setRestartAllServices()
             .setValidator(new IntRangeValidator(0, false, true))
             .setDefaultValue(new ModelNode(1024))
             .setAllowExpression(true)
             .build();
     protected static final SimpleAttributeDefinition BUFFERS_PER_REGION = new SimpleAttributeDefinitionBuilder(Constants.BUFFERS_PER_REGION, ModelType.INT)
-            .setAllowNull(true)
-            .setFlags(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
+            .setRequired(false)
+            .setRestartAllServices()
             .setValidator(new IntRangeValidator(0, false, true))
             .setDefaultValue(new ModelNode(1024))
             .setAllowExpression(true)
             .build();
     protected static final SimpleAttributeDefinition MAX_REGIONS = new SimpleAttributeDefinitionBuilder(Constants.MAX_REGIONS, ModelType.INT)
-            .setAllowNull(true)
-            .setFlags(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
+            .setRequired(false)
+            .setRestartAllServices()
             .setValidator(new IntRangeValidator(0, false, true))
             .setAllowExpression(true)
             .setDefaultValue(new ModelNode(10))

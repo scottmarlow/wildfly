@@ -24,30 +24,17 @@ package org.jboss.as.clustering.infinispan.subsystem;
 
 import java.util.List;
 
-import org.infinispan.commons.api.BasicCacheContainer;
-import org.jboss.as.clustering.controller.AddStepHandler;
-import org.jboss.as.clustering.controller.AttributeParsers;
 import org.jboss.as.clustering.controller.CapabilityReference;
 import org.jboss.as.clustering.controller.CommonUnaryRequirement;
-import org.jboss.as.clustering.controller.RemoveStepHandler;
-import org.jboss.as.clustering.controller.ResourceDescriptor;
-import org.jboss.as.clustering.controller.ResourceServiceHandler;
-import org.jboss.as.clustering.controller.SimpleAliasEntry;
-import org.jboss.as.clustering.controller.SimpleResourceServiceHandler;
-import org.jboss.as.clustering.controller.transform.LegacyPropertyAddOperationTransformer;
-import org.jboss.as.clustering.controller.transform.LegacyPropertyResourceTransformer;
-import org.jboss.as.clustering.controller.transform.SimpleOperationTransformer;
+import org.jboss.as.clustering.controller.SimpleResourceDescriptorConfigurator;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.StringListAttributeDefinition;
-import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.client.helpers.MeasurementUnit;
-import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.registry.AttributeAccess;
-import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.transform.TransformationContext;
 import org.jboss.as.controller.transform.description.AttributeConverter;
 import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
@@ -61,36 +48,16 @@ import org.jboss.dmr.ModelType;
  * /subsystem=infinispan/cache-container=X/cache=Y/remote-store=REMOTE_STORE
  *
  * @author Richard Achmatowicz (c) 2011 Red Hat Inc.
+ * @deprecated Use {@link org.jboss.as.clustering.infinispan.subsystem.remote.HotRodStoreResourceDefinition} instead.
  */
+@Deprecated
 public class RemoteStoreResourceDefinition extends StoreResourceDefinition {
 
     static final PathElement LEGACY_PATH = PathElement.pathElement("remote-store", "REMOTE_STORE");
     static final PathElement PATH = pathElement("remote");
 
-    enum Capability implements org.jboss.as.clustering.controller.Capability {
-        OUTBOUND_SOCKET_BINDING("org.wildfly.clustering.infinispan.cache-container.cache.store.remote.outbound-socket-binding"),
-        ;
-        private final RuntimeCapability<Void> definition;
-
-        Capability(String name) {
-            this.definition = RuntimeCapability.Builder.of(name, true).build();
-        }
-
-        @Override
-        public RuntimeCapability<Void> getDefinition() {
-            return this.definition;
-        }
-
-        @Override
-        public RuntimeCapability<Void> resolve(PathAddress address) {
-            PathAddress cacheAddress = address.getParent();
-            PathAddress containerAddress = cacheAddress.getParent();
-            return this.definition.fromBaseCapability(containerAddress.getLastElement().getValue() + "." + cacheAddress.getLastElement().getValue());
-        }
-    }
-
     enum Attribute implements org.jboss.as.clustering.controller.Attribute {
-        CACHE("cache", ModelType.STRING, new ModelNode(BasicCacheContainer.DEFAULT_CACHE_NAME)),
+        CACHE("cache", ModelType.STRING, null),
         SOCKET_TIMEOUT("socket-timeout", ModelType.LONG, new ModelNode(60000L)),
         TCP_NO_DELAY("tcp-no-delay", ModelType.BOOLEAN, new ModelNode(true)),
         SOCKET_BINDINGS("remote-servers")
@@ -100,7 +67,7 @@ public class RemoteStoreResourceDefinition extends StoreResourceDefinition {
         Attribute(String name, ModelType type, ModelNode defaultValue) {
             this.definition = new SimpleAttributeDefinitionBuilder(name, type)
                     .setAllowExpression(true)
-                    .setAllowNull(true)
+                    .setRequired(defaultValue == null)
                     .setDefaultValue(defaultValue)
                     .setFlags(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
                     .setMeasurementUnit((type == ModelType.LONG) ? MeasurementUnit.MILLISECONDS : null)
@@ -109,8 +76,7 @@ public class RemoteStoreResourceDefinition extends StoreResourceDefinition {
 
         Attribute(String name) {
             this.definition = new StringListAttributeDefinition.Builder(name)
-                    .setAttributeParser(AttributeParsers.COLLECTION)
-                    .setCapabilityReference(new CapabilityReference(Capability.OUTBOUND_SOCKET_BINDING, CommonUnaryRequirement.OUTBOUND_SOCKET_BINDING))
+                    .setCapabilityReference(new CapabilityReference(Capability.PERSISTENCE, CommonUnaryRequirement.OUTBOUND_SOCKET_BINDING))
                     .setFlags(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
                     .setMinSize(1)
                     .build();
@@ -144,35 +110,11 @@ public class RemoteStoreResourceDefinition extends StoreResourceDefinition {
                     }, Attribute.SOCKET_BINDINGS.getDefinition());
         }
 
-        if (InfinispanModel.VERSION_3_0_0.requiresTransformation(version)) {
-            builder.addOperationTransformationOverride(ModelDescriptionConstants.ADD)
-                    .setCustomOperationTransformer(new SimpleOperationTransformer(new LegacyPropertyAddOperationTransformer())).inheritResourceAttributeDefinitions();
-
-            builder.setCustomResourceTransformer(new LegacyPropertyResourceTransformer());
-        }
-
-        StoreResourceDefinition.buildTransformation(version, builder);
+        StoreResourceDefinition.buildTransformation(version, builder, PATH);
     }
 
-    RemoteStoreResourceDefinition(boolean allowRuntimeOnlyRegistration) {
-        super(PATH, new InfinispanResourceDescriptionResolver(PATH, WILDCARD_PATH), allowRuntimeOnlyRegistration);
-    }
-
-    @Override
-    public void register(ManagementResourceRegistration parentRegistration) {
-        ManagementResourceRegistration registration = parentRegistration.registerSubModel(this);
-        parentRegistration.registerAlias(LEGACY_PATH, new SimpleAliasEntry(registration));
-
-        ResourceDescriptor descriptor = new ResourceDescriptor(this.getResourceDescriptionResolver())
-                .addAttributes(Attribute.class)
-                .addAttributes(StoreResourceDefinition.Attribute.class)
-                .addCapabilities(Capability.class)
-                .addRequiredSingletonChildren(StoreWriteThroughResourceDefinition.PATH)
-                ;
-        ResourceServiceHandler handler = new SimpleResourceServiceHandler<>(new RemoteStoreBuilderFactory());
-        new AddStepHandler(descriptor, handler).register(registration);
-        new RemoveStepHandler(descriptor, handler).register(registration);
-
-        super.register(registration);
+    RemoteStoreResourceDefinition() {
+        super(PATH, LEGACY_PATH, InfinispanExtension.SUBSYSTEM_RESOLVER.createChildResolver(PATH, WILDCARD_PATH), new SimpleResourceDescriptorConfigurator<>(Attribute.class), RemoteStoreServiceConfigurator::new);
+        this.setDeprecated(InfinispanModel.VERSION_7_0_0.getVersion());
     }
 }

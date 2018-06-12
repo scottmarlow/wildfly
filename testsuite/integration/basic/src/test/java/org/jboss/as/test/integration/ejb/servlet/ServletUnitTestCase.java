@@ -22,9 +22,10 @@
 
 package org.jboss.as.test.integration.ejb.servlet;
 
+import static org.jboss.as.test.shared.integration.ejb.security.PermissionUtils.createPermissionsXmlAsset;
+
 import java.net.URL;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.OperateOnDeployment;
@@ -32,6 +33,8 @@ import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.test.integration.common.HttpRequest;
+import org.jboss.as.test.shared.integration.ejb.security.Util;
+import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
@@ -41,6 +44,7 @@ import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.wildfly.security.permission.ElytronPermission;
 
 /**
  * A servlet that accesses an EJB and tests whether the call argument is serialized.
@@ -57,14 +61,12 @@ public class ServletUnitTestCase {
     public static Archive<?> deployEjbs() {
         JavaArchive jar = getEjbs("ejb3-servlet-ejbs.jar");
         jar.addAsManifestResource(new StringAsset("Dependencies: deployment.ejb3-servlet-client.jar \n"), "MANIFEST.MF");
-        log.info(jar.toString(true));
         return jar;
     }
 
     @Deployment(name = "client", order = 1)
     public static Archive<?> deployClient() {
         JavaArchive jar = getClient("ejb3-servlet-client.jar");
-        log.info(jar.toString(true));
         return jar;
     }
 
@@ -76,9 +78,11 @@ public class ServletUnitTestCase {
     public static Archive<?> deployServlet() {
         WebArchive war = getServlet("ejb3-servlet.war");
         war.addClass(EJBServlet.class);
+        war.addClass(Util.class);
         war.addAsWebInfResource(ServletUnitTestCase.class.getPackage(), "jboss-web.xml", "jboss-web.xml");
         war.addAsWebInfResource(ServletUnitTestCase.class.getPackage(), "web.xml", "web.xml");
         war.addAsManifestResource(new StringAsset("Dependencies: deployment.ejb3-servlet-ejbs.jar \n"), "MANIFEST.MF");
+        war.addAsManifestResource(createPermissionsXmlAsset(new ElytronPermission("getSecurityDomain")), "permissions.xml");
         return war;
     }
 
@@ -97,10 +101,11 @@ public class ServletUnitTestCase {
         war.addAsWebInfResource(ServletUnitTestCase.class.getPackage(), "jboss-web-ear.xml", "jboss-web.xml");
         war.addAsWebInfResource(ServletUnitTestCase.class.getPackage(), "web-ear.xml", "web.xml");
         war.addClass(EJBServletEar.class);
+        war.addClass(Util.class);
+        ear.addAsManifestResource(createPermissionsXmlAsset(new ElytronPermission("getSecurityDomain")), "permissions.xml");
         ear.addAsModule(war);
 
         ear.addAsManifestResource(ServletUnitTestCase.class.getPackage(), "application.xml", "application.xml");
-        log.info(ear.toString(true));
         return ear;
     }
 

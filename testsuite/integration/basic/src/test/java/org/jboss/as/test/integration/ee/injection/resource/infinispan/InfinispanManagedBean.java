@@ -38,8 +38,8 @@ import org.infinispan.manager.CacheContainer;
  */
 @ManagedBean("infinispan")
 public class InfinispanManagedBean {
-    private static final String CONTAINER_JNDI_NAME = "java:jboss/infinispan/container/hibernate";
-    private static final String CACHE_JNDI_NAME = "java:jboss/infinispan/cache/hibernate/local-query";
+    private static final String CONTAINER_JNDI_NAME = "java:jboss/infinispan/container/server";
+    private static final String CACHE_JNDI_NAME = "java:jboss/infinispan/cache/server/default";
 
     @Resource(lookup = CONTAINER_JNDI_NAME)
     private CacheContainer container;
@@ -48,7 +48,7 @@ public class InfinispanManagedBean {
 
     @PostConstruct
     public void start() {
-        assert this.cache.getCacheManager() == this.container;
+        assert this.cache.getCacheManager().equals(this.container);
         assert this.cache.getName().equals(this.container.getCache().getName());
     }
 
@@ -59,7 +59,6 @@ public class InfinispanManagedBean {
             // Test custom type
             this.cache.put(2, new Bean());
         } catch (Exception e) {
-            e.printStackTrace(System.err);
             throw new RuntimeException(e);
         }
 

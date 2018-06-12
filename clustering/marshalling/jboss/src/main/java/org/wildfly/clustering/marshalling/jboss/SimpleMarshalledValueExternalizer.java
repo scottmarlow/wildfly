@@ -26,19 +26,21 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import org.kohsuke.MetaInfServices;
 import org.wildfly.clustering.marshalling.Externalizer;
+import org.wildfly.clustering.marshalling.spi.IndexSerializer;
 
 /**
  * @author Paul Ferraro
  */
+@MetaInfServices(Externalizer.class)
 public class SimpleMarshalledValueExternalizer<T> implements Externalizer<SimpleMarshalledValue<T>> {
 
     @Override
-    public SimpleMarshalledValue<T> readObject(ObjectInput input) throws IOException, ClassNotFoundException {
-        int size = input.readInt();
-        byte[] bytes = null;
-        if (size > 0) {
-            bytes = new byte[size];
+    public SimpleMarshalledValue<T> readObject(ObjectInput input) throws IOException {
+        int size = IndexSerializer.VARIABLE.readInt(input);
+        byte[] bytes = (size > 0) ? new byte[size] : null;
+        if (bytes != null) {
             input.readFully(bytes);
         }
         return new SimpleMarshalledValue<>(bytes);
@@ -47,18 +49,15 @@ public class SimpleMarshalledValueExternalizer<T> implements Externalizer<Simple
     @Override
     public void writeObject(ObjectOutput output, SimpleMarshalledValue<T> object) throws IOException {
         byte[] bytes = object.getBytes();
+        IndexSerializer.VARIABLE.writeInt(output, (bytes != null) ? bytes.length : 0);
         if (bytes != null) {
-            output.writeInt(bytes.length);
             output.write(bytes);
-        } else {
-            output.writeInt(0);
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings("unchecked")
     @Override
-    public Class<? extends SimpleMarshalledValue<T>> getTargetClass() {
-        Class targetClass = SimpleMarshalledValue.class;
-        return targetClass;
+    public Class<SimpleMarshalledValue<T>> getTargetClass() {
+        return (Class<SimpleMarshalledValue<T>>) (Class<?>) SimpleMarshalledValue.class;
     }
 }

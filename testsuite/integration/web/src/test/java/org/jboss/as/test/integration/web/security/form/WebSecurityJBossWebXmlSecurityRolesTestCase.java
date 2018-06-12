@@ -27,7 +27,6 @@ import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.arquillian.api.ServerSetup;
 import org.jboss.as.test.categories.CommonCriteria;
 import org.jboss.as.test.integration.web.security.SecuredServlet;
-import org.jboss.as.test.integration.web.security.WebSecurityPasswordBasedBase;
 import org.jboss.as.test.integration.web.security.WebTestsSecurityDomainSetup;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
@@ -65,7 +64,6 @@ public class WebSecurityJBossWebXmlSecurityRolesTestCase extends AbstractWebSecu
                 "users.properties");
         war.addAsResource(WebSecurityJBossWebXmlSecurityRolesTestCase.class.getPackage(), "roles.properties",
                 "roles.properties");
-        WebSecurityPasswordBasedBase.printWar(war);
         return war;
     }
 
@@ -74,7 +72,7 @@ public class WebSecurityJBossWebXmlSecurityRolesTestCase extends AbstractWebSecu
      */
     @Override
     @Test
-    public void testPasswordBasedUnsuccessfulAuthz() throws Exception {
+    public void testPasswordBasedUnsuccessfulAuth() throws Exception {
         makeCall("marcus", "marcus", 200);
     }
 

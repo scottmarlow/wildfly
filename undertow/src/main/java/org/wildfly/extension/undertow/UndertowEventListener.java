@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -42,6 +42,14 @@ public interface UndertowEventListener {
     }
 
     default void onDeploymentStop(Deployment deployment, Host host) {
+    }
+
+    default void onDeploymentStart(String contextPath, Host host) {
+
+    }
+
+    default void onDeploymentStop(String contextPath, Host host) {
+
     }
 
     //void onDeploymentRemove(DeploymentInfo deploymentInfo, Host host);

@@ -369,6 +369,7 @@ public class EJBManagementUtil {
             final PathAddress strictMaxPoolAddress = PathAddress.pathAddress(PathElement.pathElement(SUBSYSTEM, EJB3Extension.SUBSYSTEM_NAME),
                     PathElement.pathElement(EJB3SubsystemModel.STRICT_MAX_BEAN_INSTANCE_POOL, poolName));
             removeStrictMaxPool.get(OP_ADDR).set(strictMaxPoolAddress.toModelNode());
+            removeStrictMaxPool.get(ModelDescriptionConstants.OPERATION_HEADERS, ModelDescriptionConstants.ALLOW_RESOURCE_SERVICE_RESTART).set(true);
 
             // execute the remove operation
             execute(controllerClient, removeStrictMaxPool);
@@ -517,7 +518,7 @@ public class EJBManagementUtil {
     private static ModelNode execute(final ModelControllerClient modelControllerClient, final ModelNode operation) throws IOException {
         final ModelNode result = modelControllerClient.execute(operation);
         if (result.hasDefined(ClientConstants.OUTCOME) && ClientConstants.SUCCESS.equals(result.get(ClientConstants.OUTCOME).asString())) {
-            //logger.info("Operation " + operation.toString() + " successful");
+            //logger.trace("Operation " + operation.toString() + " successful");
             return result;
         } else if (result.hasDefined(ClientConstants.FAILURE_DESCRIPTION)) {
             final String failureDesc = result.get(ClientConstants.FAILURE_DESCRIPTION).toString();

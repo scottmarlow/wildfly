@@ -22,14 +22,13 @@
 
 package org.jboss.as.clustering.infinispan.subsystem;
 
-import org.jboss.as.clustering.controller.AddStepHandler;
-import org.jboss.as.clustering.controller.RemoveStepHandler;
+import org.jboss.as.clustering.controller.ManagementResourceRegistration;
 import org.jboss.as.clustering.controller.ResourceDescriptor;
+import org.jboss.as.clustering.controller.SimpleResourceRegistration;
 import org.jboss.as.clustering.controller.ResourceServiceHandler;
 import org.jboss.as.clustering.controller.SimpleResourceServiceHandler;
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.PathElement;
-import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
 
 /**
@@ -39,8 +38,10 @@ public class StoreWriteThroughResourceDefinition extends StoreWriteResourceDefin
 
     static final PathElement PATH = pathElement("through");
 
-    static void buildTransformation(ModelVersion version, ResourceTransformationDescriptionBuilder builder) {
-        // Do nothing
+    static void buildTransformation(ModelVersion version, ResourceTransformationDescriptionBuilder parent) {
+        if (InfinispanModel.VERSION_4_0_0.requiresTransformation(version)) {
+            parent.discardChildResource(StoreWriteThroughResourceDefinition.PATH);
+        }
     }
 
     StoreWriteThroughResourceDefinition() {
@@ -48,12 +49,13 @@ public class StoreWriteThroughResourceDefinition extends StoreWriteResourceDefin
     }
 
     @Override
-    public void register(ManagementResourceRegistration parentRegistration) {
-        ManagementResourceRegistration registration = parentRegistration.registerSubModel(this);
+    public ManagementResourceRegistration register(ManagementResourceRegistration parent) {
+        ManagementResourceRegistration registration = parent.registerSubModel(this);
 
         ResourceDescriptor descriptor = new ResourceDescriptor(this.getResourceDescriptionResolver());
-        ResourceServiceHandler handler = new SimpleResourceServiceHandler<>(new StoreWriteThroughBuilderFactory());
-        new AddStepHandler(descriptor, handler).register(registration);
-        new RemoveStepHandler(descriptor, handler).register(registration);
+        ResourceServiceHandler handler = new SimpleResourceServiceHandler(StoreWriteThroughServiceConfigurator::new);
+        new SimpleResourceRegistration(descriptor, handler).register(registration);
+
+        return registration;
     }
 }

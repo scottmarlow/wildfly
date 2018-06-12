@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -31,7 +31,6 @@ import org.jboss.as.controller.RestartParentResourceAddHandler;
 import org.jboss.as.controller.RestartParentResourceRemoveHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
-import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.jboss.msc.service.ServiceName;
@@ -51,33 +50,33 @@ class SessionCookieDefinition extends PersistentResourceDefinition {
 
     protected static final SimpleAttributeDefinition NAME =
             new SimpleAttributeDefinitionBuilder(Constants.NAME, ModelType.STRING, true)
-                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setRestartAllServices()
                     .setAllowExpression(true)
                     .build();
     protected static final SimpleAttributeDefinition DOMAIN =
             new SimpleAttributeDefinitionBuilder(Constants.DOMAIN, ModelType.STRING, true)
-                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setRestartAllServices()
                     .setAllowExpression(true)
                     .build();
     protected static final SimpleAttributeDefinition COMMENT =
             new SimpleAttributeDefinitionBuilder(Constants.COMMENT, ModelType.STRING, true)
-                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setRestartAllServices()
                     .setAllowExpression(true)
                     .build();
     protected static final SimpleAttributeDefinition HTTP_ONLY =
             new SimpleAttributeDefinitionBuilder(Constants.HTTP_ONLY, ModelType.BOOLEAN, true)
-                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setRestartAllServices()
                     .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition SECURE =
             new SimpleAttributeDefinitionBuilder(Constants.SECURE, ModelType.BOOLEAN, true)
-                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setRestartAllServices()
                     .setAllowExpression(true)
                     .build();
     protected static final SimpleAttributeDefinition MAX_AGE =
             new SimpleAttributeDefinitionBuilder(Constants.MAX_AGE, ModelType.INT, true)
-                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setRestartAllServices()
                     .setAllowExpression(true)
                     .build();
 

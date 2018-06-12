@@ -84,7 +84,7 @@ public class VaultDatasourceTestCase {
 
         @Override
         public void setup(ManagementClient managementClient, String containerId) throws Exception {
-            LOGGER.info("RESOURCE_LOCATION=" + RESOURCE_LOCATION);
+            LOGGER.trace("RESOURCE_LOCATION=" + RESOURCE_LOCATION);
 
             VaultHandler.cleanFilesystem(RESOURCE_LOCATION, true);
 
@@ -92,11 +92,11 @@ public class VaultDatasourceTestCase {
 
             // setup DB
             server = Server.createTcpServer("-tcpAllowOthers").start();
+
             Class.forName("org.h2.Driver");
-            connection = DriverManager.getConnection("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "sa", RIGHT_PASSWORD);
+            connection = DriverManager.getConnection("jdbc:h2:mem:" + VaultDatasourceTestCase.class.getName() +";DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE", "sa", RIGHT_PASSWORD);
             executeUpdate(connection, "CREATE TABLE TestPeople(Name Varchar(50), Surname Varchar(50))");
             executeUpdate(connection, "INSERT INTO TestPeople VALUES ('John','Smith')");
-
             // create new vault
             vaultHandler = new VaultHandler(RESOURCE_LOCATION);
 
@@ -134,7 +134,7 @@ public class VaultDatasourceTestCase {
             op.get(OP_ADDR).set(address);
             op.get("jndi-name").set("java:jboss/datasources/" + VAULT_BLOCK);
             op.get("driver-name").set("h2");
-            op.get("connection-url").set("jdbc:h2:tcp://" + Utils.getSecondaryTestAddress(managementClient) + "/mem:test");
+            op.get("connection-url").set("jdbc:h2:tcp://" + Utils.getSecondaryTestAddress(managementClient) + "/mem:" + VaultDatasourceTestCase.class.getName());
             op.get("user-name").set("sa");
             op.get("password").set("${" + vaultPasswordString + "}");
             op.get(OPERATION_HEADERS).get(ALLOW_RESOURCE_SERVICE_RESTART).set(true);
@@ -152,7 +152,7 @@ public class VaultDatasourceTestCase {
             op.get(OP_ADDR).set(address);
             op.get("jndi-name").set("java:jboss/datasources/" + VAULT_BLOCK_WRONG);
             op.get("driver-name").set("h2");
-            op.get("connection-url").set("jdbc:h2:tcp://" + Utils.getSecondaryTestAddress(managementClient) + "/mem:test");
+            op.get("connection-url").set("jdbc:h2:tcp://" + Utils.getSecondaryTestAddress(managementClient) + "/mem:" + VaultDatasourceTestCase.class.getName());
             op.get("user-name").set("sa");
             op.get("password").set("${" + wrongVaultPasswordString + "}");
             op.get(OPERATION_HEADERS).get(ALLOW_RESOURCE_SERVICE_RESTART).set(true);
@@ -172,25 +172,28 @@ public class VaultDatasourceTestCase {
             op.get(OP).set(REMOVE);
             op.get(OP_ADDR).add(SUBSYSTEM, "datasources");
             op.get(OP_ADDR).add("data-source", VAULT_BLOCK);
+            op.get(OPERATION_HEADERS).get(ALLOW_RESOURCE_SERVICE_RESTART).set(true);
             managementClient.getControllerClient().execute(new OperationBuilder(op).build());
 
             op = new ModelNode();
             op.get(OP).set(REMOVE);
             op.get(OP_ADDR).add(SUBSYSTEM, "datasources");
             op.get(OP_ADDR).add("data-source", VAULT_BLOCK_WRONG);
+            op.get(OPERATION_HEADERS).get(ALLOW_RESOURCE_SERVICE_RESTART).set(true);
             managementClient.getControllerClient().execute(new OperationBuilder(op).build());
 
             // remove created vault
             op = new ModelNode();
             op.get(OP).set(REMOVE);
             op.get(OP_ADDR).add(CORE_SERVICE, VAULT);
+            op.get(OPERATION_HEADERS).get(ALLOW_RESOURCE_SERVICE_RESTART).set(true);
             managementClient.getControllerClient().execute(new OperationBuilder(op).build());
 
             // remove temporary files
             vaultHandler.cleanUp();
 
             // stop DB
-            executeUpdate(connection, "DROP CMR_TABLE TestPeople");
+            executeUpdate(connection, "DROP TABLE TestPeople");
             connection.close();
             server.shutdown();
 
@@ -207,7 +210,7 @@ public class VaultDatasourceTestCase {
             + "security/ds-vault/";
     static final String VAULT_BLOCK = "ds_TestDS";
     static final String VAULT_BLOCK_WRONG = VAULT_BLOCK + "Wrong";
-    static final String RIGHT_PASSWORD = "passwordForVault";
+    static final String RIGHT_PASSWORD = "PasswordForVault";
     static final String WRONG_PASSWORD = "wrongPasswordForVault";
 
     /*

@@ -24,14 +24,16 @@ package org.wildfly.clustering.web.infinispan;
 
 import java.util.ServiceLoader;
 
+import org.infinispan.persistence.keymappers.TwoWayKey2StringMapper;
+import org.jboss.logging.Logger;
 import org.junit.Test;
 import org.wildfly.clustering.marshalling.Externalizer;
-import org.wildfly.clustering.spi.CacheGroupAliasBuilderProvider;
-import org.wildfly.clustering.spi.DistributedCacheGroupBuilderProvider;
-import org.wildfly.clustering.spi.LocalCacheGroupBuilderProvider;
-import org.wildfly.clustering.web.session.RouteLocatorBuilderProvider;
-import org.wildfly.clustering.web.session.SessionManagerFactoryBuilderProvider;
-import org.wildfly.clustering.web.sso.SSOManagerFactoryBuilderProvider;
+import org.wildfly.clustering.spi.IdentityCacheServiceConfiguratorProvider;
+import org.wildfly.clustering.spi.DistributedCacheServiceConfiguratorProvider;
+import org.wildfly.clustering.spi.LocalCacheServiceConfiguratorProvider;
+import org.wildfly.clustering.web.session.RouteLocatorServiceConfiguratorProvider;
+import org.wildfly.clustering.web.session.SessionManagerFactoryServiceConfiguratorProvider;
+import org.wildfly.clustering.web.sso.SSOManagerFactoryServiceConfiguratorProvider;
 
 /**
  * Validates loading of services.
@@ -39,20 +41,22 @@ import org.wildfly.clustering.web.sso.SSOManagerFactoryBuilderProvider;
  * @author Paul Ferraro
  */
 public class ServiceLoaderTestCase {
+    private static final Logger LOGGER = Logger.getLogger(ServiceLoaderTestCase.class);
 
     private static <T> void load(Class<T> targetClass) {
-        System.out.println(targetClass.getName() + ":");
-        ServiceLoader.load(targetClass, ServiceLoaderTestCase.class.getClassLoader()).forEach(object -> System.out.println("\t" + object.getClass().getName()));
+        ServiceLoader.load(targetClass, ServiceLoaderTestCase.class.getClassLoader())
+                .forEach(object -> LOGGER.trace("\t" + object.getClass().getName()));
     }
 
     @Test
     public void load() {
         load(Externalizer.class);
-        load(RouteLocatorBuilderProvider.class);
-        load(SessionManagerFactoryBuilderProvider.class);
-        load(SSOManagerFactoryBuilderProvider.class);
-        load(DistributedCacheGroupBuilderProvider.class);
-        load(LocalCacheGroupBuilderProvider.class);
-        load(CacheGroupAliasBuilderProvider.class);
+        load(RouteLocatorServiceConfiguratorProvider.class);
+        load(SessionManagerFactoryServiceConfiguratorProvider.class);
+        load(SSOManagerFactoryServiceConfiguratorProvider.class);
+        load(DistributedCacheServiceConfiguratorProvider.class);
+        load(LocalCacheServiceConfiguratorProvider.class);
+        load(IdentityCacheServiceConfiguratorProvider.class);
+        load(TwoWayKey2StringMapper.class);
     }
 }

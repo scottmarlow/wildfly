@@ -25,65 +25,32 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 
-import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
-import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceTarget;
-import org.jboss.msc.service.StartContext;
-import org.jboss.msc.service.StopContext;
-import org.jboss.threads.JBossExecutors;
-import org.wildfly.clustering.service.AsynchronousServiceBuilder;
 import org.wildfly.clustering.service.Builder;
 
 /**
  * Service that provides a {@link ScheduledThreadPoolExecutor} that removes tasks from the task queue upon cancellation.
  * @author Paul Ferraro
+ * @deprecated Replaced by {@link RemoveOnCancelScheduledExecutorServiceConfigurator}.
  */
-public class RemoveOnCancelScheduledExecutorServiceBuilder implements Builder<ScheduledExecutorService>, Service<ScheduledExecutorService> {
-
-    private final ServiceName name;
-    private final ThreadFactory factory;
-    private volatile int size = 1;
-
-    private volatile ScheduledExecutorService executor;
+@Deprecated
+public class RemoveOnCancelScheduledExecutorServiceBuilder extends RemoveOnCancelScheduledExecutorServiceConfigurator implements Builder<ScheduledExecutorService> {
 
     public RemoveOnCancelScheduledExecutorServiceBuilder(ServiceName name, ThreadFactory factory) {
-        this.name = name;
-        this.factory = factory;
+        super(name, factory);
     }
 
-    @Override
-    public ServiceName getServiceName() {
-        return this.name;
-    }
-
+    @SuppressWarnings("unchecked")
     @Override
     public ServiceBuilder<ScheduledExecutorService> build(ServiceTarget target) {
-        return new AsynchronousServiceBuilder<>(this.name, this).startSynchronously().build(target).setInitialMode(ServiceController.Mode.ON_DEMAND);
+        return (ServiceBuilder<ScheduledExecutorService>) super.build(target);
     }
 
+    @Override
     public RemoveOnCancelScheduledExecutorServiceBuilder size(int size) {
-        this.size = size;
+        super.size(size);
         return this;
-    }
-
-    @Override
-    public ScheduledExecutorService getValue() {
-        return JBossExecutors.protectedScheduledExecutorService(this.executor);
-    }
-
-    @Override
-    public void start(StartContext context) {
-        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(this.size, this.factory);
-        executor.setRemoveOnCancelPolicy(true);
-        executor.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
-        this.executor = executor;
-    }
-
-    @Override
-    public void stop(StopContext context) {
-        this.executor.shutdown();
-        this.executor = null;
     }
 }

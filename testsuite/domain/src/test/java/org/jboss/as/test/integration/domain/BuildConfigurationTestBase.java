@@ -28,8 +28,9 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,7 +47,7 @@ public abstract class BuildConfigurationTestBase {
 
     static final String masterAddress = System.getProperty("jboss.test.host.master.address", "localhost");
 
-    static final File CONFIG_DIR = new File("target/jbossas/domain/configuration/");
+    static final File CONFIG_DIR = new File("target/wildfly/domain/configuration/");
 
     static WildFlyManagedConfiguration createConfiguration(final String domainXmlName, final String hostXmlName, final String testConfiguration) {
         return createConfiguration(domainXmlName, hostXmlName, testConfiguration, "master", masterAddress, 9999);
@@ -63,6 +64,7 @@ public abstract class BuildConfigurationTestBase {
                 " -Djboss.management.native.port=" + hostPort);
         configuration.setDomainConfigFile(hackFixDomainConfig(new File(CONFIG_DIR, domainXmlName)).getAbsolutePath());
         configuration.setHostConfigFile(hackFixHostConfig(new File(CONFIG_DIR, hostXmlName), hostName, hostAddress).getAbsolutePath());
+        //configuration.setHostConfigFile(new File(CONFIG_DIR, hostXmlName).getAbsolutePath());
 
         configuration.setHostName(hostName); // TODO this shouldn't be needed
 
@@ -75,12 +77,11 @@ public abstract class BuildConfigurationTestBase {
     }
 
     private static File hackFixHostConfig(File hostConfigFile, String hostName, String hostAddress) {
-        final File file;
+        final Path file;
         final BufferedWriter writer;
         try {
-            file = File.createTempFile("host", ".xml", hostConfigFile.getAbsoluteFile().getParentFile());
-            file.deleteOnExit();
-            writer = new BufferedWriter(new FileWriter(file));
+            file = Files.createTempFile(hostConfigFile.toPath().getParent(),"host", ".xml");
+            writer = Files.newBufferedWriter(file);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -88,6 +89,7 @@ public abstract class BuildConfigurationTestBase {
             BufferedReader reader = new BufferedReader(new FileReader(hostConfigFile));
             try {
                 String line = reader.readLine();
+                boolean processedOpt = false;
                 while (line != null) {
                     int start = line.indexOf("<host");
                     if (start >= 0 && !line.contains(" name=")) {
@@ -108,7 +110,7 @@ public abstract class BuildConfigurationTestBase {
                             writer.write(sb.toString());
                         } else {
                             start = line.indexOf("<option value=\"");
-                            if (start >= 0) {
+                            if (start >= 0 && !processedOpt) {
                                 StringBuilder sb = new StringBuilder();
                                 sb.append(line.substring(0, start));
                                 List<String> opts = new ArrayList<String>();
@@ -120,7 +122,8 @@ public abstract class BuildConfigurationTestBase {
                                 }
 
                                 writer.write(sb.toString());
-                            } else if (!line.contains("java.net.preferIPv4Stack")){
+                                processedOpt = true;
+                            } else if (!line.contains("java.net.")){
                                 writer.write(line);
                             }
                         }
@@ -137,38 +140,37 @@ public abstract class BuildConfigurationTestBase {
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
-        return file;
+        return file.toFile();
     }
 
-    static File hackFixDomainConfig(File hostConfigFile) {
+    private static File hackFixDomainConfig(File domainConfigFile) {
         final File file;
-        final BufferedWriter writer;
+
         try {
-            file = File.createTempFile("domain", ".xml", hostConfigFile.getAbsoluteFile().getParentFile());
+            file = File.createTempFile("domain", ".xml", domainConfigFile.getAbsoluteFile().getParentFile());
             file.deleteOnExit();
-            writer = new BufferedWriter(new FileWriter(file));
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader(hostConfigFile));
-            try {
-                String line = reader.readLine();
-                while (line != null) {
-                    int start = line.indexOf("java.net.preferIPv4Stack");
-                    if (start < 0) {
-                        writer.write(line);
-                    }
-                    writer.write("\n");
-                    line = reader.readLine();
+        try (BufferedReader reader = new BufferedReader(new FileReader(domainConfigFile));
+             BufferedWriter writer = Files.newBufferedWriter(file.toPath())
+        ) {
+            String line = reader.readLine();
+            while (line != null) {
+                if (line.contains("<security-setting name=\"#\">")) { //super duper hackish, just IO optimization
+                    writer.write("        <journal type=\"NIO\" file-size=\"1024\" />");
+                    writer.newLine();
                 }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            } finally {
-                safeClose(reader);
-                safeClose(writer);
+
+                int start = line.indexOf("java.net.preferIPv4Stack");
+                if (start < 0) {
+                    writer.write(line);
+                }
+                writer.newLine();
+                line = reader.readLine();
             }
-        } catch (FileNotFoundException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
         return file;

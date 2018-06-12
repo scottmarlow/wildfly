@@ -53,11 +53,11 @@ import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.controller.client.OperationBuilder;
 import org.jboss.as.test.integration.security.common.Utils;
 import org.jboss.as.test.integration.security.common.VaultHandler;
+import org.jboss.as.test.shared.ServerReload;
 import org.jboss.dmr.ModelNode;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -67,7 +67,6 @@ import org.junit.runner.RunWith;
 
 @RunWith(Arquillian.class)
 @ServerSetup(PasswordMaskingTestCase.PasswordMaskingTestCaseSetup.class)
-@Ignore("WFLY-3289")
 public class PasswordMaskingTestCase {
 
    private static Logger LOGGER = Logger.getLogger(PasswordMaskingTestCase.class);
@@ -159,6 +158,7 @@ public class PasswordMaskingTestCase {
 
            // stop DB
            server.shutdown();
+           ServerReload.executeReloadAndWaitForCompletion(managementClient);
 
        }
 

@@ -22,29 +22,28 @@
 
 package org.jboss.as.connector.subsystems.jca;
 
+import static org.jboss.as.connector.subsystems.jca.Constants.DISTRIBUTED_WORKMANAGER;
+import static org.jboss.as.connector.subsystems.jca.Constants.ELYTRON_ENABLED_NAME;
+import static org.jboss.as.connector.subsystems.jca.Constants.ELYTRON_MANAGED_SECURITY;
+import static org.jboss.as.connector.subsystems.jca.JcaWorkManagerDefinition.registerSubModels;
+
+import java.util.EnumSet;
+
+import org.jboss.as.connector.metadata.api.common.Security;
 import org.jboss.as.controller.AttributeDefinition;
-import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PropertiesAttributeDefinition;
 import org.jboss.as.controller.ReadResourceNameOperationStepHandler;
 import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
+import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.client.helpers.MeasurementUnit;
 import org.jboss.as.controller.operations.validation.EnumValidator;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
-import org.jboss.as.controller.transform.OperationTransformer;
-import org.jboss.as.controller.transform.TransformationContext;
-import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
-import org.jboss.as.threads.BoundedQueueThreadPoolResourceDefinition;
-import org.jboss.as.threads.ThreadsServices;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
-
-import static org.jboss.as.connector.subsystems.jca.Constants.DISTRIBUTED_WORKMANAGER;
-import static org.jboss.as.connector.subsystems.jca.Constants.WORKMANAGER_LONG_RUNNING;
-import static org.jboss.as.connector.subsystems.jca.Constants.WORKMANAGER_SHORT_RUNNING;
+import org.wildfly.clustering.spi.ClusteringDefaultRequirement;
 
 /**
  * @author <a href="mailto:tomaz.cerar@redhat.com">Tomaz Cerar</a> (c) 2012 Red Hat Inc.
@@ -81,39 +80,27 @@ public class JcaDistributedWorkManagerDefinition extends SimpleResourceDefinitio
 
     @Override
     public void registerChildren(ManagementResourceRegistration resourceRegistration) {
-        resourceRegistration.registerSubModel(BoundedQueueThreadPoolResourceDefinition.create(WORKMANAGER_SHORT_RUNNING, ThreadsServices.STANDARD_THREAD_FACTORY_RESOLVER, ThreadsServices.STANDARD_HANDOFF_EXECUTOR_RESOLVER,
-                ThreadsServices.EXECUTOR.append(WORKMANAGER_SHORT_RUNNING), registerRuntimeOnly));
-        resourceRegistration.registerSubModel(BoundedQueueThreadPoolResourceDefinition.create(WORKMANAGER_LONG_RUNNING, ThreadsServices.STANDARD_THREAD_FACTORY_RESOLVER, ThreadsServices.STANDARD_HANDOFF_EXECUTOR_RESOLVER,
-                ThreadsServices.EXECUTOR.append(WORKMANAGER_LONG_RUNNING), registerRuntimeOnly));
-
+        registerSubModels(resourceRegistration, registerRuntimeOnly);
     }
 
-    static void registerTransformers300(ResourceTransformationDescriptionBuilder parentBuilder) {
-        ResourceTransformationDescriptionBuilder builder = parentBuilder.addChildResource(PATH_DISTRIBUTED_WORK_MANAGER);
-        builder.addOperationTransformationOverride("add")
-                .inheritResourceAttributeDefinitions()
-                .setCustomOperationTransformer(new OperationTransformer() {
-                    @Override
-                    public TransformedOperation transformOperation(TransformationContext context, PathAddress address, ModelNode operation)
-                            throws OperationFailedException {
-                        ModelNode copy = operation.clone();
-                        copy.add("transport-jgroups-cluster").set(address.getLastElement().toString());
-                        return new TransformedOperation(copy, TransformedOperation.ORIGINAL_RESULT);
-                    }
-                }).end();
+    @Override
+    public void registerCapabilities(ManagementResourceRegistration registration) {
+        for (DWmCapabilities capability : EnumSet.allOf(DWmCapabilities.class)) {
+            registration.registerCapability(capability.getRuntimeCapability());
+        }
     }
 
-    public static enum DWmParameters {
+    enum DWmParameters {
         NAME(SimpleAttributeDefinitionBuilder.create("name", ModelType.STRING)
                 .setAllowExpression(false)
-                .setAllowNull(false)
+                .setRequired(true)
                 .setMeasurementUnit(MeasurementUnit.NONE)
                 .setRestartAllServices()
                 .setXmlName("name")
                 .build()),
         SELECTOR(SimpleAttributeDefinitionBuilder.create("selector", ModelType.STRING)
                 .setAllowExpression(true)
-                .setAllowNull(true)
+                .setRequired(false)
                 .setMeasurementUnit(MeasurementUnit.NONE)
                 .setRestartAllServices()
                 .setXmlName(Element.SELECTOR.getLocalName())
@@ -122,7 +109,7 @@ public class JcaDistributedWorkManagerDefinition extends SimpleResourceDefinitio
                 .build()),
         POLICY(SimpleAttributeDefinitionBuilder.create("policy", ModelType.STRING)
                 .setAllowExpression(true)
-                .setAllowNull(true)
+                .setRequired(false)
                 .setMeasurementUnit(MeasurementUnit.NONE)
                 .setRestartAllServices()
                 .setXmlName(Element.POLICY.getLocalName())
@@ -136,7 +123,13 @@ public class JcaDistributedWorkManagerDefinition extends SimpleResourceDefinitio
         SELECTOR_OPTIONS(new PropertiesAttributeDefinition.Builder("selector-options", true)
                 .setAllowExpression(true)
                 .setXmlName(Element.OPTION.getLocalName())
+                .build()),
+        ELYTRON_ENABLED(new SimpleAttributeDefinitionBuilder(ELYTRON_ENABLED_NAME, ModelType.BOOLEAN, true)
+                .setXmlName(Security.Tag.ELYTRON_ENABLED.getLocalName())
+                .setAllowExpression(true)
+                .setDefaultValue(new ModelNode(ELYTRON_MANAGED_SECURITY))
                 .build());
+
 
         public static AttributeDefinition[] getAttributeDefinitions() {
             final AttributeDefinition[] returnValue = new AttributeDefinition[DWmParameters.values().length];
@@ -153,7 +146,8 @@ public class JcaDistributedWorkManagerDefinition extends SimpleResourceDefinitio
                     POLICY.getAttribute(),
                     SELECTOR.getAttribute(),
                     POLICY_OPTIONS.getAttribute(),
-                    SELECTOR_OPTIONS.getAttribute()
+                    SELECTOR_OPTIONS.getAttribute(),
+                    ELYTRON_ENABLED.getAttribute()
             };
         }
 
@@ -163,7 +157,7 @@ public class JcaDistributedWorkManagerDefinition extends SimpleResourceDefinitio
             };
         }
 
-        private DWmParameters(AttributeDefinition attribute) {
+        DWmParameters(AttributeDefinition attribute) {
             this.attribute = attribute;
         }
 
@@ -174,15 +168,29 @@ public class JcaDistributedWorkManagerDefinition extends SimpleResourceDefinitio
         private AttributeDefinition attribute;
     }
 
-    public static enum PolicyValue {
-        NEVER,
-        ALWAYS,
-        WATERMARK;
+    enum DWmCapabilities {
+        CHANNEL_FACTORY(RuntimeCapability.Builder.of("org.wildfly.connector.workmanager").addRequirements(ClusteringDefaultRequirement.COMMAND_DISPATCHER_FACTORY.getName()).build());
+
+        private final RuntimeCapability<Void> capability;
+
+        DWmCapabilities(RuntimeCapability<Void> capability) {
+            this.capability = capability;
+        }
+
+        RuntimeCapability<Void> getRuntimeCapability() {
+            return this.capability;
+        }
     }
 
-    public static enum SelectorValue {
+    public enum PolicyValue {
+        NEVER,
+        ALWAYS,
+        WATERMARK
+    }
+
+    public enum SelectorValue {
         FIRST_AVAILABLE,
         PING_TIME,
-        MAX_FREE_THREADS;
+        MAX_FREE_THREADS
     }
 }

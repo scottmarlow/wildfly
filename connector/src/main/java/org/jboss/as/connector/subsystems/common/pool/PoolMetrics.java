@@ -43,8 +43,6 @@ import org.jboss.msc.service.ServiceController;
  */
 public abstract class PoolMetrics implements OperationStepHandler {
 
-    static final String[] NO_LOCATION = new String[0];
-
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
         if (context.isNormalServer()) {
             context.addStep(new OperationStepHandler() {
@@ -68,12 +66,9 @@ public abstract class PoolMetrics implements OperationStepHandler {
                             throw new OperationFailedException(ConnectorLogger.ROOT_LOGGER.failedToGetMetrics(e.getLocalizedMessage()));
                         }
                     }
-                    context.stepCompleted();
                 }
             }, OperationContext.Stage.RUNTIME);
         }
-
-        context.stepCompleted();
     }
 
     protected abstract List<StatisticsPlugin> getMatchingStats(String jndiName, ManagementRepository repository);
@@ -102,13 +97,9 @@ public abstract class PoolMetrics implements OperationStepHandler {
                                throw new OperationFailedException(ConnectorLogger.ROOT_LOGGER.failedToGetMetrics(e.getLocalizedMessage()));
                             }
                         }
-                        context.stepCompleted();
                     }
                 }, OperationContext.Stage.RUNTIME);
             }
-
-            context.stepCompleted();
-
         }
 
         private void setModelValue(ModelNode result, String attributeName) {

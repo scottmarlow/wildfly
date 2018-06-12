@@ -22,6 +22,8 @@
 
 package org.jboss.as.jpa.config;
 
+import static org.jboss.as.jpa.messages.JpaLogger.ROOT_LOGGER;
+
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -108,6 +110,8 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
     private volatile ClassLoader classloader;
 
     private volatile TempClassLoaderFactory tempClassLoaderFactory;
+
+    private volatile ClassLoader cachedTempClassLoader;
 
     private volatile Map<URL, Index> annotationIndex;
 
@@ -383,11 +387,25 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
     @Override
     public void addTransformer(ClassTransformer classTransformer) {
         transformers.add(classTransformer);
+        if (ROOT_LOGGER.isTraceEnabled()) {
+            ROOT_LOGGER.tracef("added entity class transformer '%s' for '%s'",
+                    classTransformer.getClass().getName(),
+                    getScopedPersistenceUnitName());
+        }
     }
 
     @Override
     public void setTempClassLoaderFactory(TempClassLoaderFactory tempClassloaderFactory) {
         this.tempClassLoaderFactory = tempClassloaderFactory;
+        cachedTempClassLoader = null;  // always clear the cached temp classloader when a new tempClassloaderFactory is set.
+    }
+
+    @Override
+    public ClassLoader cacheTempClassLoader() {
+        if(cachedTempClassLoader == null && tempClassLoaderFactory != null) {
+            cachedTempClassLoader = tempClassLoaderFactory.createNewTempClassLoader();
+        }
+        return cachedTempClassLoader;
     }
 
     @Override

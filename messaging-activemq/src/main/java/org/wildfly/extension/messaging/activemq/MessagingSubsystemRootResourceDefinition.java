@@ -22,12 +22,16 @@
 
 package org.wildfly.extension.messaging.activemq;
 
+import static org.jboss.as.controller.SimpleAttributeDefinitionBuilder.create;
+import static org.jboss.dmr.ModelType.INT;
+
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
+import org.jboss.as.controller.SimpleAttributeDefinition;
 
 /**
  * {@link org.jboss.as.controller.ResourceDefinition} for the messaging subsystem root resource.
@@ -36,17 +40,38 @@ import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
  */
 public class MessagingSubsystemRootResourceDefinition extends PersistentResourceDefinition {
 
+    public static final SimpleAttributeDefinition GLOBAL_CLIENT_THREAD_POOL_MAX_SIZE = create("global-client-thread-pool-max-size", INT)
+            .setAttributeGroup("global-client")
+            .setXmlName("thread-pool-max-size")
+            .setRequired(false)
+            .setAllowExpression(true)
+            .setRestartAllServices()
+            .build();
+
+    public static final SimpleAttributeDefinition GLOBAL_CLIENT_SCHEDULED_THREAD_POOL_MAX_SIZE = create("global-client-scheduled-thread-pool-max-size", INT)
+            .setAttributeGroup("global-client")
+            .setXmlName("scheduled-thread-pool-max-size")
+            .setRequired(false)
+            .setAllowExpression(true)
+            .setRestartAllServices()
+            .build();
+
+    public static final AttributeDefinition[] ATTRIBUTES = {
+            GLOBAL_CLIENT_THREAD_POOL_MAX_SIZE,
+            GLOBAL_CLIENT_SCHEDULED_THREAD_POOL_MAX_SIZE
+    };
+
     public static final MessagingSubsystemRootResourceDefinition INSTANCE = new MessagingSubsystemRootResourceDefinition();
 
     private MessagingSubsystemRootResourceDefinition() {
         super(MessagingExtension.SUBSYSTEM_PATH,
                 MessagingExtension.getResourceDescriptionResolver(MessagingExtension.SUBSYSTEM_NAME),
                 MessagingSubsystemAdd.INSTANCE,
-                ReloadRequiredRemoveStepHandler.INSTANCE);
+                new ReloadRequiredRemoveStepHandler());
     }
 
     @Override
     public Collection<AttributeDefinition> getAttributes() {
-        return Collections.emptyList();
+        return Arrays.asList(ATTRIBUTES);
     }
 }

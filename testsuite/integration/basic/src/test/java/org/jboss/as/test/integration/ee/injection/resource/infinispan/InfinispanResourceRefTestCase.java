@@ -22,6 +22,7 @@
 
 package org.jboss.as.test.integration.ee.injection.resource.infinispan;
 
+import javax.management.MBeanPermission;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
@@ -37,6 +38,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.lang.reflect.ReflectPermission;
+
+import static org.jboss.as.test.shared.integration.ejb.security.PermissionUtils.createPermissionsXmlAsset;
+
 /**
  * @author Paul Ferraro
  */
@@ -51,6 +56,15 @@ public class InfinispanResourceRefTestCase {
                 Descriptors.create(ManifestDescriptor.class)
                         .attribute("Dependencies", "org.infinispan export")
                         .exportAsString()));
+
+        war.addAsManifestResource(createPermissionsXmlAsset(
+                new MBeanPermission("-#-[-]", "queryNames"),
+                new MBeanPermission("org.infinispan.*[jboss.infinispan:*,type=Cache]", "registerMBean"),
+                new ReflectPermission("suppressAccessChecks"),
+                new RuntimePermission("accessDeclaredMembers"),
+                new RuntimePermission("getClassLoader")
+        ), "permissions.xml");
+
         return war;
     }
 
@@ -71,11 +85,15 @@ public class InfinispanResourceRefTestCase {
                 + "         xsi:schemaLocation=\"http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd\">\n"
                 + "    <resource-ref>\n"
                 + "        <res-ref-name>" + InfinispanBean.CONTAINER_REF_NAME + "</res-ref-name>\n"
-                + "        <lookup-name>java:jboss/infinispan/container/hibernate</lookup-name>\n"
+                + "        <lookup-name>java:jboss/infinispan/container/server</lookup-name>\n"
                 + "        <injection-target>"
                 + "            <injection-target-class>" + InfinispanBean.class.getName() + "</injection-target-class>"
                 + "            <injection-target-name>container</injection-target-name>"
                 + "        </injection-target>\n"
+                + "    </resource-ref>\n"
+                + "    <resource-ref>\n"
+                + "        <res-ref-name>default-cache-config</res-ref-name>\n"
+                + "        <lookup-name>java:jboss/infinispan/configuration/server/default</lookup-name>\n"
                 + "    </resource-ref>\n"
                 + "</web-app>");
     }

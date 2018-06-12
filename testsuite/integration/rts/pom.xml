@@ -15,7 +15,11 @@
     <parent>
         <groupId>org.wildfly</groupId>
         <artifactId>wildfly-ts-integ</artifactId>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
     </parent>
 
     <!-- ********************************************************************************** -->
@@ -68,7 +72,6 @@
                 <dependency>
                     <groupId>org.jboss.resteasy</groupId>
                     <artifactId>resteasy-client</artifactId>
-                    <version>${version.org.jboss.resteasy}</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>
@@ -77,28 +80,27 @@
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
+                        <artifactId>maven-resources-plugin</artifactId>
                         <executions combine.children="append">
-                            <!-- Disable default-test execution. -->
                             <execution>
-                                <id>default-test</id>
+                                <id>ts.copy-rts-config</id>
+                                <phase>generate-test-resources</phase>
                                 <goals>
-                                    <goal>test</goal>
+                                    <goal>copy-resources</goal>
                                 </goals>
-                                <phase>none</phase>
-                            </execution>
-
-                            <!-- Multi node clustering tests. -->
-                            <execution>
-                                <id>tests-rts.surefire</id>
-                                <phase>test</phase>
-                                <goals>
-                                    <goal>test</goal>
-                                </goals>
+                                <inherited>true</inherited>
                                 <configuration>
-                                    <includes>
-                                        <include>org/wildfly/test/extension/rts/**/*TestCase.java</include>
-                                    </includes>
+                                    <outputDirectory>${basedir}/target/wildfly/standalone/configuration</outputDirectory>
+                                    <overwrite>true</overwrite>
+                                    <resources>
+                                        <resource>
+                                            <!-- Add the RTS config to the standalone/config directory, so it will be processed as well -->
+                                            <directory>${jboss.home}/docs/examples/configs</directory>
+                                            <includes>
+                                                <include>standalone-rts.xml</include>
+                                            </includes>
+                                        </resource>
+                                    </resources>
                                 </configuration>
                             </execution>
                         </executions>

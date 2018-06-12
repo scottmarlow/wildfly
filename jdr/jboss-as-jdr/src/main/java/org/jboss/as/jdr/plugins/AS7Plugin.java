@@ -22,6 +22,9 @@
 
 package org.jboss.as.jdr.plugins;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.jboss.as.jdr.commands.CallAS7;
 import org.jboss.as.jdr.commands.CollectFiles;
 import org.jboss.as.jdr.commands.DeploymentDependencies;
@@ -34,9 +37,6 @@ import org.jboss.as.jdr.util.Sanitizer;
 import org.jboss.as.jdr.util.Sanitizers;
 import org.jboss.as.jdr.util.Utils;
 
-import java.util.Arrays;
-import java.util.List;
-
 public class AS7Plugin implements JdrPlugin {
 
     private final PluginId pluginId = new PluginId("AS7_PLUGIN", 1, 0, null);
@@ -45,6 +45,7 @@ public class AS7Plugin implements JdrPlugin {
     public List<JdrCommand> getCommands() throws Exception {
         Sanitizer xmlSanitizer = Sanitizers.xml("//password");
         Sanitizer passwordSanitizer = Sanitizers.pattern("password=.*", "password=*");
+        Sanitizer systemPropertiesPasswordSanitizer = Sanitizers.pattern("([^=]*password[^=]*)=.*", "$1=*");
 
         return Arrays.asList(
             new TreeCommand(),
@@ -63,12 +64,13 @@ public class AS7Plugin implements JdrPlugin {
             new CollectFiles("*/modules/system/*/.overlays/.overlays"),
             new CollectFiles("*/.installation/*.conf"),
             new CollectFiles("*/.installation/*.txt"),
-            new SystemProperties(),
+            new SystemProperties().sanitizer(systemPropertiesPasswordSanitizer),
             new DeploymentDependencies(),
             new LocalModuleDependencies()
         );
     }
 
+    @Override
     public PluginId getPluginId() {
         return pluginId;
     }

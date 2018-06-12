@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2012, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -100,23 +100,6 @@ public class SharedSessionConfigParser_1_0 implements JBossAllXMLParser<SharedSe
     enum Version {
         UNDERTOW_SHARED_1_0,
         UNKNOWN
-    }
-
-    enum Attribute {
-        // default unknown attribute
-        UNKNOWN;
-
-        private static final Map<QName, Attribute> attributes;
-
-        static {
-            Map<QName, Attribute> attributesMap = new HashMap<QName, Attribute>();
-            attributes = attributesMap;
-        }
-
-        static Attribute of(QName qName) {
-            final Attribute attribute = attributes.get(qName);
-            return attribute == null ? UNKNOWN : attribute;
-        }
     }
 
     private SharedSessionConfigParser_1_0() {

@@ -45,12 +45,14 @@ public class OperationHandler<C> extends ExecutionHandler<C, Operation<C>> imple
     }
 
     public OperationHandler(OperationExecutor<C> executor, Collection<? extends Operation<C>> operations) {
-        super(executor, operations, operation -> operation.getDefinition().getName());
+        super(executor, operations, Operation::getName, Operations::getName);
         this.operations = operations;
     }
 
     @Override
     public void register(ManagementResourceRegistration registration) {
-        this.operations.forEach(operation -> registration.registerOperationHandler(operation.getDefinition(), this));
+        for (Operation<C> operation : this.operations) {
+            registration.registerOperationHandler(operation.getDefinition(), this);
+        }
     }
 }

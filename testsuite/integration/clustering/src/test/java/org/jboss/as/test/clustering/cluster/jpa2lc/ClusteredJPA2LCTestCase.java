@@ -22,11 +22,15 @@
 
 package org.jboss.as.test.clustering.cluster.jpa2lc;
 
+import static org.jboss.as.controller.client.helpers.ClientConstants.*;
+import static org.jboss.as.test.clustering.cluster.AbstractClusteringTestCase.*;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
+
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
@@ -35,47 +39,32 @@ import org.jboss.arquillian.container.test.api.ContainerController;
 import org.jboss.arquillian.container.test.api.Deployer;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.OperateOnDeployment;
-import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.container.test.api.TargetsContainer;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.junit.InSequence;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.test.clustering.NodeUtil;
+import org.jboss.as.test.shared.IntermittentFailure;
 import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.jboss.dmr.ModelNode;
-import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.wildfly.test.api.Authentication;
-
-import static org.jboss.as.controller.client.helpers.ClientConstants.ADD;
-import static org.jboss.as.controller.client.helpers.ClientConstants.ADDRESS;
-import static org.jboss.as.controller.client.helpers.ClientConstants.OP;
-import static org.jboss.as.controller.client.helpers.ClientConstants.OUTCOME;
-import static org.jboss.as.controller.client.helpers.ClientConstants.REMOVE_OPERATION;
-import static org.jboss.as.controller.client.helpers.ClientConstants.SUCCESS;
-import static org.jboss.as.test.clustering.ClusteringTestConstants.CONTAINERS;
-import static org.jboss.as.test.clustering.ClusteringTestConstants.CONTAINER_1;
-import static org.jboss.as.test.clustering.ClusteringTestConstants.CONTAINER_2;
-import static org.jboss.as.test.clustering.ClusteringTestConstants.DEPLOYMENTS;
-import static org.jboss.as.test.clustering.ClusteringTestConstants.DEPLOYMENT_1;
-import static org.jboss.as.test.clustering.ClusteringTestConstants.DEPLOYMENT_2;
 
 /**
  * Smoke test of clustered JPA 2nd level cache implemented by Infinispan.
  * @author Jan Martiska
  */
 @RunWith(Arquillian.class)
-@RunAsClient
 public class ClusteredJPA2LCTestCase {
 
-    private static final Logger log = Logger.getLogger(ClusteredJPA2LCTestCase.class);
-    private static final String MODULE_NAME = "clustered2lc";
+    private static final String MODULE_NAME = ClusteredJPA2LCTestCase.class.getSimpleName();
 
     @ArquillianResource
     protected ContainerController controller;
@@ -84,13 +73,13 @@ public class ClusteredJPA2LCTestCase {
     protected Deployer deployer;
 
     @Deployment(name = DEPLOYMENT_1, managed = false, testable = false)
-    @TargetsContainer(CONTAINER_1)
+    @TargetsContainer(NODE_1)
     public static Archive<?> createDeploymentForContainer1() {
         return createDeployment();
     }
 
     @Deployment(name = DEPLOYMENT_2, managed = false, testable = false)
-    @TargetsContainer(CONTAINER_2)
+    @TargetsContainer(NODE_2)
     public static Archive<?> createDeploymentForContainer2() {
         return createDeployment();
     }
@@ -100,7 +89,6 @@ public class ClusteredJPA2LCTestCase {
         war.addPackage(ClusteredJPA2LCTestCase.class.getPackage());
         war.addAsWebInfResource(ClusteredJPA2LCTestCase.class.getPackage(), "persistence.xml",
                 "classes/META-INF/persistence.xml");
-        log.info(war.toString(true));
         return war;
     }
 
@@ -123,10 +111,15 @@ public class ClusteredJPA2LCTestCase {
         CACHE_ADDRESS.get("replicated-cache").set("entity-replicated");
     }
 
+    @BeforeClass
+    public static void ignore() {
+        IntermittentFailure.thisTestIsFailingIntermittently("WFLY-10099");
+    }
+
     @Test
     @InSequence(-1)
     public void setupCacheContainer() throws IOException {
-        NodeUtil.start(controller, CONTAINERS);
+        NodeUtil.start(controller, TWO_NODES);
 
         final ModelNode createEntityReplicatedCacheOp = new ModelNode();
         createEntityReplicatedCacheOp.get(ADDRESS).set(CACHE_ADDRESS);
@@ -142,7 +135,7 @@ public class ClusteredJPA2LCTestCase {
         final ModelNode result1 = client1.execute(createEntityReplicatedCacheOp);
         Assert.assertTrue(result1.toJSONString(false), result1.get(OUTCOME).asString().equals(SUCCESS));
 
-        NodeUtil.deploy(this.deployer, DEPLOYMENTS);
+        NodeUtil.deploy(this.deployer, TWO_DEPLOYMENTS);
     }
 
     /**
@@ -153,7 +146,7 @@ public class ClusteredJPA2LCTestCase {
      * The two nodes don't actually have a shared database instance, but that doesn't matter for this test.
      */
     @Test
-    @InSequence(0)
+    @InSequence
     public void testEntityCacheReplication(@ArquillianResource @OperateOnDeployment(DEPLOYMENT_1) URL url0,
                                            @ArquillianResource @OperateOnDeployment(DEPLOYMENT_2) URL url1)
             throws Exception {
@@ -222,7 +215,7 @@ public class ClusteredJPA2LCTestCase {
 
     protected static ModelControllerClient createClient1() throws UnknownHostException {
         return ModelControllerClient.Factory
-                .create(InetAddress.getByName(TestSuiteEnvironment.getServerAddress()),
+                .create(InetAddress.getByName(TestSuiteEnvironment.getServerAddressNode1()),
                         TestSuiteEnvironment.getServerPort() + 100,
                         Authentication.getCallbackHandler());
     }

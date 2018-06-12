@@ -1,0 +1,6 @@
+[[HTTP_Services]]
+= HTTP Services
+
+This section summarizes the HTTP-based clustering features.
+
+include::Subsystem_Support.adoc[]

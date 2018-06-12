@@ -24,7 +24,7 @@ package org.wildfly.extension.messaging.activemq.deployment;
 
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.CONNECTORS;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.DEFAULT;
-import static org.wildfly.extension.messaging.activemq.CommonAttributes.JGROUPS_CHANNEL;
+import static org.wildfly.extension.messaging.activemq.CommonAttributes.JGROUPS_CLUSTER;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.NO_TX;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.POOLED_CONNECTION_FACTORY;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.SERVER;
@@ -203,6 +203,7 @@ public class JMSConnectionFactoryDefinitionInjectionSource extends ResourceDefin
         if (password != null && !password.isEmpty()) {
             model.get(ConnectionFactoryAttributes.Pooled.PASSWORD.getName()).set(password);
         }
+
         if (clientId != null && !clientId.isEmpty()) {
             model.get(CommonAttributes.CLIENT_ID.getName()).set(clientId);
         }
@@ -211,9 +212,9 @@ public class JMSConnectionFactoryDefinitionInjectionSource extends ResourceDefin
         if (discoveryGroupName != null) {
             model.get(DISCOVERY_GROUP.getName()).set(discoveryGroupName);
         }
-        final String jgroupsChannelName = properties.containsKey(JGROUPS_CHANNEL.getName()) ? properties.get(JGROUPS_CHANNEL.getName()) : null;
+        final String jgroupsChannelName = properties.containsKey(JGROUPS_CLUSTER.getName()) ? properties.get(JGROUPS_CLUSTER.getName()) : null;
         if (jgroupsChannelName != null) {
-            model.get(JGROUPS_CHANNEL.getName()).set(jgroupsChannelName);
+            model.get(JGROUPS_CLUSTER.getName()).set(jgroupsChannelName);
         }
         final String managedConnectionPoolClassName = properties.containsKey(MANAGED_CONNECTION_POOL.getName()) ? properties.get(MANAGED_CONNECTION_POOL.getName()) : null;
         if (managedConnectionPoolClassName != null) {
@@ -307,7 +308,7 @@ public class JMSConnectionFactoryDefinitionInjectionSource extends ResourceDefin
                 continue;
             }
 
-            props.add(new PooledConnectionFactoryConfigProperties(attribute.getPropertyName(), property.getValue().asString(), attribute.getClassType()));
+            props.add(new PooledConnectionFactoryConfigProperties(attribute.getPropertyName(), property.getValue().asString(), attribute.getClassType(), attribute.getConfigType()));
         }
         return props;
     }

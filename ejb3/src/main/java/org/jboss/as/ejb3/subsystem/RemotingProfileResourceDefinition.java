@@ -55,6 +55,7 @@ public class RemotingProfileResourceDefinition extends SimpleResourceDefinition 
         Map<String, AttributeDefinition> map = new LinkedHashMap<String, AttributeDefinition>();
         map.put(EXCLUDE_LOCAL_RECEIVER.getName(), EXCLUDE_LOCAL_RECEIVER);
         map.put(LOCAL_RECEIVER_PASS_BY_VALUE.getName(), LOCAL_RECEIVER_PASS_BY_VALUE);
+        map.put(StaticEJBDiscoveryDefinition.STATIC_EJB_DISCOVERY, StaticEJBDiscoveryDefinition.INSTANCE);
 
         ATTRIBUTES = Collections.unmodifiableMap(map);
     }

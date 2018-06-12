@@ -37,13 +37,10 @@ import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.LoginException;
 
 import org.jboss.as.core.security.RealmUser;
-import org.jboss.as.core.security.SubjectUserInfo;
-import org.jboss.remoting3.Connection;
-import org.jboss.remoting3.security.UserInfo;
-import org.jboss.remoting3.security.UserPrincipal;
 import org.jboss.security.SimpleGroup;
 import org.jboss.security.auth.callback.ObjectCallback;
 import org.jboss.security.auth.spi.AbstractServerLoginModule;
+import org.wildfly.security.auth.server.SecurityIdentity;
 
 /**
  * A simple LoginModule to take the UserPrincipal from the inbound Remoting connection and to use it as an already authenticated
@@ -100,63 +97,40 @@ public class RemotingLoginModule extends AbstractServerLoginModule {
 
         Object credential = getCredential();
         if (credential instanceof RemotingConnectionCredential) {
-            Connection con = ((RemotingConnectionCredential) credential).getConnection();
-            Principal up = null;
+            final RemotingConnectionCredential remotingConnectionCredential = (RemotingConnectionCredential) credential;
+            SecurityIdentity localIdentity = remotingConnectionCredential.getSecurityIdentity();
+            identity = new RealmUser(localIdentity.getPrincipal().getName());
+            if (getUseFirstPass()) {
+                String userName = identity.getName();
+                log.debugf("Storing username '%s'", userName);
+                // Add the username to the shared state map
+                sharedState.put("javax.security.auth.login.name", identity);
 
-            UserInfo userInfo = con.getUserInfo();
-            if (userInfo instanceof SubjectUserInfo) {
-                for (Principal current : ((SubjectUserInfo) userInfo).getPrincipals()) {
-                    if (current instanceof RealmUser) {
-                        up = current;
-                        break;
-                    }
-                }
-            }
-
-            if (up == null) {
-                for (Principal current : con.getPrincipals()) {
-                    if (current instanceof UserPrincipal) {
-                        up = current;
-                        break;
-                    }
-                }
-            }
-
-            // If we found a principal from the connection then authentication succeeded.
-            if (up != null) {
-                identity = up;
-                if (getUseFirstPass()) {
-                    String userName = identity.getName();
-                    log.debugf("Storing username '%s'", userName);
-                    // Add the username to the shared state map
-                    sharedState.put("javax.security.auth.login.name", identity);
-
-                    if (useNewClientCert) {
-                        SSLSession session = con.getSslSession();
-                        if (session != null) {
-                            try {
-                                credential = session.getPeerCertificates()[0];
-                                log.debug("Using new certificate as credential.");
-                            } catch (SSLPeerUnverifiedException e) {
-                                log.debugf("No peer certificate available for '%s'", userName);
-                            }
-                        }
-                    } else if (useClientCert) {
-                        SSLSession session = con.getSslSession();
-                        if (session != null) {
-                            try {
-                                credential = session.getPeerCertificateChain()[0];
-                                log.debug("Using certificate as credential.");
-                            } catch (SSLPeerUnverifiedException e) {
-                                log.debugf("No peer certificate available for '%s'", userName);
-                            }
+                if (useNewClientCert) {
+                    SSLSession session = remotingConnectionCredential.getSSLSession();
+                    if (session != null) {
+                        try {
+                            credential = session.getPeerCertificates()[0];
+                            log.debug("Using new certificate as credential.");
+                        } catch (SSLPeerUnverifiedException e) {
+                            log.debugf("No peer certificate available for '%s'", userName);
                         }
                     }
-                    sharedState.put("javax.security.auth.login.password", credential);
+                } else if (useClientCert) {
+                    SSLSession session = remotingConnectionCredential.getSSLSession();
+                    if (session != null) {
+                        try {
+                            credential = session.getPeerCertificateChain()[0];
+                            log.debug("Using certificate as credential.");
+                        } catch (SSLPeerUnverifiedException e) {
+                            log.debugf("No peer certificate available for '%s'", userName);
+                        }
+                    }
                 }
-                loginOk = true;
-                return true;
+                sharedState.put("javax.security.auth.login.password", credential);
             }
+            loginOk = true;
+            return true;
         }
 
         // We return false to allow the next module to attempt authentication, maybe a

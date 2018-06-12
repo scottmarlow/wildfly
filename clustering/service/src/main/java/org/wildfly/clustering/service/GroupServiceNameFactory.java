@@ -28,8 +28,7 @@ import org.jboss.msc.service.ServiceName;
  * Factory for generating a {@link ServiceName} for a group.
  * @author Paul Ferraro
  */
+@Deprecated
 public interface GroupServiceNameFactory {
-    String DEFAULT_GROUP = "default";
-
     ServiceName getServiceName(String group);
 }

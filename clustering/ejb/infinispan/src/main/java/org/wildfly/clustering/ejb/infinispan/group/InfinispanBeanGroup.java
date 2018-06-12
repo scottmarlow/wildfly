@@ -25,8 +25,8 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
-import org.wildfly.clustering.ee.infinispan.Mutator;
-import org.wildfly.clustering.ee.infinispan.Remover;
+import org.wildfly.clustering.ee.Mutator;
+import org.wildfly.clustering.ee.Remover;
 import org.wildfly.clustering.ejb.PassivationListener;
 import org.wildfly.clustering.ejb.infinispan.BeanGroup;
 import org.wildfly.clustering.ejb.infinispan.BeanGroupEntry;
@@ -89,6 +89,7 @@ public class InfinispanBeanGroup<I, T> implements BeanGroup<I, T> {
 
     @Override
     public T removeBean(I id) {
+        this.entry.decrementUsage(id);
         return this.beans().remove(id);
     }
 

@@ -43,8 +43,8 @@ import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.OperationEntry;
-import org.jboss.as.ejb3.logging.EjbLogger;
 import org.jboss.as.ejb3.component.EJBComponent;
+import org.jboss.as.ejb3.logging.EjbLogger;
 import org.jboss.as.ejb3.subsystem.EJB3Extension;
 import org.jboss.as.ejb3.subsystem.EJB3SubsystemModel;
 import org.jboss.as.ejb3.timerservice.TimerHandleImpl;
@@ -124,16 +124,16 @@ public class TimerResourceDefinition<T extends EJBComponent> extends SimpleResou
 
     // operations
     private static final OperationDefinition SUSPEND = new SimpleOperationDefinitionBuilder("suspend",
-            RESOURCE_DESCRIPTION_RESOLVER).withFlag(OperationEntry.Flag.RUNTIME_ONLY).build();
+            RESOURCE_DESCRIPTION_RESOLVER).setRuntimeOnly().build();
 
     private static final OperationDefinition ACTIVATE = new SimpleOperationDefinitionBuilder("activate",
-            RESOURCE_DESCRIPTION_RESOLVER).withFlag(OperationEntry.Flag.RUNTIME_ONLY).build();
+            RESOURCE_DESCRIPTION_RESOLVER).setRuntimeOnly().build();
 
     private static final OperationDefinition CANCEL = new SimpleOperationDefinitionBuilder("cancel",
-            RESOURCE_DESCRIPTION_RESOLVER).withFlag(OperationEntry.Flag.RUNTIME_ONLY).build();
+            RESOURCE_DESCRIPTION_RESOLVER).setRuntimeOnly().build();
 
     private static final OperationDefinition TRIGGER = new SimpleOperationDefinitionBuilder("trigger",
-            RESOURCE_DESCRIPTION_RESOLVER).withFlag(OperationEntry.Flag.RUNTIME_ONLY).build();
+            RESOURCE_DESCRIPTION_RESOLVER).setRuntimeOnly().build();
 
     private final AbstractEJBComponentRuntimeHandler<T> parentHandler;
 
@@ -222,6 +222,9 @@ public class TimerResourceDefinition<T extends EJBComponent> extends SimpleResou
 
             @Override
             protected void readAttribute(TimerImpl timer, ModelNode toSet) {
+                if (timer.isCanceled()) {
+                    return;
+                }
                 try {
                     final long time = timer.getTimeRemaining();
                     toSet.set(time);
@@ -238,6 +241,9 @@ public class TimerResourceDefinition<T extends EJBComponent> extends SimpleResou
 
             @Override
             protected void readAttribute(TimerImpl timer, ModelNode toSet) {
+                if (timer.isCanceled()) {
+                    return;
+                }
                 try {
                     final Date d = timer.getNextTimeout();
                     if (d != null) {
@@ -253,6 +259,9 @@ public class TimerResourceDefinition<T extends EJBComponent> extends SimpleResou
 
             @Override
             protected void readAttribute(TimerImpl timer, ModelNode toSet) {
+                if (timer.isCanceled()) {
+                    return;
+                }
                 final boolean calendarTimer = timer.isCalendarTimer();
                 toSet.set(calendarTimer);
             }
@@ -262,6 +271,9 @@ public class TimerResourceDefinition<T extends EJBComponent> extends SimpleResou
 
             @Override
             protected void readAttribute(TimerImpl timer, ModelNode toSet) {
+                if (timer.isCanceled()) {
+                    return;
+                }
                 final boolean persistent = timer.isPersistent();
                 toSet.set(persistent);
             }
@@ -280,7 +292,7 @@ public class TimerResourceDefinition<T extends EJBComponent> extends SimpleResou
 
             @Override
             protected void readAttribute(TimerImpl timer, ModelNode toSet) {
-                if (!timer.isCalendarTimer()) {
+                if (timer.isCanceled() || !timer.isCalendarTimer()) {
                     return;
                 }
                 ScheduleExpression sched = timer.getSchedule();
@@ -315,6 +327,9 @@ public class TimerResourceDefinition<T extends EJBComponent> extends SimpleResou
 
             @Override
             protected void readAttribute(TimerImpl timer, ModelNode toSet) {
+                if (timer.isCanceled()) {
+                    return;
+                }
                 final Object pk = timer.getPrimaryKey();
                 if (pk != null) {
                     toSet.set(pk.toString());
@@ -326,6 +341,9 @@ public class TimerResourceDefinition<T extends EJBComponent> extends SimpleResou
 
             @Override
             protected void readAttribute(TimerImpl timer, ModelNode toSet) {
+                if (timer.isCanceled()) {
+                    return;
+                }
                 if (timer.getInfo() != null) {
                     toSet.set(timer.getInfo().toString());
                 }
@@ -346,7 +364,6 @@ public class TimerResourceDefinition<T extends EJBComponent> extends SimpleResou
                     }
                 }, OperationContext.Stage.RUNTIME);
             }
-            context.stepCompleted();
         }
         protected TimerImpl getTimer(final OperationContext context, final ModelNode operation) throws OperationFailedException {
             final T ejbcomponent = parentHandler.getComponent(context, operation);

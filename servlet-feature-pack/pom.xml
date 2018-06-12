@@ -30,13 +30,21 @@
     <parent>
         <groupId>org.wildfly</groupId>
         <artifactId>wildfly-parent</artifactId>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-servlet-feature-pack</artifactId>
 
     <name>WildFly: Servlet Feature Pack</name>
     <packaging>pom</packaging>
+
+    <properties>
+        <license.directory>${project.build.directory}/${project.build.finalName}/content/docs/licenses</license.directory>
+    </properties>
 
     <dependencies>
 
@@ -54,8 +62,19 @@
             </exclusions>
         </dependency>
 
-		<!-- module and copy artifact dependencies -->
-		
+        <!-- module and copy artifact dependencies -->
+
+        <dependency>
+            <groupId>org.wildfly.core</groupId>
+            <artifactId>wildfly-elytron-integration</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
         <dependency>
             <groupId>io.undertow</groupId>
             <artifactId>undertow-servlet</artifactId>
@@ -90,8 +109,24 @@
         </dependency>
 
         <dependency>
+            <groupId>org.wildfly.bridge</groupId>
+            <artifactId>servlet-api-bridge</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jboss.spec.javax.servlet</groupId>
+                    <artifactId>jboss-servlet-api_3.1_spec</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
             <groupId>javax.activation</groupId>
-            <artifactId>activation</artifactId>            
+            <artifactId>activation</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.json</groupId>
+            <artifactId>javax.json-api</artifactId>
         </dependency>
 
         <dependency>
@@ -110,8 +145,18 @@
         </dependency>
 
         <dependency>
+            <groupId>javax.json.bind</groupId>
+            <artifactId>javax.json.bind-api</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.eclipse.jdt.core.compiler</groupId>
             <artifactId>ecj</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse</groupId>
+            <artifactId>yasson</artifactId>
         </dependency>
 
         <dependency>
@@ -125,14 +170,51 @@
         </dependency>
 
         <dependency>
-            <groupId>org.jboss</groupId>
-            <artifactId>jboss-remote-naming</artifactId>
+            <groupId>org.glassfish</groupId>
+            <artifactId>javax.json</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.wildfly.wildfly-http-client</groupId>
+            <artifactId>wildfly-http-client-common</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.wildfly.wildfly-http-client</groupId>
+            <artifactId>wildfly-http-naming-client</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.taglibs</groupId>
+            <artifactId>taglibs-standard-spec</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.taglibs</groupId>
+            <artifactId>taglibs-standard-impl</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.taglibs</groupId>
+            <artifactId>taglibs-standard-compat</artifactId>
         </dependency>
 
         <dependency>
@@ -143,6 +225,11 @@
         <dependency>
             <groupId>org.jboss.spec.javax.annotation</groupId>
             <artifactId>jboss-annotations-api_1.2_spec</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.spec.javax.annotation</groupId>
+            <artifactId>jboss-annotations-api_1.3_spec</artifactId>
         </dependency>
 
         <dependency>
@@ -162,22 +249,17 @@
 
         <dependency>
             <groupId>org.jboss.spec.javax.servlet</groupId>
+            <artifactId>jboss-servlet-api_4.0_spec</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.spec.javax.servlet</groupId>
             <artifactId>jboss-servlet-api_3.1_spec</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.jboss.spec.javax.servlet.jsp</groupId>
             <artifactId>jboss-jsp-api_2.3_spec</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jboss.spec.javax.servlet.jstl</groupId>
-            <artifactId>jboss-jstl-api_1.2_spec</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jboss.spec.javax.security.jacc</groupId>
-            <artifactId>jboss-jacc-api_1.5_spec</artifactId>
         </dependency>
 
         <dependency>
@@ -301,7 +383,29 @@
         </dependency>
 
         <dependency>
-            <groupId>org.wildfly</groupId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>wildfly-clustering-common</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>wildfly-clustering-service</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>wildfly-ee</artifactId>
             <exclusions>
                 <exclusion>
@@ -312,7 +416,7 @@
         </dependency>
 
         <dependency>
-            <groupId>org.wildfly</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>wildfly-naming</artifactId>
             <exclusions>
                 <exclusion>
@@ -324,6 +428,17 @@
 
         <dependency>
             <groupId>org.wildfly</groupId>
+            <artifactId>wildfly-naming-client</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>wildfly-security</artifactId>
             <exclusions>
                 <exclusion>
@@ -334,18 +449,7 @@
         </dependency>
 
         <dependency>
-            <groupId>org.wildfly</groupId>
-            <artifactId>wildfly-security-manager</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>*</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.wildfly</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>wildfly-undertow</artifactId>
             <exclusions>
                 <exclusion>
@@ -356,7 +460,7 @@
         </dependency>
 
         <dependency>
-            <groupId>org.wildfly</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>wildfly-web-common</artifactId>
             <exclusions>
                 <exclusion>
@@ -364,11 +468,6 @@
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.wildfly.security</groupId>
-            <artifactId>elytron-subsystem</artifactId>
         </dependency>
 
         <dependency>
@@ -380,11 +479,11 @@
             <groupId>xalan</groupId>
             <artifactId>xalan</artifactId>
         </dependency>
-        
+
     </dependencies>
 
     <build>
-        <finalName>${server.output.dir.prefix}-servlet-${project.version}</finalName>
+        <finalName>${server.output.dir.prefix}-servlet-${server.output.dir.version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -423,7 +522,7 @@
                                 <descriptor>assembly.xml</descriptor>
                             </descriptors>
                             <recompressZippedFiles>true</recompressZippedFiles>
-                            <finalName>${server.output.dir.prefix}-servlet-feature-pack-${project.version}</finalName>
+                            <finalName>${server.output.dir.prefix}-servlet-feature-pack-${server.output.dir.version}</finalName>
                             <appendAssemblyId>false</appendAssemblyId>
                             <outputDirectory>${project.build.directory}</outputDirectory>
                             <workDirectory>${project.build.directory}/assembly/work</workDirectory>
@@ -436,6 +535,90 @@
     </build>
 
     <profiles>
+
+        <profile>
+            <id>update-licenses-xml</id>
+            <activation>
+                <property>
+                    <name>!skip-update-licenses-xml</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.wildfly.maven.plugins</groupId>
+                        <artifactId>licenses-plugin</artifactId>
+                        <inherited>false</inherited>
+                        <executions>
+                            <execution>
+                                <id>generate-licenses-xml</id>
+                                <goals>
+                                    <goal>insert-versions</goal>
+                                </goals>
+                                <phase>prepare-package</phase><!-- TODO why not generate-resources? -->
+                                <configuration>
+                                    <sortByGroupIdAndArtifactId>true</sortByGroupIdAndArtifactId>
+                                    <licensesConfigFile>${project.basedir}/src/license/servlet-feature-pack-licenses.xml</licensesConfigFile>
+                                    <licensesOutputFile>${license.directory}/servlet-feature-pack-licenses.xml</licensesOutputFile>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>generate-licenses-html</id>
+            <activation>
+                <property>
+                    <name>!skip-generate-licenses-html</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>xml-maven-plugin</artifactId>
+                        <version>1.0.1</version>
+                        <inherited>false</inherited>
+                        <executions>
+                            <execution>
+                                <id>generate-licenses-html</id>
+                                <goals>
+                                    <goal>transform</goal>
+                                </goals>
+                                <phase>prepare-package</phase>
+                                <configuration>
+                                    <transformationSets>
+                                        <transformationSet>
+                                            <dir>${license.directory}</dir>
+                                            <includes>
+                                                <include>*licenses.xml</include>
+                                            </includes>
+                                            <stylesheet>src/main/resources/content/docs/licenses/licenses.xsl</stylesheet>
+                                            <outputDir>${license.directory}</outputDir>
+                                            <fileMappers>
+                                                <fileMapper implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                                                    <targetExtension>.html</targetExtension>
+                                                </fileMapper>
+                                            </fileMappers>
+                                            <parameters>
+                                                <parameter>
+                                                    <name>version</name>
+                                                    <value>${project.version}</value>
+                                                </parameter>
+                                            </parameters>
+                                        </transformationSet>
+                                    </transformationSets>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
         <profile>
             <id>enforce</id>
             <activation>

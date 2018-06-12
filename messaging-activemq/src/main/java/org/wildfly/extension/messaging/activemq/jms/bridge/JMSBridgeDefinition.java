@@ -42,8 +42,10 @@ import org.apache.activemq.artemis.jms.bridge.QualityOfServiceMode;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.AttributeMarshallers;
 import org.jboss.as.controller.AttributeParsers;
+import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.PropertiesAttributeDefinition;
+import org.jboss.as.controller.ReloadRequiredWriteAttributeHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleOperationDefinition;
 import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraintDefinition;
@@ -52,8 +54,10 @@ import org.jboss.as.controller.operations.validation.EnumValidator;
 import org.jboss.as.controller.operations.validation.IntRangeValidator;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.security.CredentialReference;
 import org.jboss.dmr.ModelNode;
 import org.wildfly.extension.messaging.activemq.CommonAttributes;
+import org.wildfly.extension.messaging.activemq.InfiniteOrPositiveValidators;
 import org.wildfly.extension.messaging.activemq.MessagingExtension;
 
 /**
@@ -63,9 +67,11 @@ public class JMSBridgeDefinition extends PersistentResourceDefinition {
 
     public static final String PAUSE = "pause";
     public static final String RESUME = "resume";
+    private static final String SOURCE_CREDENTIAL_REFERENCE_NAME = "source-" + CredentialReference.CREDENTIAL_REFERENCE;
+    private static final String TARGET_CREDENTIAL_REFERENCE_NAME = "target-" + CredentialReference.CREDENTIAL_REFERENCE;
 
     public static final SimpleAttributeDefinition MODULE = create("module", STRING)
-            .setAllowNull(true)
+            .setRequired(false)
             .build();
 
     public static final SimpleAttributeDefinition SOURCE_CONNECTION_FACTORY = create("source-connection-factory", STRING)
@@ -81,20 +87,28 @@ public class JMSBridgeDefinition extends PersistentResourceDefinition {
     public static final SimpleAttributeDefinition SOURCE_USER = create("source-user", STRING)
             .setAttributeGroup(SOURCE)
             .setXmlName("user")
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.CREDENTIAL)
             .addAccessConstraint(MESSAGING_SECURITY_SENSITIVE_TARGET)
             .build();
 
-    public static final SimpleAttributeDefinition SOURCE_PASSWORD = create("source-password", STRING)
+    public static final SimpleAttributeDefinition SOURCE_PASSWORD = create("source-password", STRING, true)
             .setAttributeGroup(SOURCE)
             .setXmlName(PASSWORD)
-            .setAllowNull(true)
             .setAllowExpression(true)
             .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.CREDENTIAL)
             .addAccessConstraint(MESSAGING_SECURITY_SENSITIVE_TARGET)
+            .setAlternatives(SOURCE_CREDENTIAL_REFERENCE_NAME)
             .build();
+
+    public static final ObjectTypeAttributeDefinition SOURCE_CREDENTIAL_REFERENCE =
+            CredentialReference.getAttributeBuilder(SOURCE_CREDENTIAL_REFERENCE_NAME, SOURCE_CREDENTIAL_REFERENCE_NAME, true)
+                    .setAttributeGroup(SOURCE)
+                    .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.CREDENTIAL)
+                    .addAccessConstraint(MESSAGING_SECURITY_SENSITIVE_TARGET)
+                    .setAlternatives(SOURCE_PASSWORD.getName())
+                    .build();
 
     public static final PropertiesAttributeDefinition SOURCE_CONTEXT = new PropertiesAttributeDefinition.Builder("source-context", true)
             .setAttributeGroup(SOURCE)
@@ -116,20 +130,28 @@ public class JMSBridgeDefinition extends PersistentResourceDefinition {
     public static final SimpleAttributeDefinition TARGET_USER = create("target-user", STRING)
             .setAttributeGroup(TARGET)
             .setXmlName("user")
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.CREDENTIAL)
             .addAccessConstraint(MESSAGING_SECURITY_SENSITIVE_TARGET)
             .build();
 
-    public static final SimpleAttributeDefinition TARGET_PASSWORD = create("target-password", STRING)
+    public static final SimpleAttributeDefinition TARGET_PASSWORD = create("target-password", STRING, true)
             .setAttributeGroup(TARGET)
             .setXmlName(PASSWORD)
-            .setAllowNull(true)
             .setAllowExpression(true)
             .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.CREDENTIAL)
             .addAccessConstraint(MESSAGING_SECURITY_SENSITIVE_TARGET)
+            .setAlternatives(TARGET_CREDENTIAL_REFERENCE_NAME)
             .build();
+
+    public static final ObjectTypeAttributeDefinition TARGET_CREDENTIAL_REFERENCE =
+            CredentialReference.getAttributeBuilder(TARGET_CREDENTIAL_REFERENCE_NAME, TARGET_CREDENTIAL_REFERENCE_NAME, true)
+                    .setAttributeGroup(TARGET)
+                    .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.CREDENTIAL)
+                    .addAccessConstraint(MESSAGING_SECURITY_SENSITIVE_TARGET)
+                    .setAlternatives(TARGET_PASSWORD.getName())
+                    .build();
 
     public static final PropertiesAttributeDefinition TARGET_CONTEXT = new PropertiesAttributeDefinition.Builder("target-context", true)
             .setAttributeGroup(TARGET)
@@ -148,6 +170,7 @@ public class JMSBridgeDefinition extends PersistentResourceDefinition {
             .setAllowExpression(true)
             .build();
     public static final SimpleAttributeDefinition MAX_RETRIES = create("max-retries", INT)
+            .setCorrector(InfiniteOrPositiveValidators.NEGATIVE_VALUE_CORRECTOR)
             .setValidator(InfiniteOrPositiveValidators.INT_INSTANCE)
             .setAllowExpression(true)
             .build();
@@ -161,15 +184,15 @@ public class JMSBridgeDefinition extends PersistentResourceDefinition {
             .setAllowExpression(true)
             .build();
     public static final SimpleAttributeDefinition SUBSCRIPTION_NAME = create("subscription-name", STRING)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .build();
     public static final SimpleAttributeDefinition CLIENT_ID = create("client-id", STRING)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .build();
     public static final SimpleAttributeDefinition ADD_MESSAGE_ID_IN_HEADER = create("add-messageID-in-header", BOOLEAN)
-            .setAllowNull(true)
+            .setRequired(false)
             .setDefaultValue(new ModelNode().set(false))
             .setAllowExpression(true)
             .build();
@@ -190,11 +213,13 @@ public class JMSBridgeDefinition extends PersistentResourceDefinition {
             SOURCE_DESTINATION,
             SOURCE_USER,
             SOURCE_PASSWORD,
+            SOURCE_CREDENTIAL_REFERENCE,
             SOURCE_CONTEXT,
             TARGET_CONNECTION_FACTORY,
             TARGET_DESTINATION,
             TARGET_USER,
             TARGET_PASSWORD,
+            TARGET_CREDENTIAL_REFERENCE,
             TARGET_CONTEXT
     };
 
@@ -223,8 +248,9 @@ public class JMSBridgeDefinition extends PersistentResourceDefinition {
 
     @Override
     public void registerAttributes(ManagementResourceRegistration registry) {
+        ReloadRequiredWriteAttributeHandler reloadRequiredWriteAttributeHandler = new ReloadRequiredWriteAttributeHandler(ATTRIBUTES);
         for (AttributeDefinition attr : ATTRIBUTES) {
-            registry.registerReadWriteAttribute(attr, null, JMSBridgeWriteAttributeHandler.INSTANCE);
+            registry.registerReadWriteAttribute(attr, null, reloadRequiredWriteAttributeHandler);
         }
         for (AttributeDefinition attr : READONLY_ATTRIBUTES) {
             registry.registerReadOnlyAttribute(attr, JMSBridgeHandler.INSTANCE);

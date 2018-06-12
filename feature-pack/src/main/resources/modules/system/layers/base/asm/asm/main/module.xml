@@ -22,13 +22,13 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<module xmlns="urn:jboss:module:1.3" name="asm.asm">
+<module xmlns="urn:jboss:module:1.5" name="asm.asm">
     <properties>
         <property name="jboss.api" value="private"/>
     </properties>
 
     <resources>
-        <artifact name="${asm:asm}"/>
+        <artifact name="${org.ow2.asm:asm}"/>
     </resources>
 
     <dependencies>

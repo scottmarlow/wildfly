@@ -29,7 +29,11 @@
     <parent>
         <groupId>org.wildfly</groupId>
         <artifactId>wildfly-testsuite</artifactId>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-testsuite-integration-mixed-domain</artifactId>
@@ -45,6 +49,9 @@
         <!-- Used to provide an absolute location for the XSLT scripts. -->
         <!-- This value is overridden in submodules with the correct relative path. -->
         <xslt.scripts.dir>${basedir}/../integration/src/test/xslt</xslt.scripts.dir>
+
+        <ts.elytron.cli>../shared/enable-elytron-domain.cli</ts.elytron.cli>
+        <ts.skipTests>${skipTests}</ts.skipTests>
     </properties>
 
     <!--
@@ -53,11 +60,11 @@
     -->
 
     <dependencies>
-       <dependency>
-         <groupId>org.wildfly.core</groupId>
+        <dependency>
+            <groupId>org.wildfly.core</groupId>
             <artifactId>wildfly-model-test</artifactId>
-         <scope>test</scope>
-       </dependency>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.wildfly.build</groupId>
             <artifactId>wildfly-server-provisioning-standalone</artifactId>
@@ -66,25 +73,31 @@
         </dependency>
         <dependency>
             <groupId>org.wildfly.core</groupId>
-            <artifactId>wildfly-subsystem-test-framework</artifactId>
-            <!-- exclude woodstox as it is doesn't work right with adding new lines after document end -->
+            <artifactId>wildfly-core-testsuite-shared</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>wildfly-messaging</artifactId>
             <exclusions>
                 <exclusion>
-                    <groupId>org.codehaus.woodstox</groupId>
+                    <groupId>*</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.wildfly</groupId>
-            <artifactId>wildfly-testsuite-shared</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>wildfly-security</artifactId>
             <exclusions>
-                <!-- exclude woodstox as it is doesn't work right with adding new lines after document end -->
                 <exclusion>
-                    <groupId>org.codehaus.woodstox</groupId>
+                    <groupId>*</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>javax.enterprise</groupId>
+            <artifactId>cdi-api</artifactId>
         </dependency>
     </dependencies>
     <build>
@@ -98,24 +111,75 @@
                     <redirectTestOutputToFile>${testLogToFile}</redirectTestOutputToFile>
 
                     <!-- System properties to forked surefire JVM which runs clients. -->
-                    <argLine>${jvm.args.ip.client} ${jvm.args.timeouts}</argLine>
-                    <skipTests>false</skipTests>
-
-                    <systemPropertyVariables>
+                    <argLine>${jvm.args.ip.client} ${jvm.args.timeouts} ${surefire.jacoco.args}</argLine>
+                    <skipTests>${ts.skipTests}</skipTests>
+                    <systemPropertyVariables combine.children="append">
+                        <mcast>${mcast}</mcast>
+                        <mcast1>${mcast1}</mcast1>
+                        <mcast2>${mcast2}</mcast2>
+                        <mcast.ttl>${mcast.ttl}</mcast.ttl>
                         <jboss.options>${surefire.system.args}</jboss.options>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                         <jboss.home>${jboss.home}</jboss.home>
                         <module.path>${jboss.home}/modules</module.path>
                         <jboss.test.host.master.address>${node0}</jboss.test.host.master.address>
                         <jboss.test.host.slave.address>${node1}</jboss.test.host.slave.address>
+                        <jboss.default.multicast.address>${mcast}</jboss.default.multicast.address>
+                        <jboss.modcluster.multicast.address>${mcast1}</jboss.modcluster.multicast.address>
+                        <server.jvm.args>${surefire.system.args} ${jvm.args.ip.server} ${jvm.args.other} ${jvm.args.timeouts} -Dnode0=${node0} -Dnode1=${node1} -Djboss.default.multicast.address=${mcast} -Djboss.messaging.cluster.password=ILoveWildfly ${extra.server.jvm.args}</server.jvm.args>
                     </systemPropertyVariables>
                     <includes>
-                         <!-- include>**/*TestCase.java</include -->
-                         <include>**/*TestSuite.java</include>
+                        <!-- include>**/*TestCase.java</include -->
+                        <include>**/*TestSuite.java</include>
                     </includes>
-                </configuration>                        
-            </plugin>  
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <id>elytron.profile</id>
+            <activation>
+                <property>
+                    <name>elytron</name>
+                </property>
+                <file>
+                    <exists>${ts.elytron.cli}</exists>
+                </file>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.wildfly.plugins</groupId>
+                        <artifactId>wildfly-maven-plugin</artifactId>
+                        <version>${version.org.wildfly.plugin}</version>
+                        <executions>
+                            <execution>
+                                <phase>process-test-resources</phase>
+                                <goals>
+                                    <goal>execute-commands</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <offline>true</offline>
+                            <scripts>
+                                <script>${ts.elytron.cli}</script>
+                            </scripts>
+                            <jboss-home>${project.build.directory}/wildfly</jboss-home>
+                            <stdout>none</stdout>
+                            <java-opts>${modular.jdk.args}</java-opts>
+                            <system-properties>
+                                <public.ip>${node0}</public.ip>
+                                <management.ip>${node0}</management.ip>
+                                <maven.repo.local>${settings.localRepository}</maven.repo.local>
+                                <module.path>${jboss.dist}/modules</module.path>
+                            </system-properties>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

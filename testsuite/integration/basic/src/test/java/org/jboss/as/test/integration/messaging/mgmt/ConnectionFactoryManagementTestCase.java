@@ -45,6 +45,7 @@ import org.jboss.as.test.integration.common.jms.JMSOperations;
 import org.jboss.as.test.integration.common.jms.JMSOperationsProvider;
 import org.jboss.as.test.integration.management.base.ContainerResourceMgmtTestBase;
 import org.jboss.as.test.integration.management.util.MgmtOperationException;
+import org.jboss.as.test.integration.management.util.ServerReload;
 import org.jboss.dmr.ModelNode;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -83,10 +84,11 @@ public class ConnectionFactoryManagementTestCase extends ContainerResourceMgmtTe
         } catch (MgmtOperationException e) {
             assertEquals(FAILED, e.getResult().get(OUTCOME).asString());
             assertEquals(true, e.getResult().get(ROLLED_BACK).asBoolean());
-            assertTrue(e.getResult().get(FAILURE_DESCRIPTION).asString().contains("WFLYMSGAMQ0019"));
+            assertTrue(e.getResult().get(FAILURE_DESCRIPTION).asString().contains("WFLYCTL0105"));
         }
 
         jmsOperations.removeJmsConnectionFactory(CF_NAME);
+        ServerReload.executeReloadAndWaitForCompletion(managementClient.getControllerClient());
     }
 
 }

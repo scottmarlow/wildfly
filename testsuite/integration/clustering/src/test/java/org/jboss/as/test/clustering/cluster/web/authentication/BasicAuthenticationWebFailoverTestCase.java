@@ -39,12 +39,11 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClients;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.OperateOnDeployment;
-import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.container.test.api.TargetsContainer;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.arquillian.api.ServerSetup;
-import org.jboss.as.test.clustering.cluster.ClusterAbstractTestCase;
+import org.jboss.as.test.clustering.cluster.AbstractClusteringTestCase;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
@@ -57,24 +56,25 @@ import org.junit.runner.RunWith;
  * @author Paul Ferraro
  */
 @RunWith(Arquillian.class)
-@RunAsClient
 @ServerSetup(WebSecurityDomainSetup.class)
-public class BasicAuthenticationWebFailoverTestCase extends ClusterAbstractTestCase {
+public class BasicAuthenticationWebFailoverTestCase extends AbstractClusteringTestCase {
 
-    @Deployment(name = DEPLOYMENT_1, managed = false)
-    @TargetsContainer(CONTAINER_1)
+    private static final String MODULE_NAME = BasicAuthenticationWebFailoverTestCase.class.getSimpleName();
+
+    @Deployment(name = DEPLOYMENT_1, managed = false, testable = false)
+    @TargetsContainer(NODE_1)
     public static Archive<?> deployment0() {
         return getDeployment();
     }
 
-    @Deployment(name = DEPLOYMENT_2, managed = false)
-    @TargetsContainer(CONTAINER_2)
+    @Deployment(name = DEPLOYMENT_2, managed = false, testable = false)
+    @TargetsContainer(NODE_2)
     public static Archive<?> deployment1() {
         return getDeployment();
     }
 
     private static Archive<?> getDeployment() {
-        WebArchive war = ShrinkWrap.create(WebArchive.class, "basic-authentication.war");
+        WebArchive war = ShrinkWrap.create(WebArchive.class, MODULE_NAME + ".war");
         war.addClass(SecureServlet.class);
         war.setWebXML(SecureServlet.class.getPackage(), "web-basic.xml");
         war.addAsWebInfResource(SecureServlet.class.getPackage(), "jboss-web.xml", "jboss-web.xml");

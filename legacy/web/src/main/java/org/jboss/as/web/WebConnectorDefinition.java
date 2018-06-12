@@ -33,6 +33,7 @@ import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.StringListAttributeDefinition;
 import org.jboss.as.controller.access.management.AccessConstraintDefinition;
 import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraintDefinition;
+import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.operations.validation.IntRangeValidator;
 import org.jboss.as.controller.operations.validation.StringLengthValidator;
 import org.jboss.as.controller.registry.AttributeAccess;
@@ -48,25 +49,25 @@ public class WebConnectorDefinition extends ModelOnlyResourceDefinition {
     protected static final SimpleAttributeDefinition NAME =
             new SimpleAttributeDefinitionBuilder(Constants.NAME, ModelType.STRING)
                     .setXmlName(Constants.NAME)
-                    .setAllowNull(true) // todo should be false, but 'add' won't validate then
+                    .setRequired(false) // todo should be false, but 'add' won't validate then
                     .build();
     protected static final SimpleAttributeDefinition PROTOCOL =
             new SimpleAttributeDefinitionBuilder(Constants.PROTOCOL, ModelType.STRING)
-                    .setAllowNull(false)
+                    .setRequired(true)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new StringLengthValidator(1))
                     .setAllowExpression(true)
                     .build();
     protected static final SimpleAttributeDefinition SOCKET_BINDING =
             new SimpleAttributeDefinitionBuilder(Constants.SOCKET_BINDING, ModelType.STRING)
-                    .setAllowNull(false)
+                    .setRequired(true)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new StringLengthValidator(1))
                     .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.SOCKET_BINDING_REF)
                     .build();
     protected static final SimpleAttributeDefinition SCHEME =
             new SimpleAttributeDefinitionBuilder(Constants.SCHEME, ModelType.STRING)
-                    .setAllowNull(false)
+                    .setRequired(true)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new StringLengthValidator(1))
                     .setAllowExpression(true)
@@ -74,27 +75,27 @@ public class WebConnectorDefinition extends ModelOnlyResourceDefinition {
                     .build();
     protected static final SimpleAttributeDefinition EXECUTOR =
             new SimpleAttributeDefinitionBuilder(Constants.EXECUTOR, ModelType.STRING)
-                    .setAllowNull(true)
+                    .setRequired(false)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new StringLengthValidator(1, true))
                     .build();
     protected static final SimpleAttributeDefinition ENABLED =
             new SimpleAttributeDefinitionBuilder(Constants.ENABLED, ModelType.BOOLEAN)
-                    .setAllowNull(true)
+                    .setRequired(false)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setDefaultValue(new ModelNode(true))
                     .setAllowExpression(true)
                     .build();
     protected static final SimpleAttributeDefinition ENABLE_LOOKUPS =
             new SimpleAttributeDefinitionBuilder(Constants.ENABLE_LOOKUPS, ModelType.BOOLEAN)
-                    .setAllowNull(true)
+                    .setRequired(false)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setDefaultValue(new ModelNode(false))
                     .setAllowExpression(true)
                     .build();
     protected static final SimpleAttributeDefinition PROXY_BINDING =
             new SimpleAttributeDefinitionBuilder(Constants.PROXY_BINDING, ModelType.STRING)
-                    .setAllowNull(true)
+                    .setRequired(false)
                     .setValidator(new StringLengthValidator(1))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.SOCKET_BINDING_REF)
@@ -102,7 +103,7 @@ public class WebConnectorDefinition extends ModelOnlyResourceDefinition {
                     .build();
     protected static final SimpleAttributeDefinition PROXY_NAME =
             new SimpleAttributeDefinitionBuilder(Constants.PROXY_NAME, ModelType.STRING)
-                    .setAllowNull(true)
+                    .setRequired(false)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setValidator(new StringLengthValidator(1, true))
                     .setAllowExpression(true)
@@ -110,7 +111,7 @@ public class WebConnectorDefinition extends ModelOnlyResourceDefinition {
                     .build();
     protected static final SimpleAttributeDefinition PROXY_PORT =
             new SimpleAttributeDefinitionBuilder(Constants.PROXY_PORT, ModelType.INT)
-                    .setAllowNull(true)
+                    .setRequired(false)
                     .setValidator(new IntRangeValidator(1, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setAllowExpression(true)
@@ -118,7 +119,7 @@ public class WebConnectorDefinition extends ModelOnlyResourceDefinition {
                     .build();
     protected static final SimpleAttributeDefinition MAX_POST_SIZE =
             new SimpleAttributeDefinitionBuilder(Constants.MAX_POST_SIZE, ModelType.INT)
-                    .setAllowNull(true)
+                    .setRequired(false)
                     .setValidator(new IntRangeValidator(0, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setDefaultValue(new ModelNode(2097152))
@@ -126,7 +127,7 @@ public class WebConnectorDefinition extends ModelOnlyResourceDefinition {
                     .build();
     protected static final SimpleAttributeDefinition MAX_SAVE_POST_SIZE =
             new SimpleAttributeDefinitionBuilder(Constants.MAX_SAVE_POST_SIZE, ModelType.INT)
-                    .setAllowNull(true)
+                    .setRequired(false)
                     .setValidator(new IntRangeValidator(0, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setDefaultValue(new ModelNode(4096))
@@ -134,14 +135,14 @@ public class WebConnectorDefinition extends ModelOnlyResourceDefinition {
                     .build();
     protected static final SimpleAttributeDefinition SECURE =
             new SimpleAttributeDefinitionBuilder(Constants.SECURE, ModelType.BOOLEAN)
-                    .setAllowNull(true)
+                    .setRequired(false)
                     .setAllowExpression(true)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setDefaultValue(new ModelNode(false))
                     .build();
     protected static final SimpleAttributeDefinition REDIRECT_BINDING =
             new SimpleAttributeDefinitionBuilder(Constants.REDIRECT_BINDING, ModelType.STRING)
-                    .setAllowNull(true)
+                    .setRequired(false)
                     .setValidator(new StringLengthValidator(1))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.SOCKET_BINDING_REF)
@@ -149,7 +150,7 @@ public class WebConnectorDefinition extends ModelOnlyResourceDefinition {
                     .build();
     protected static final SimpleAttributeDefinition REDIRECT_PORT =
             new SimpleAttributeDefinitionBuilder(Constants.REDIRECT_PORT, ModelType.INT)
-                    .setAllowNull(true)
+                    .setRequired(false)
                     .setValidator(new IntRangeValidator(1, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setDefaultValue(new ModelNode(443))
@@ -158,13 +159,13 @@ public class WebConnectorDefinition extends ModelOnlyResourceDefinition {
                     .build();
     protected static final SimpleAttributeDefinition MAX_CONNECTIONS =
             new SimpleAttributeDefinitionBuilder(Constants.MAX_CONNECTIONS, ModelType.INT)
-                    .setAllowNull(true)
+                    .setRequired(false)
                     .setValidator(new IntRangeValidator(1, true))
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setAllowExpression(true)
                     .build();
     protected static final StringListAttributeDefinition VIRTUAL_SERVER = new StringListAttributeDefinition.Builder(Constants.VIRTUAL_SERVER)
-            .setAllowNull(true)
+            .setRequired(false)
             .setFlags(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
             .setElementValidator(new StringLengthValidator(1, false))
             .build();
@@ -203,7 +204,7 @@ public class WebConnectorDefinition extends ModelOnlyResourceDefinition {
                 WebExtension.getResourceDescriptionResolver(Constants.CONNECTOR),
                 new AddressToNameAddAdaptor(CONNECTOR_ATTRIBUTES),
                 CONNECTOR_ATTRIBUTES);
-                setDeprecated(WebExtension.DEPRECATED_SINCE);
+        this.setDeprecated(WebExtension.DEPRECATED_SINCE);
     }
 
     @Override
@@ -215,5 +216,20 @@ public class WebConnectorDefinition extends ModelOnlyResourceDefinition {
     @Override
     public List<AccessConstraintDefinition> getAccessConstraints() {
         return ACCESS_CONSTRAINTS;
+    }
+
+    /**
+     * The following is a slight hack specifically for supporting mod_cluster with current DC and legacy EAP 6.x slaves.
+     * With introduction of capability support for mod_cluster connector attribute, a fake capability corresponding to
+     * Undertow listener is registered for JBoss Web connectors so that the requirement can be satisfied for legacy profiles.
+     */
+    private final String UNDERTOW_LISTENER_CAPABILITY_NAME = "org.wildfly.undertow.listener";
+    private final RuntimeCapability<Void> FAKE_UNDERTOW_LISTENER_CAPABILITY = RuntimeCapability.Builder.of(UNDERTOW_LISTENER_CAPABILITY_NAME, true)
+            .setAllowMultipleRegistrations(true)
+            .build();
+
+    @Override
+    public void registerCapabilities(ManagementResourceRegistration resourceRegistration) {
+        resourceRegistration.registerCapability(FAKE_UNDERTOW_LISTENER_CAPABILITY);
     }
 }

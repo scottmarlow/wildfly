@@ -21,7 +21,7 @@
 */
 package org.wildfly.test.extension.rts;
 
-import java.io.File;
+import java.lang.reflect.ReflectPermission;
 import java.net.SocketPermission;
 import java.util.Arrays;
 import java.util.Collections;
@@ -67,13 +67,16 @@ public final class ParticipantTestCase extends AbstractTestCase {
     public static WebArchive getDeployment() {
         return AbstractTestCase.getDeployment()
                 .addClasses(LoggingParticipant.class, AbstractTestCase.class, TestSuiteEnvironment.class)
-                .addAsWebInfResource(new File("../test-classes", "web.xml"), "web.xml")
+                .addAsWebInfResource(ParticipantTestCase.class.getClassLoader().getResource("web.xml"),"web.xml")
                 .addAsManifestResource(new StringAsset(DEPENDENCIES), "MANIFEST.MF")
                 .addAsManifestResource(PermissionUtils.createPermissionsXmlAsset(
                         // Permissions required to get SERVER_HOST_PORT
                         new PropertyPermission("management.address", "read"),
                         new PropertyPermission("node0", "read"),
                         new PropertyPermission("jboss.http.port", "read"),
+                        new PropertyPermission("arquillian.debug", "read"),
+                        new ReflectPermission("suppressAccessChecks"),
+                        new RuntimePermission("accessDeclaredMembers"),
                         // Permissions required to access SERVER_HOST_PORT
                         new SocketPermission(SERVER_HOST_PORT, "connect,resolve")
                 ), "permissions.xml");

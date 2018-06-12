@@ -29,6 +29,10 @@ import java.util.Set;
 
 import javax.security.jacc.PolicyContext;
 
+import org.jboss.as.naming.ServiceBasedNamingStore;
+import org.jboss.as.naming.ValueManagedReferenceFactory;
+import org.jboss.as.naming.deployment.ContextNames;
+import org.jboss.as.naming.service.BinderService;
 import org.jboss.as.security.SecurityExtension;
 import org.jboss.as.security.logging.SecurityLogger;
 import org.jboss.as.security.plugins.ModuleClassLoaderLocator;
@@ -36,15 +40,19 @@ import org.jboss.as.server.moduleservice.ServiceModuleLoader;
 import org.jboss.modules.ModuleLoadException;
 import org.jboss.msc.inject.Injector;
 import org.jboss.msc.service.Service;
+import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.service.ServiceTarget;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
+import org.jboss.msc.value.Values;
 import org.jboss.security.SecurityConstants;
 import org.jboss.security.auth.callback.CallbackHandlerPolicyContextHandler;
 import org.jboss.security.jacc.SubjectPolicyContextHandler;
 import org.jboss.security.plugins.ClassLoaderLocatorFactory;
+import org.jboss.security.plugins.JBossPolicyRegistration;
 import org.wildfly.security.manager.WildFlySecurityManager;
 
 /**
@@ -68,41 +76,62 @@ public class SecurityBootstrapService implements Service<Void> {
 
     private Policy oldPolicy;
 
-    private Policy jaccPolicy;
+    /**
+     * This is static because we want to keep using the same one after reload
+     *
+     * see https://issues.jboss.org/browse/WFLY-10066
+     */
+    private static volatile Policy jaccPolicy;
+
+    private final boolean initializeJacc;
 
     private static final String JACC_POLICY_PROVIDER = "javax.security.jacc.policy.provider";
 
-    public SecurityBootstrapService() {
+    private static final String POLICY_REGISTRATION = "policyRegistration";
+
+    public SecurityBootstrapService(boolean initializeJacc) {
+        this.initializeJacc = initializeJacc;
     }
 
     /** {@inheritDoc} */
     @Override
     public void start(StartContext context) throws StartException {
         log.debugf("Starting SecurityBootstrapService");
-        try {
-            //Print out the current version of PicketBox
-            SecurityLogger.ROOT_LOGGER.currentVersion(org.picketbox.Version.VERSION);
+        //Print out the current version of PicketBox
+        SecurityLogger.ROOT_LOGGER.currentVersion(org.picketbox.Version.VERSION);
+        initializeJacc();
+        setupPolicyRegistration(context);
+    }
 
+    private void initializeJacc() throws StartException {
+        if (!initializeJacc) {
+            SecurityLogger.ROOT_LOGGER.debugf("Legacy subsystem configured to not initialize JACC. If you want JACC support, make sure you have it properly configured in Elytron subsystem.");
+            return;
+        }
+        SecurityLogger.ROOT_LOGGER.debugf("Initializing JACC from legacy subsystem.");
+        try {
             // Get the current Policy impl
             oldPolicy = Policy.getPolicy();
-            String module = WildFlySecurityManager.getPropertyPrivileged(JACC_MODULE, null);
-            String provider = WildFlySecurityManager.getPropertyPrivileged(JACC_POLICY_PROVIDER, "org.jboss.security.jacc.DelegatingPolicy");
-            Class<?> providerClass = loadClass(module, provider);
-            try {
-                // Look for a ctor(Policy) signature
-                Class<?>[] ctorSig = { Policy.class };
-                Constructor<?> ctor = providerClass.getConstructor(ctorSig);
-                Object[] ctorArgs = { oldPolicy };
-                jaccPolicy = (Policy) ctor.newInstance(ctorArgs);
-            } catch (NoSuchMethodException e) {
-                log.debugf("Provider does not support ctor(Policy)");
+            if(jaccPolicy == null) {
+                String module = WildFlySecurityManager.getPropertyPrivileged(JACC_MODULE, null);
+                String provider = WildFlySecurityManager.getPropertyPrivileged(JACC_POLICY_PROVIDER, "org.jboss.security.jacc.DelegatingPolicy");
+                Class<?> providerClass = loadClass(module, provider);
                 try {
-                    jaccPolicy = (Policy) providerClass.newInstance();
-                } catch (Exception e1) {
-                    throw SecurityLogger.ROOT_LOGGER.unableToStartException("SecurityBootstrapService", e1);
+                    // Look for a ctor(Policy) signature
+                    Class<?>[] ctorSig = {Policy.class};
+                    Constructor<?> ctor = providerClass.getConstructor(ctorSig);
+                    Object[] ctorArgs = {oldPolicy};
+                    jaccPolicy = (Policy) ctor.newInstance(ctorArgs);
+                } catch (NoSuchMethodException e) {
+                    log.debugf("Provider does not support ctor(Policy)");
+                    try {
+                        jaccPolicy = (Policy) providerClass.newInstance();
+                    } catch (Exception e1) {
+                        throw SecurityLogger.ROOT_LOGGER.unableToStartException("SecurityBootstrapService", e1);
+                    }
+                } catch (Exception e) {
+                    throw SecurityLogger.ROOT_LOGGER.unableToStartException("SecurityBootstrapService", e);
                 }
-            } catch (Exception e) {
-                throw SecurityLogger.ROOT_LOGGER.unableToStartException("SecurityBootstrapService", e);
             }
 
             // Install the JACC policy provider
@@ -124,6 +153,18 @@ public class SecurityBootstrapService implements Service<Void> {
         } catch (Exception e) {
             throw SecurityLogger.ROOT_LOGGER.unableToStartException("SecurityBootstrapService", e);
         }
+    }
+
+    private void setupPolicyRegistration(final StartContext context) {
+        ServiceTarget target = context.getChildTarget();
+        final BinderService binderService = new BinderService(POLICY_REGISTRATION);
+        target.addService(ContextNames.buildServiceName(ContextNames.JAVA_CONTEXT_SERVICE_NAME, POLICY_REGISTRATION), binderService)
+                .addDependency(ContextNames.JAVA_CONTEXT_SERVICE_NAME, ServiceBasedNamingStore.class, binderService.getNamingStoreInjector())
+                .addInjection(binderService.getManagedObjectInjector(), new ValueManagedReferenceFactory(
+                        Values.immediateValue(new JBossPolicyRegistration())))
+                .setInitialMode(ServiceController.Mode.ACTIVE)
+                .install();
+
     }
 
     private Class<?> loadClass(final String module, final String className) throws ClassNotFoundException, ModuleLoadException {

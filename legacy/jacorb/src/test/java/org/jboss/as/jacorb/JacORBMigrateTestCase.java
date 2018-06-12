@@ -21,6 +21,7 @@
 */
 package org.jboss.as.jacorb;
 
+import static org.jboss.as.controller.capability.RuntimeCapability.buildDynamicCapabilityName;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.EXTENSION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
@@ -48,9 +49,13 @@ import org.jboss.as.subsystem.test.AbstractSubsystemTest;
 import org.jboss.as.subsystem.test.AdditionalInitialization;
 import org.jboss.as.subsystem.test.KernelServices;
 import org.jboss.dmr.ModelNode;
+import org.jboss.security.SecurityDomain;
 import org.junit.Assert;
 import org.junit.Test;
 import org.wildfly.iiop.openjdk.IIOPExtension;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  *
@@ -90,6 +95,7 @@ public class JacORBMigrateTestCase extends AbstractSubsystemTest {
         ModelNode newSubsystem = model.get(SUBSYSTEM).get("iiop-openjdk");
         Assert.assertTrue(newSubsystem.get("export-corbaloc").equals(new ModelNode(true)));
         Assert.assertTrue(newSubsystem.get("confidentiality").equals(new ModelNode("required")));
+        Assert.assertTrue(newSubsystem.get("iona").equals(new ModelNode(true)));
     }
 
     private static class NewSubsystemAdditionalInitialization extends AdditionalInitialization {
@@ -115,6 +121,10 @@ public class JacORBMigrateTestCase extends AbstractSubsystemTest {
                                     rootRegistration, ExtensionRegistryType.SLAVE));
                         }
                     }, null));
+
+            Map<String, Class> capabilities = new HashMap<>();
+            capabilities.put(buildDynamicCapabilityName("org.wildfly.security.legacy-security-domain", "security-domain"), SecurityDomain.class);
+            registerServiceCapabilities(capabilityRegistry, capabilities);
         }
 
         @Override

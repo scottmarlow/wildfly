@@ -31,6 +31,7 @@ import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.dmr.ModelNode;
 import org.jboss.jca.core.api.connectionmanager.pool.PoolConfiguration;
+import org.jboss.jca.core.api.management.ConnectionFactory;
 import org.jboss.jca.core.api.management.Connector;
 import org.jboss.jca.core.api.management.DataSource;
 import org.jboss.jca.core.api.management.ManagementRepository;
@@ -78,8 +79,6 @@ public class PoolConfigurationRWHandler {
             final ModelNode currentValue = submodel.hasDefined(parameterName) ? submodel.get(parameterName).clone() : new ModelNode();
 
             context.getResult().set(currentValue);
-
-            context.stepCompleted();
         }
     }
 
@@ -96,7 +95,7 @@ public class PoolConfigurationRWHandler {
                                                final ModelNode currentValue, final HandbackHolder<List<PoolConfiguration>> handbackHolder) throws OperationFailedException {
 
             final PathAddress address = PathAddress.pathAddress(operation.require(OP_ADDR));
-            final String jndiName = address.getLastElement().getValue();
+            final String poolName = address.getLastElement().getValue();
 
             final ServiceController<?> managementRepoService = context.getServiceRegistry(false).getService(
                     ConnectorServices.MANAGEMENT_REPOSITORY_SERVICE);
@@ -104,7 +103,7 @@ public class PoolConfigurationRWHandler {
             if (managementRepoService != null) {
                 try {
                     final ManagementRepository repository = (ManagementRepository) managementRepoService.getValue();
-                    poolConfigs = getMatchingPoolConfigs(jndiName, repository);
+                    poolConfigs = getMatchingPoolConfigs(poolName, repository);
                     updatePoolConfigs(poolConfigs, parameterName, newValue);
                     handbackHolder.setHandback(poolConfigs);
                 } catch (Exception e) {
@@ -114,7 +113,8 @@ public class PoolConfigurationRWHandler {
 
             return (IDLETIMEOUTMINUTES.getName().equals(parameterName) || BACKGROUNDVALIDATION.getName().equals(parameterName)
                     || BACKGROUNDVALIDATIONMILLIS.getName().equals(parameterName)
-                    || POOL_PREFILL.getName().equals(parameterName) || POOL_FLUSH_STRATEGY.getName().equals(parameterName));
+                    || POOL_PREFILL.getName().equals(parameterName) || POOL_FLUSH_STRATEGY.getName().equals(parameterName)
+                    || MAX_POOL_SIZE.getName().equals(parameterName) || MIN_POOL_SIZE.getName().equals(parameterName));
 
         }
 
@@ -137,10 +137,10 @@ public class PoolConfigurationRWHandler {
                     pc.setMinSize(newValue.asInt());
                 }
                 if (INITIAL_POOL_SIZE.getName().equals(parameterName)) {
-                    pc.setInitialSize(newValue.asInt());
+                    pc.setInitialSize(newValue.isDefined()? newValue.asInt(): 0);
                 }
                 if (BLOCKING_TIMEOUT_WAIT_MILLIS.getName().equals(parameterName)) {
-                    pc.setBlockingTimeout(newValue.asLong());
+                    pc.setBlockingTimeout(newValue.isDefined()? newValue.asLong(): 0);
                 }
                 if (POOL_USE_STRICT_MIN.getName().equals(parameterName)) {
                     pc.setStrictMin(newValue.asBoolean());
@@ -150,6 +150,9 @@ public class PoolConfigurationRWHandler {
                 }
                 if (VALIDATE_ON_MATCH.getName().equals(parameterName)) {
                     pc.setValidateOnMatch(newValue.asBoolean());
+                }
+                if (POOL_FAIR.getName().equals(parameterName)) {
+                    pc.setFair(newValue.asBoolean());
                 }
             }
         }
@@ -164,14 +167,13 @@ public class PoolConfigurationRWHandler {
             super();
         }
 
-        protected List<PoolConfiguration> getMatchingPoolConfigs(String jndiName, ManagementRepository repository) {
+        protected List<PoolConfiguration> getMatchingPoolConfigs(String poolName, ManagementRepository repository) {
             ArrayList<PoolConfiguration> result = new ArrayList<PoolConfiguration>(repository.getDataSources().size());
             if (repository.getDataSources() != null) {
                 for (DataSource ds : repository.getDataSources()) {
-                    if (jndiName.equalsIgnoreCase(ds.getJndiName())) {
+                    if (poolName.equalsIgnoreCase(ds.getPool().getName())) {
                         result.add(ds.getPoolConfiguration());
                     }
-
                 }
             }
             result.trimToSize();
@@ -188,17 +190,19 @@ public class PoolConfigurationRWHandler {
             super();
         }
 
-        protected List<PoolConfiguration> getMatchingPoolConfigs(String jndiName, ManagementRepository repository) {
+        protected List<PoolConfiguration> getMatchingPoolConfigs(String poolName, ManagementRepository repository) {
             ArrayList<PoolConfiguration> result = new ArrayList<PoolConfiguration>(repository.getConnectors().size());
             if (repository.getConnectors() != null) {
                 for (Connector conn : repository.getConnectors()) {
-                    if (jndiName.equalsIgnoreCase(conn.getUniqueId())) {
-                        if (conn.getConnectionFactories() == null || conn.getConnectionFactories().get(0) == null)
-                            continue;
+                    if (conn.getConnectionFactories() == null || conn.getConnectionFactories().get(0) == null
+                            || conn.getConnectionFactories().get(0).getPool() == null)
+                        continue;
+
+                    ConnectionFactory connectionFactory = conn.getConnectionFactories().get(0);
+                    if (poolName.equals(connectionFactory.getPool().getName())) {
                         PoolConfiguration pc = conn.getConnectionFactories().get(0).getPoolConfiguration();
                         result.add(pc);
                     }
-
                 }
             }
             result.trimToSize();

@@ -40,9 +40,14 @@ public class TransactionSynchronizationRegistryService extends AbstractService<T
 
     private final InjectedValue<com.arjuna.ats.jbossatx.jta.TransactionManagerService> injectedArjunaTM = new InjectedValue<com.arjuna.ats.jbossatx.jta.TransactionManagerService>();
 
+
+    private TransactionSynchronizationRegistryService() {
+    }
+
     public static ServiceController<TransactionSynchronizationRegistry> addService(final ServiceTarget target) {
         TransactionSynchronizationRegistryService service = new TransactionSynchronizationRegistryService();
         ServiceBuilder<TransactionSynchronizationRegistry> serviceBuilder = target.addService(SERVICE_NAME, service);
+        serviceBuilder.addDependency(TxnServices.JBOSS_TXN_LOCAL_TRANSACTION_CONTEXT);
         serviceBuilder.addDependency(ArjunaTransactionManagerService.SERVICE_NAME, com.arjuna.ats.jbossatx.jta.TransactionManagerService.class, service.injectedArjunaTM);
         return serviceBuilder.install();
     }

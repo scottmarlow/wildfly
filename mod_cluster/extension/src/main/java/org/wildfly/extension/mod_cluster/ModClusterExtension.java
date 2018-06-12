@@ -25,22 +25,18 @@ package org.wildfly.extension.mod_cluster;
 import static org.wildfly.extension.mod_cluster.ModClusterLogger.ROOT_LOGGER;
 
 import java.util.EnumSet;
-import java.util.List;
 
 import javax.xml.stream.XMLStreamConstants;
 
 import org.jboss.as.controller.Extension;
 import org.jboss.as.controller.ExtensionContext;
-import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.SubsystemRegistration;
 import org.jboss.as.controller.access.constraint.SensitivityClassification;
 import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraintDefinition;
 import org.jboss.as.controller.descriptions.StandardResourceDescriptionResolver;
 import org.jboss.as.controller.parsing.ExtensionParsingContext;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
-import org.jboss.as.controller.transform.description.TransformationDescription;
-import org.jboss.dmr.ModelNode;
-import org.jboss.staxmapper.XMLElementReader;
+import org.kohsuke.MetaInfServices;
 
 /**
  * Domain extension used to initialize the mod_cluster subsystem element handlers.
@@ -49,6 +45,7 @@ import org.jboss.staxmapper.XMLElementReader;
  * @author Tomaz Cerar
  * @author Radoslav Husar
  */
+@MetaInfServices(Extension.class)
 public class ModClusterExtension implements XMLStreamConstants, Extension {
 
     public static final String SUBSYSTEM_NAME = "modcluster";
@@ -87,24 +84,13 @@ public class ModClusterExtension implements XMLStreamConstants, Extension {
         dynamicLoadProvider.registerSubModel(LoadMetricDefinition.INSTANCE);
         dynamicLoadProvider.registerSubModel(CustomLoadMetricDefinition.INSTANCE);
 
-        subsystem.registerXMLElementWriter(new ModClusterSubsystemXMLWriter());
-
-        if (context.isRegisterTransformers()) {
-            // Register transformers for all versions except for the current one
-            for (ModClusterModel model : EnumSet.complementOf(EnumSet.of(ModClusterModel.CURRENT))) {
-                ModelVersion version = model.getVersion();
-                TransformationDescription.Tools.register(ModClusterSubsystemResourceDefinition.buildTransformation(version), subsystem, version);
-            }
-        }
+        subsystem.registerXMLElementWriter(() -> new ModClusterSubsystemXMLWriter());
     }
 
     @Override
     public void initializeParsers(ExtensionParsingContext context) {
-        for (Namespace namespace : Namespace.values()) {
-            XMLElementReader<List<ModelNode>> reader = namespace.getXMLReader();
-            if (reader != null) {
-                context.setSubsystemXmlMapping(SUBSYSTEM_NAME, namespace.getUri(), namespace.getXMLReader());
-            }
+        for (ModClusterSchema schema : EnumSet.allOf(ModClusterSchema.class)) {
+            context.setSubsystemXmlMapping(SUBSYSTEM_NAME, schema.getNamespaceUri(), schema.getXMLReaderSupplier());
         }
     }
 

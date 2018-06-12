@@ -8,20 +8,23 @@
     <parent>
         <groupId>org.wildfly</groupId>
         <artifactId>wildfly-jpa-parent</artifactId>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
     </parent>
 
-    <groupId>org.wildfly</groupId>
     <artifactId>jipijapa-openjpa</artifactId>
-    
+
     <name>jipijapa OpenJPA integration</name>
-    
+
     <dependencies>
 
         <!-- Internal -->
 
         <dependency>
-            <groupId>org.wildfly</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>jipijapa-spi</artifactId>
         </dependency>
 
@@ -30,21 +33,18 @@
         <dependency>
             <groupId>org.apache.openjpa</groupId>
             <artifactId>openjpa-kernel</artifactId>
-            <version>${version.org.apache.openjpa}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.openjpa</groupId>
             <artifactId>openjpa-lib</artifactId>
-            <version>${version.org.apache.openjpa}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.openjpa</groupId>
             <artifactId>openjpa-persistence</artifactId>
-            <version>${version.org.apache.openjpa}</version>
             <scope>provided</scope>
         </dependency>
 

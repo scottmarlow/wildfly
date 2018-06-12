@@ -19,22 +19,21 @@
 package org.jboss.as.clustering.infinispan.subsystem;
 
 import org.infinispan.Cache;
-import org.infinispan.interceptors.TxInterceptor;
+import org.infinispan.interceptors.impl.TxInterceptor;
 import org.jboss.as.clustering.controller.Metric;
 import org.jboss.as.clustering.controller.MetricExecutor;
-import org.jboss.as.clustering.msc.ServiceContainerHelper;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.dmr.ModelNode;
-import org.wildfly.clustering.infinispan.spi.service.CacheServiceName;
+import org.wildfly.clustering.infinispan.spi.InfinispanCacheRequirement;
+import org.wildfly.clustering.service.PassiveServiceSupplier;
 
 /**
  * A handler for cache transaction metrics.
  *
  * @author Paul Ferraro
  */
-@SuppressWarnings("deprecation")
 public class TransactionMetricExecutor implements MetricExecutor<TxInterceptor<?, ?>> {
 
     @Override
@@ -43,7 +42,7 @@ public class TransactionMetricExecutor implements MetricExecutor<TxInterceptor<?
         String containerName = cacheAddress.getParent().getLastElement().getValue();
         String cacheName = cacheAddress.getLastElement().getValue();
 
-        Cache<?, ?> cache = ServiceContainerHelper.findValue(context.getServiceRegistry(false), CacheServiceName.CACHE.getServiceName(containerName, cacheName));
+        Cache<?, ?> cache = new PassiveServiceSupplier<Cache<?, ?>>(context.getServiceRegistry(true), InfinispanCacheRequirement.CACHE.getServiceName(context, containerName, cacheName)).get();
         if (cache != null) {
             TxInterceptor<?, ?> interceptor = CacheMetric.findInterceptor(cache, TxInterceptor.class);
             if (interceptor != null) {

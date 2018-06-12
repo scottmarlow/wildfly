@@ -22,7 +22,6 @@
 
 package org.wildfly.extension.messaging.activemq.ha;
 
-import static org.jboss.as.controller.OperationContext.Stage.MODEL;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.HA_POLICY;
 import static org.wildfly.extension.messaging.activemq.ha.HAAttributes.ALLOW_FAILBACK;
 import static org.wildfly.extension.messaging.activemq.ha.HAAttributes.FAILOVER_ON_SERVER_SHUTDOWN;
@@ -45,7 +44,6 @@ import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.dmr.ModelNode;
 import org.wildfly.extension.messaging.activemq.ActiveMQReloadRequiredHandlers;
-import org.wildfly.extension.messaging.activemq.AlternativeAttributeCheckHandler;
 import org.wildfly.extension.messaging.activemq.MessagingExtension;
 
 /**
@@ -53,7 +51,7 @@ import org.wildfly.extension.messaging.activemq.MessagingExtension;
  */
 public class SharedStoreSlaveDefinition extends PersistentResourceDefinition {
 
-    public static Collection<AttributeDefinition> ATTRIBUTES;
+    public static final Collection<AttributeDefinition> ATTRIBUTES;
 
     static {
         Collection<AttributeDefinition> attributes = new ArrayList<>();
@@ -66,17 +64,10 @@ public class SharedStoreSlaveDefinition extends PersistentResourceDefinition {
         ATTRIBUTES = Collections.unmodifiableCollection(attributes);
     }
 
-    private static final AbstractWriteAttributeHandler WRITE_ATTRIBUTE = new ActiveMQReloadRequiredHandlers.WriteAttributeHandler(ATTRIBUTES) {
-        @Override
-        public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-            context.addStep(new AlternativeAttributeCheckHandler(ATTRIBUTES), MODEL);
+    private static final AbstractWriteAttributeHandler WRITE_ATTRIBUTE = new ActiveMQReloadRequiredHandlers.WriteAttributeHandler(ATTRIBUTES);
 
-            super.execute(context, operation);
-        }
-    };
-
-    public static SharedStoreSlaveDefinition INSTANCE = new SharedStoreSlaveDefinition(MessagingExtension.SHARED_STORE_SLAVE_PATH, false);
-    public static SharedStoreSlaveDefinition CONFIGURATION_INSTANCE = new SharedStoreSlaveDefinition(MessagingExtension.CONFIGURATION_SLAVE_PATH, true);
+    public static final SharedStoreSlaveDefinition INSTANCE = new SharedStoreSlaveDefinition(MessagingExtension.SHARED_STORE_SLAVE_PATH, false);
+    public static final SharedStoreSlaveDefinition CONFIGURATION_INSTANCE = new SharedStoreSlaveDefinition(MessagingExtension.CONFIGURATION_SLAVE_PATH, true);
 
     private SharedStoreSlaveDefinition(PathElement path, boolean allowSibling) {
         super(path,

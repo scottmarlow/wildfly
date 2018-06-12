@@ -26,12 +26,8 @@ import static java.lang.Thread.currentThread;
 import static java.security.AccessController.doPrivileged;
 import static org.jboss.as.connector.logging.ConnectorLogger.DS_DEPLOYER_LOGGER;
 
-import javax.naming.Reference;
-import javax.resource.spi.ManagedConnectionFactory;
-import javax.security.auth.Subject;
-import javax.sql.DataSource;
-
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.sql.Driver;
 import java.util.ArrayList;
@@ -42,7 +38,14 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 
+import javax.naming.Reference;
+import javax.resource.spi.ManagedConnectionFactory;
+import javax.security.auth.Subject;
+import javax.sql.DataSource;
+
 import org.jboss.as.connector.logging.ConnectorLogger;
+import org.jboss.as.connector.metadata.api.common.Credential;
+import org.jboss.as.connector.security.ElytronSubjectFactory;
 import org.jboss.as.connector.services.driver.InstalledDriver;
 import org.jboss.as.connector.services.driver.registry.DriverRegistry;
 import org.jboss.as.connector.util.Injection;
@@ -90,6 +93,9 @@ import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
 import org.jboss.security.SubjectFactory;
+import org.wildfly.security.auth.client.AuthenticationContext;
+import org.wildfly.common.function.ExceptionSupplier;
+import org.wildfly.security.credential.source.CredentialSource;
 import org.wildfly.security.manager.WildFlySecurityManager;
 import org.wildfly.security.manager.action.ClearContextClassLoaderAction;
 import org.wildfly.security.manager.action.GetClassLoaderAction;
@@ -123,6 +129,10 @@ public abstract class AbstractDataSourceService implements Service<DataSource> {
     private final InjectedValue<MetadataRepository> mdr = new InjectedValue<MetadataRepository>();
     private final InjectedValue<ServerSecurityManager> secManager = new InjectedValue<ServerSecurityManager>();
     private final InjectedValue<ResourceAdapterRepository> raRepository = new InjectedValue<ResourceAdapterRepository>();
+    private final InjectedValue<AuthenticationContext> authenticationContext = new InjectedValue<>();
+    private final InjectedValue<AuthenticationContext> recoveryAuthenticationContext = new InjectedValue<>();
+    private final InjectedValue<ExceptionSupplier<CredentialSource, Exception>> credentialSourceSupplier = new InjectedValue<>();
+    private final InjectedValue<ExceptionSupplier<CredentialSource, Exception>> recoveryCredentialSourceSupplier = new InjectedValue<>();
 
 
     private final String dsName;
@@ -279,6 +289,23 @@ public abstract class AbstractDataSourceService implements Service<DataSource> {
         return secManager;
     }
 
+    Injector<AuthenticationContext> getAuthenticationContext() {
+        return authenticationContext;
+    }
+
+    Injector<AuthenticationContext> getRecoveryAuthenticationContext() {
+        return recoveryAuthenticationContext;
+    }
+
+    public InjectedValue<ExceptionSupplier<CredentialSource, Exception>> getCredentialSourceSupplierInjector() {
+        return credentialSourceSupplier;
+    }
+
+    public InjectedValue<ExceptionSupplier<CredentialSource, Exception>> getRecoveryCredentialSourceSupplierInjector() {
+        return recoveryCredentialSourceSupplier;
+    }
+
+
     protected String buildConfigPropsString(Map<String, String> configProps) {
         final StringBuffer valueBuf = new StringBuffer();
         for (Map.Entry<String, String> connProperty : configProps.entrySet()) {
@@ -429,8 +456,20 @@ public abstract class AbstractDataSourceService implements Service<DataSource> {
         }
 
         @Override
-        protected org.jboss.jca.core.spi.security.SubjectFactory getSubjectFactory(String securityDomain) throws DeployException {
-            if (securityDomain == null || securityDomain.trim().equals("") || subjectFactory.getOptionalValue() == null) {
+        protected org.jboss.jca.core.spi.security.SubjectFactory getSubjectFactory(
+                org.jboss.jca.common.api.metadata.common.Credential credential, final String jndiName) throws DeployException {
+            if (credential == null)
+                return null;
+            // safe assertion because all parsers create Credential
+            assert credential instanceof Credential;
+            final String securityDomain = credential.getSecurityDomain();
+            if (((Credential) credential).isElytronEnabled()) {
+                try {
+                    return new ElytronSubjectFactory(authenticationContext.getOptionalValue(), new java.net.URI(jndiName));
+                } catch (URISyntaxException e) {
+                    throw ConnectorLogger.ROOT_LOGGER.cannotDeploy(e);
+                }
+            } else if (securityDomain == null || securityDomain.trim().equals("") || subjectFactory.getOptionalValue() == null) {
                 return null;
             } else {
                 return new PicketBoxSubjectFactory(subjectFactory.getValue()){
@@ -495,16 +534,13 @@ public abstract class AbstractDataSourceService implements Service<DataSource> {
         @Override
         protected ManagedConnectionFactory createMcf(XaDataSource arg0, String arg1, ClassLoader arg2)
                 throws NotFoundException, DeployException {
-            final WildFlyXaMCF xaManagedConnectionFactory = new WildFlyXaMCF();
+            final XAManagedConnectionFactory xaManagedConnectionFactory = new XAManagedConnectionFactory(xaDataSourceConfig.getXaDataSourceProperty());
 
             if (xaDataSourceConfig.getUrlDelimiter() != null) {
                 xaManagedConnectionFactory.setURLDelimiter(xaDataSourceConfig.getUrlDelimiter());
             }
             if (xaDataSourceConfig.getXaDataSourceClass() != null) {
                 xaManagedConnectionFactory.setXADataSourceClass(xaDataSourceConfig.getXaDataSourceClass());
-            }
-            if (xaDataSourceConfig.getXaDataSourceProperty() != null) {
-                xaManagedConnectionFactory.setXaProps(xaDataSourceConfig.getXaDataSourceProperty());
             }
             if (xaDataSourceConfig.getUrlSelectorStrategyClassName() != null) {
                 xaManagedConnectionFactory
@@ -690,14 +726,5 @@ public abstract class AbstractDataSourceService implements Service<DataSource> {
 
     }
 
-    private class WildFlyXaMCF extends XAManagedConnectionFactory {
-
-        private static final long serialVersionUID = 4876371551002746953L;
-
-        public void setXaProps(Map<String, String> inputProperties) {
-            xaProps.putAll(inputProperties);
-        }
-
-    }
 
 }

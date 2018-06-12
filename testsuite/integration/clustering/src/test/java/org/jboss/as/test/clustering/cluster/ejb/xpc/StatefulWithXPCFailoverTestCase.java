@@ -40,11 +40,10 @@ import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.OperateOnDeployment;
-import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.container.test.api.TargetsContainer;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
-import org.jboss.as.test.clustering.cluster.ClusterAbstractTestCase;
+import org.jboss.as.test.clustering.cluster.AbstractClusteringTestCase;
 import org.jboss.as.test.clustering.cluster.ejb.xpc.bean.StatefulBean;
 import org.jboss.as.test.clustering.cluster.ejb.xpc.servlet.StatefulServlet;
 import org.jboss.as.test.clustering.ejb.EJBDirectory;
@@ -60,11 +59,9 @@ import org.junit.runner.RunWith;
 /**
  * @author Paul Ferraro
  * @author Scott Marlow
- * @version Oct 2012
  */
 @RunWith(Arquillian.class)
-@RunAsClient
-public class StatefulWithXPCFailoverTestCase extends ClusterAbstractTestCase {
+public class StatefulWithXPCFailoverTestCase extends AbstractClusteringTestCase {
 
     private static final String persistence_xml =
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?> " +
@@ -83,13 +80,13 @@ public class StatefulWithXPCFailoverTestCase extends ClusterAbstractTestCase {
                     "</persistence>";
 
     @Deployment(name = DEPLOYMENT_1, managed = false, testable = false)
-    @TargetsContainer(CONTAINER_1)
+    @TargetsContainer(NODE_1)
     public static Archive<?> deployment0() {
         return createDeployment();
     }
 
     @Deployment(name = DEPLOYMENT_2, managed = false, testable = false)
-    @TargetsContainer(CONTAINER_2)
+    @TargetsContainer(NODE_2)
     public static Archive<?> deployment1() {
         return createDeployment();
     }
@@ -122,7 +119,7 @@ public class StatefulWithXPCFailoverTestCase extends ClusterAbstractTestCase {
     public void testSecondLevelCache(
             @ArquillianResource() @OperateOnDeployment(DEPLOYMENT_1) URL baseURL1,
             @ArquillianResource() @OperateOnDeployment(DEPLOYMENT_2) URL baseURL2)
-            throws IOException, InterruptedException, URISyntaxException {
+            throws IOException, URISyntaxException {
 
         URI xpc1_create_url = StatefulServlet.createEmployeeURI(baseURL1);
         URI xpc2_create_url = StatefulServlet.createEmployeeURI(baseURL2);
@@ -144,7 +141,7 @@ public class StatefulWithXPCFailoverTestCase extends ClusterAbstractTestCase {
 
             String employeeName = executeUrlWithAnswer(client, xpc1_create_url, "create entity in node1 in memory db");
             assertEquals(employeeName, "Tom Brady");
-            log.info(new Date() + "about to read entity on node1 (from xpc queue)");
+            log.trace(new Date() + "about to read entity on node1 (from xpc queue)");
 
             employeeName = executeUrlWithAnswer(client, xpc1_get_url, "on node1, node1 should be able to read entity on node1");
             assertEquals(employeeName, "Tom Brady");
@@ -202,24 +199,24 @@ public class StatefulWithXPCFailoverTestCase extends ClusterAbstractTestCase {
         URI xpc2_getdestroy_url = StatefulServlet.destroyURI(baseURL2);
 
         try (CloseableHttpClient client = TestHttpClientUtils.promiscuousCookieHttpClient()) {
-            stop(CONTAINER_2);
+            stop(NODE_2);
 
             // extended persistence context is available on node1
 
-            log.info(new Date() + "create employee entity ");
+            log.trace(new Date() + "create employee entity ");
             String employeeName = executeUrlWithAnswer(client, xpc1_create_url, "create entity that lives in the extended persistence context that this test will verify is always available");
             assertEquals(employeeName, "Tom Brady");
 
-            log.info(new Date() + "1. about to read entity on node1");
+            log.trace(new Date() + "1. about to read entity on node1");
             // ensure that we can get it from node 1
             employeeName = executeUrlWithAnswer(client, xpc1_get_url, "1. xpc on node1, node1 should be able to read entity on node1");
             assertEquals(employeeName, "Tom Brady");
             employeeName = executeUrlWithAnswer(client, xpc1_getempsecond_url, "1. xpc on node1, node1 should be able to read entity from second bean on node1");
             assertEquals(employeeName, "Tom Brady");
 
-            start(CONTAINER_2);
+            start(NODE_2);
 
-            log.info(new Date() + "2. started node2 + deployed, about to read entity on node1");
+            log.trace(new Date() + "2. started node2 + deployed, about to read entity on node1");
 
             employeeName = executeUrlWithAnswer(client, xpc2_get_url, "2. started node2, xpc on node1, node1 should be able to read entity on node1");
             assertEquals(employeeName, "Tom Brady");
@@ -227,9 +224,9 @@ public class StatefulWithXPCFailoverTestCase extends ClusterAbstractTestCase {
             assertEquals(employeeName, "Tom Brady");
 
             // failover to deployment2
-            stop(CONTAINER_1); // failover #1 to node 2
+            stop(NODE_1); // failover #1 to node 2
 
-            log.info(new Date() + "3. stopped node1 to force failover, about to read entity on node2");
+            log.trace(new Date() + "3. stopped node1 to force failover, about to read entity on node2");
 
             employeeName = executeUrlWithAnswer(client, xpc2_get_url, "3. stopped deployment on node1, xpc should failover to node2, node2 should be able to read entity from xpc");
             assertEquals(employeeName, "Tom Brady");
@@ -238,7 +235,7 @@ public class StatefulWithXPCFailoverTestCase extends ClusterAbstractTestCase {
 
             String destroyed = executeUrlWithAnswer(client, xpc2_getdestroy_url, "4. destroy the bean on node2");
             assertEquals(destroyed, "DESTROY");
-            log.info(new Date() + "4. test is done");
+            log.trace(new Date() + "4. test is done");
 
         }
     }

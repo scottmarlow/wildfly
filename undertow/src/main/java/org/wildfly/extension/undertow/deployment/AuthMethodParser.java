@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2014, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -60,9 +60,9 @@ public class AuthMethodParser {
                     for (Map.Entry<String, Deque<String>> entry : props.entrySet()) {
                         Deque<String> val = entry.getValue();
                         if (val.isEmpty()) {
-                            authMethodConfig.getProperties().put(URLDecoder.decode(entry.getKey(), UTF_8), "");
+                            authMethodConfig.getProperties().put(entry.getKey(), "");
                         } else {
-                            authMethodConfig.getProperties().put(URLDecoder.decode(entry.getKey(), UTF_8), URLDecoder.decode(val.getFirst(), UTF_8));
+                            authMethodConfig.getProperties().put(entry.getKey(), val.getFirst());
                         }
                     }
                     ret.add(authMethodConfig);

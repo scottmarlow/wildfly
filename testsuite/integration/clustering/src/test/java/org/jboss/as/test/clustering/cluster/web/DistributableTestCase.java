@@ -21,8 +21,6 @@
  */
 package org.jboss.as.test.clustering.cluster.web;
 
-import static org.jboss.as.test.clustering.ClusterTestUtil.waitForReplication;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -42,11 +40,10 @@ import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.OperateOnDeployment;
-import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.container.test.api.TargetsContainer;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
-import org.jboss.as.test.clustering.cluster.ClusterAbstractTestCase;
+import org.jboss.as.test.clustering.cluster.AbstractClusteringTestCase;
 import org.jboss.as.test.clustering.single.web.Mutable;
 import org.jboss.as.test.clustering.single.web.SimpleServlet;
 import org.jboss.as.test.http.util.TestHttpClientUtils;
@@ -64,25 +61,26 @@ import org.junit.runner.RunWith;
  * @author Radoslav Husar
  */
 @RunWith(Arquillian.class)
-@RunAsClient
-public class DistributableTestCase extends ClusterAbstractTestCase {
+public class DistributableTestCase extends AbstractClusteringTestCase {
+
+    private static final String MODULE_NAME = DistributableTestCase.class.getSimpleName();
 
     private static final int REQUEST_DURATION = 10000;
 
-    @Deployment(name = DEPLOYMENT_1, managed = false)
-    @TargetsContainer(CONTAINER_1)
-    public static Archive<?> deployment0() {
-        return getDeployment();
-    }
-
-    @Deployment(name = DEPLOYMENT_2, managed = false)
-    @TargetsContainer(CONTAINER_2)
+    @Deployment(name = DEPLOYMENT_1, managed = false, testable = false)
+    @TargetsContainer(NODE_1)
     public static Archive<?> deployment1() {
         return getDeployment();
     }
 
+    @Deployment(name = DEPLOYMENT_2, managed = false, testable = false)
+    @TargetsContainer(NODE_2)
+    public static Archive<?> deployment2() {
+        return getDeployment();
+    }
+
     private static Archive<?> getDeployment() {
-        WebArchive war = ShrinkWrap.create(WebArchive.class, "distributable.war");
+        WebArchive war = ShrinkWrap.create(WebArchive.class, MODULE_NAME + ".war");
         war.addClasses(SimpleServlet.class, Mutable.class);
         war.setWebXML(DistributableTestCase.class.getPackage(), "web.xml");
         return war;
@@ -122,7 +120,7 @@ public class DistributableTestCase extends ClusterAbstractTestCase {
     public void testSessionReplication(
             @ArquillianResource(SimpleServlet.class) @OperateOnDeployment(DEPLOYMENT_1) URL baseURL1,
             @ArquillianResource(SimpleServlet.class) @OperateOnDeployment(DEPLOYMENT_2) URL baseURL2)
-            throws IOException, URISyntaxException {
+            throws IOException, URISyntaxException, InterruptedException {
 
         URI url1 = SimpleServlet.createURI(baseURL1);
         URI url2 = SimpleServlet.createURI(baseURL2);
@@ -146,7 +144,7 @@ public class DistributableTestCase extends ClusterAbstractTestCase {
             }
 
             // Lets wait for the session to replicate
-            waitForReplication(GRACE_TIME_TO_REPLICATE);
+            Thread.sleep(GRACE_TIME_TO_REPLICATE);
 
             // Now check on the 2nd server
             response = client.execute(new HttpGet(url2));
@@ -175,7 +173,7 @@ public class DistributableTestCase extends ClusterAbstractTestCase {
     public void testGracefulServeOnUndeploy(
             @ArquillianResource(SimpleServlet.class) @OperateOnDeployment(DEPLOYMENT_1) URL baseURL1)
             throws Exception {
-        this.abstractGracefulServe(baseURL1, true);
+        this.testGracefulServe(baseURL1, new RedeployLifecycle());
     }
 
     /**
@@ -185,10 +183,10 @@ public class DistributableTestCase extends ClusterAbstractTestCase {
     public void testGracefulServeOnShutdown(
             @ArquillianResource(SimpleServlet.class) @OperateOnDeployment(DEPLOYMENT_1) URL baseURL1)
             throws Exception {
-        this.abstractGracefulServe(baseURL1, false);
+        this.testGracefulServe(baseURL1, new RestartLifecycle());
     }
 
-    private void abstractGracefulServe(URL baseURL, boolean undeployOnly) throws URISyntaxException, IOException, InterruptedException {
+    private void testGracefulServe(URL baseURL, Lifecycle lifecycle) throws URISyntaxException, IOException, InterruptedException {
 
         try (CloseableHttpClient client = TestHttpClientUtils.promiscuousCookieHttpClient()) {
             URI uri = SimpleServlet.createURI(baseURL);
@@ -209,13 +207,7 @@ public class DistributableTestCase extends ClusterAbstractTestCase {
             // Make sure long request has started
             Thread.sleep(1000);
 
-            if (undeployOnly) {
-                // Undeploy the app only.
-                undeploy(DEPLOYMENT_1);
-            } else {
-                // Shutdown server.
-                stop(CONTAINER_1);
-            }
+            lifecycle.stop(NODE_1);
 
             // Get result of long request
             // This request should succeed since it initiated before server shutdown
@@ -230,17 +222,6 @@ public class DistributableTestCase extends ClusterAbstractTestCase {
             } catch (ExecutionException e) {
                 e.printStackTrace(System.err);
                 Assert.fail(e.getCause().getMessage());
-            }
-
-            if (undeployOnly) {
-                // If we are only undeploying, then subsequent requests should return 404.
-                response = client.execute(new HttpGet(uri));
-                try {
-                    Assert.assertEquals("If we are only undeploying, then subsequent requests should return 404.",
-                            HttpServletResponse.SC_NOT_FOUND, response.getStatusLine().getStatusCode());
-                } finally {
-                    HttpClientUtils.closeQuietly(response);
-                }
             }
         }
     }

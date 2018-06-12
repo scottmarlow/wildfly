@@ -53,6 +53,7 @@ public class RaRemove implements OperationStepHandler {
 
         final ModelNode opAddr = operation.require(OP_ADDR);
         final String idName = PathAddress.pathAddress(opAddr).getLastElement().getValue();
+        final boolean isModule;
 
 
         // Compensating is add
@@ -62,8 +63,10 @@ public class RaRemove implements OperationStepHandler {
             throw ConnectorLogger.ROOT_LOGGER.archiveOrModuleRequired();
         }
         if (model.get(ARCHIVE.getName()).isDefined()) {
+            isModule = false;
             archiveOrModuleName = model.get(ARCHIVE.getName()).asString();
         } else {
+            isModule = true;
             archiveOrModuleName = model.get(MODULE.getName()).asString();
         }
         final ModelNode compensating = Util.getEmptyOperation(ADD, opAddr);
@@ -78,76 +81,80 @@ public class RaRemove implements OperationStepHandler {
 
         context.removeResource(PathAddress.EMPTY_ADDRESS);
 
-        context.addStep(new OperationStepHandler() {
-            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                final boolean wasActive;
-                wasActive = RaOperationUtil.removeIfActive(context, archiveOrModuleName, idName);
-                if (wasActive) {
-                    context.reloadRequired();
+        if (context.isDefaultRequiresRuntime()) {
+            context.addStep(new OperationStepHandler() {
+                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                    final boolean wasActive;
+                    wasActive = RaOperationUtil.removeIfActive(context, archiveOrModuleName, idName);
+
+                    if (wasActive) {
+                        if (!context.isResourceServiceRestartAllowed()) {
+                            context.reloadRequired();
+                            context.completeStep(new OperationContext.RollbackHandler() {
+                                @Override
+                                public void handleRollback(OperationContext context, ModelNode operation) {
+                                    context.revertReloadRequired();
+                                }
+                            });
+                            return;
+                        }
+                    }
+
+                    ServiceName raServiceName = ServiceName.of(ConnectorServices.RA_SERVICE, idName);
+                    ServiceController<?> serviceController = context.getServiceRegistry(false).getService(raServiceName);
+                    final ModifiableResourceAdapter resourceAdapter;
+                    if (serviceController != null) {
+                        resourceAdapter = (ModifiableResourceAdapter) serviceController.getValue();
+                    } else {
+                        resourceAdapter = null;
+                    }
+                    final List<ServiceName> serviceNameList = context.getServiceRegistry(false).getServiceNames();
+                    for (ServiceName name : serviceNameList) {
+                        if (raServiceName.isParentOf(name)) {
+                            context.removeService(name);
+                        }
+
+                    }
+
+                    if (model.get(MODULE.getName()).isDefined()) {
+                        //ServiceName deploymentServiceName = ConnectorServices.getDeploymentServiceName(model.get(MODULE.getName()).asString(),raId);
+                        //context.removeService(deploymentServiceName);
+                        ServiceName deployerServiceName = ConnectorServices.RESOURCE_ADAPTER_DEPLOYER_SERVICE_PREFIX.append(idName);
+                        context.removeService(deployerServiceName);
+                        ServiceName inactiveServiceName = ConnectorServices.INACTIVE_RESOURCE_ADAPTER_SERVICE.append(idName);
+                        context.removeService(inactiveServiceName);
+                    }
+
+
+                    context.removeService(raServiceName);
                     context.completeStep(new OperationContext.RollbackHandler() {
                         @Override
                         public void handleRollback(OperationContext context, ModelNode operation) {
-                            context.revertReloadRequired();
-                        }
-                    });
-                    return;
-                }
+                            if (resourceAdapter != null) {
+                                List<ServiceController<?>> newControllers = new LinkedList<ServiceController<?>>();
+                                if (model.get(ARCHIVE.getName()).isDefined()) {
+                                    RaOperationUtil.installRaServices(context, idName, resourceAdapter, newControllers);
+                                } else {
+                                    try {
+                                        RaOperationUtil.installRaServicesAndDeployFromModule(context, idName, resourceAdapter, archiveOrModuleName, newControllers);
+                                    } catch (OperationFailedException e) {
 
-                ServiceName raServiceName = ServiceName.of(ConnectorServices.RA_SERVICE, idName);
-                ServiceController<?> serviceController =  context.getServiceRegistry(false).getService(raServiceName);
-                final ModifiableResourceAdapter resourceAdapter;
-                if (serviceController != null) {
-                    resourceAdapter = (ModifiableResourceAdapter) serviceController.getValue();
-                } else {
-                    resourceAdapter = null;
-                }
-                final List<ServiceName> serviceNameList = context.getServiceRegistry(false).getServiceNames();
-                for (ServiceName name : serviceNameList) {
-                    if (raServiceName.isParentOf(name)) {
-                        context.removeService(name);
-                    }
-
-                }
-
-                if (model.get(MODULE.getName()).isDefined()) {
-                    //ServiceName deploymentServiceName = ConnectorServices.getDeploymentServiceName(model.get(MODULE.getName()).asString(),raId);
-                    //context.removeService(deploymentServiceName);
-                    ServiceName deployerServiceName = ConnectorServices.RESOURCE_ADAPTER_DEPLOYER_SERVICE_PREFIX.append(idName);
-                    context.removeService(deployerServiceName);
-                    ServiceName inactiveServiceName = ConnectorServices.INACTIVE_RESOURCE_ADAPTER_SERVICE.append(idName);
-                    context.removeService(inactiveServiceName);
-                }
-
-
-                context.removeService(raServiceName);
-                context.completeStep(new OperationContext.RollbackHandler() {
-                    @Override
-                    public void handleRollback(OperationContext context, ModelNode operation) {
-                        if (resourceAdapter != null) {
-                            List<ServiceController<?>>  newControllers = new LinkedList<ServiceController<?>>();
-                            if (model.get(ARCHIVE.getName()).isDefined()) {
-                                RaOperationUtil.installRaServices(context, idName, resourceAdapter, newControllers);
-                            } else {
+                                    }
+                                }
                                 try {
-                                    RaOperationUtil.installRaServicesAndDeployFromModule(context, idName, resourceAdapter, archiveOrModuleName, newControllers);
+                                    if (wasActive) {
+                                        RaOperationUtil.activate(context, idName, archiveOrModuleName);
+
+                                    }
                                 } catch (OperationFailedException e) {
 
                                 }
                             }
-                            try {
-                                if (wasActive){
-                                    RaOperationUtil.activate(context, idName, archiveOrModuleName);
 
-                                }
-                            } catch (OperationFailedException e) {
-
-                            }
                         }
-
-                    }
-                });
-            }
-        }, OperationContext.Stage.RUNTIME);
-        context.stepCompleted();
+                    });
+                }
+            }, OperationContext.Stage.RUNTIME);
+        }
     }
 }

@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2014, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -50,12 +50,24 @@ public class ConfiguredHandlerWrapper implements HandlerWrapper {
     @Override
     public HttpHandler wrap(HttpHandler handler) {
         try {
-            Object instance;
+            final Object instance;
             if (HttpHandler.class.isAssignableFrom(handlerClass)) {
-                Constructor<?> ctor = handlerClass.getConstructor(HttpHandler.class);
-                instance = ctor.newInstance(handler);
+                final Constructor<?> ctor = handlerClass.getConstructor(HttpHandler.class);
+                // instantiate the handler with the TCCL as the handler class' classloader
+                final ClassLoader prevCL = WildFlySecurityManager.setCurrentContextClassLoaderPrivileged(handlerClass);
+                try {
+                    instance = ctor.newInstance(handler);
+                } finally {
+                    WildFlySecurityManager.setCurrentContextClassLoaderPrivileged(prevCL);
+                }
             } else if (HandlerWrapper.class.isAssignableFrom(handlerClass)) {
-                instance = handlerClass.newInstance();
+                // instantiate the handler with the TCCL as the handler class' classloader
+                final ClassLoader prevCL = WildFlySecurityManager.setCurrentContextClassLoaderPrivileged(handlerClass);
+                try {
+                    instance = handlerClass.newInstance();
+                } finally {
+                    WildFlySecurityManager.setCurrentContextClassLoaderPrivileged(prevCL);
+                }
             } else {
                 throw UndertowLogger.ROOT_LOGGER.handlerWasNotAHandlerOrWrapper(handlerClass);
             }

@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -26,8 +26,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 import io.undertow.UndertowOptions;
-import io.undertow.server.HandlerWrapper;
-import io.undertow.server.HttpHandler;
 import io.undertow.server.ListenerRegistry;
 import io.undertow.server.OpenListener;
 import io.undertow.server.handlers.ChannelUpgradeHandler;
@@ -54,7 +52,7 @@ import org.xnio.channels.AcceptingChannel;
  * @author Stuart Douglas
  * @author Tomaz Cerar
  */
-public class HttpListenerService extends ListenerService<HttpListenerService> {
+public class HttpListenerService extends ListenerService {
     private volatile AcceptingChannel<StreamConnection> server;
 
     private final ChannelUpgradeHandler httpUpgradeHandler = new ChannelUpgradeHandler();
@@ -64,45 +62,27 @@ public class HttpListenerService extends ListenerService<HttpListenerService> {
 
     private final String serverName;
 
-    public HttpListenerService(String name, final String serverName, OptionMap listenerOptions, OptionMap socketOptions, boolean certificateForwarding, boolean proxyAddressForwarding) {
-        super(name, listenerOptions, socketOptions);
+    public HttpListenerService(String name, final String serverName, OptionMap listenerOptions, OptionMap socketOptions, boolean certificateForwarding, boolean proxyAddressForwarding, boolean proxyProtocol) {
+        super(name, listenerOptions, socketOptions, proxyProtocol);
         this.serverName = serverName;
-        addWrapperHandler(new HandlerWrapper() {
-            @Override
-            public HttpHandler wrap(final HttpHandler handler) {
-                httpUpgradeHandler.setNonUpgradeHandler(handler);
-                return httpUpgradeHandler;
-            }
+        addWrapperHandler(handler -> {
+            httpUpgradeHandler.setNonUpgradeHandler(handler);
+            return httpUpgradeHandler;
         });
         if(listenerOptions.get(UndertowOptions.ENABLE_HTTP2, false)) {
-            addWrapperHandler(new HandlerWrapper() {
-                @Override
-                public HttpHandler wrap(HttpHandler handler) {
-                    return new Http2UpgradeHandler(handler);
-                }
-            });
+            addWrapperHandler(Http2UpgradeHandler::new);
         }
         if (certificateForwarding) {
-            addWrapperHandler(new HandlerWrapper() {
-                @Override
-                public HttpHandler wrap(HttpHandler handler) {
-                    return new SSLHeaderHandler(handler);
-                }
-            });
+            addWrapperHandler(SSLHeaderHandler::new);
         }
         if (proxyAddressForwarding) {
-            addWrapperHandler(new HandlerWrapper() {
-                @Override
-                public HttpHandler wrap(HttpHandler handler) {
-                    return new ProxyPeerAddressHandler(handler);
-                }
-            });
+            addWrapperHandler(ProxyPeerAddressHandler::new);
         }
     }
 
     @Override
     protected OpenListener createOpenListener() {
-        return new HttpOpenListener(getBufferPool().getValue(), OptionMap.builder().addAll(commonOptions).addAll(listenerOptions).set(UndertowOptions.ENABLE_CONNECTOR_STATISTICS, getUndertowService().isStatisticsEnabled()).getMap());
+        return new HttpOpenListener(getBufferPool().getValue(), OptionMap.builder().addAll(commonOptions).addAll(listenerOptions).set(UndertowOptions.ENABLE_STATISTICS, getUndertowService().isStatisticsEnabled()).getMap());
     }
 
     @Override
@@ -125,7 +105,9 @@ public class HttpListenerService extends ListenerService<HttpListenerService> {
             throws IOException {
         server = worker.createStreamConnectionServer(socketAddress, acceptListener, OptionMap.builder().addAll(commonOptions).addAll(socketOptions).getMap());
         server.resumeAccepts();
-        UndertowLogger.ROOT_LOGGER.listenerStarted("HTTP", getName(), NetworkUtils.formatIPAddressForURI(socketAddress.getAddress()), socketAddress.getPort());
+
+        final InetSocketAddress boundAddress = server.getLocalAddress(InetSocketAddress.class);
+        UndertowLogger.ROOT_LOGGER.listenerStarted("HTTP", getName(), NetworkUtils.formatIPAddressForURI(boundAddress.getAddress()), boundAddress.getPort());
     }
 
     @Override
@@ -133,14 +115,19 @@ public class HttpListenerService extends ListenerService<HttpListenerService> {
         httpListenerRegistry.getValue().removeListener(getName());
     }
 
+    protected void unregisterBinding() {
+        httpListenerRegistry.getValue().removeListener(getName());
+        super.unregisterBinding();
+    }
+
     @Override
     protected void stopListening() {
+        final InetSocketAddress boundAddress = server.getLocalAddress(InetSocketAddress.class);
         server.suspendAccepts();
         UndertowLogger.ROOT_LOGGER.listenerSuspend("HTTP", getName());
         IoUtils.safeClose(server);
         server = null;
-        UndertowLogger.ROOT_LOGGER.listenerStopped("HTTP", getName(), NetworkUtils.formatIPAddressForURI(getBinding().getValue().getSocketAddress().getAddress()), getBinding().getValue().getSocketAddress().getPort());
-        httpListenerRegistry.getValue().removeListener(getName());
+        UndertowLogger.ROOT_LOGGER.listenerStopped("HTTP", getName(), NetworkUtils.formatIPAddressForURI(boundAddress.getAddress()), boundAddress.getPort());
     }
 
     @Override
@@ -153,7 +140,7 @@ public class HttpListenerService extends ListenerService<HttpListenerService> {
     }
 
     @Override
-    protected String getProtocol() {
+    public String getProtocol() {
         return PROTOCOL;
     }
 }

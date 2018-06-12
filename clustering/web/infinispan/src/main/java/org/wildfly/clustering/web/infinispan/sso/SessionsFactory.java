@@ -24,13 +24,13 @@ package org.wildfly.clustering.web.infinispan.sso;
 
 import java.util.Map;
 
-import org.wildfly.clustering.ee.infinispan.Creator;
-import org.wildfly.clustering.ee.infinispan.Locator;
-import org.wildfly.clustering.ee.infinispan.Remover;
+import org.wildfly.clustering.ee.Creator;
+import org.wildfly.clustering.ee.Locator;
+import org.wildfly.clustering.ee.Remover;
 import org.wildfly.clustering.web.sso.Sessions;
 
-public interface SessionsFactory<V, D> extends Creator<String, V, Void>, Locator<String, V>, Remover<String> {
-    Sessions<D> createSessions(String ssoId, V value);
+public interface SessionsFactory<V, D, S> extends Creator<String, V, Void>, Locator<String, V>, Remover<String> {
+    Sessions<D, S> createSessions(String ssoId, V value);
 
-    Map.Entry<String, V> findEntryContaining(String sessionId);
+    Map.Entry<String, V> findEntryContaining(S session);
 }

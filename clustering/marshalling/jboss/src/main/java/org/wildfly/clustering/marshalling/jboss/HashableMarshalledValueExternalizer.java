@@ -26,11 +26,13 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import org.kohsuke.MetaInfServices;
 import org.wildfly.clustering.marshalling.Externalizer;
 
 /**
  * @author Paul Ferraro
  */
+@MetaInfServices(Externalizer.class)
 public class HashableMarshalledValueExternalizer<T> implements Externalizer<HashableMarshalledValue<T>> {
 
     private final Externalizer<SimpleMarshalledValue<T>> externalizer = new SimpleMarshalledValueExternalizer<>();
@@ -48,10 +50,9 @@ public class HashableMarshalledValueExternalizer<T> implements Externalizer<Hash
         return new HashableMarshalledValue<>(value.getBytes(), hashCode);
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings("unchecked")
     @Override
     public Class<HashableMarshalledValue<T>> getTargetClass() {
-        Class targetClass = HashableMarshalledValue.class;
-        return targetClass;
+        return (Class<HashableMarshalledValue<T>>) (Class<?>) HashableMarshalledValue.class;
     }
 }

@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -33,7 +33,6 @@ import org.jboss.as.controller.RestartParentResourceAddHandler;
 import org.jboss.as.controller.RestartParentResourceRemoveHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
-import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.services.path.PathManager;
 import org.jboss.as.controller.services.path.PathManagerService;
 import org.jboss.as.server.Services;
@@ -58,13 +57,13 @@ class PersistentSessionsDefinition extends PersistentResourceDefinition {
 
     protected static final SimpleAttributeDefinition PATH =
             new SimpleAttributeDefinitionBuilder(Constants.PATH, ModelType.STRING, true)
-                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setRestartAllServices()
                     .setAllowExpression(true)
                     .build();
 
     protected static final SimpleAttributeDefinition RELATIVE_TO =
             new SimpleAttributeDefinitionBuilder(Constants.RELATIVE_TO, ModelType.STRING, true)
-                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setRestartAllServices()
                     .setAllowExpression(true)
                     .build();
 
@@ -120,7 +119,6 @@ class PersistentSessionsDefinition extends PersistentResourceDefinition {
                     }
                 }, OperationContext.Stage.RUNTIME);
             }
-            context.stepCompleted();
         }
 
         private void performRuntime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {

@@ -1,19 +1,23 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2014 Red Hat, Inc., and individual contributors
- * as indicated by the @author tags.
+ * Copyright 2017, Red Hat, Inc., and individual contributors
+ * as indicated by the @author tags. See the copyright.txt file in the
+ * distribution for a full listing of individual contributors.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 package org.wildfly.extension.undertow.security.digest;
 
@@ -38,6 +42,7 @@ import io.undertow.util.AttachmentKey;
 import io.undertow.util.HeaderMap;
 import io.undertow.util.Headers;
 import io.undertow.util.HexConverter;
+import io.undertow.util.StatusCodes;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -48,6 +53,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.wildfly.extension.undertow.logging.UndertowLogger;
 
 /**
  * {@link io.undertow.server.HttpHandler} to handle HTTP Digest authentication, both according to RFC-2617 and draft update to allow additional
@@ -65,6 +72,7 @@ public class DigestAuthenticationMechanism implements AuthenticationMechanism {
 
     private final String mechanismName;
     private final IdentityManager identityManager;
+    private final boolean validateDigestUrl;
 
     private static final Set<DigestAuthorizationToken> MANDATORY_REQUEST_TOKENS;
 
@@ -96,17 +104,17 @@ public class DigestAuthenticationMechanism implements AuthenticationMechanism {
     //              opportunity to check the Account is still valid.
 
     public DigestAuthenticationMechanism(final List<DigestAlgorithm> supportedAlgorithms, final List<DigestQop> supportedQops,
-            final String realmName, final String domain, final NonceManager nonceManager) {
-        this(supportedAlgorithms, supportedQops, realmName, domain, nonceManager, DEFAULT_NAME);
+            final String realmName, final String domain, final NonceManager nonceManager, boolean validateUri) {
+        this(supportedAlgorithms, supportedQops, realmName, domain, nonceManager, DEFAULT_NAME, validateUri);
     }
 
     public DigestAuthenticationMechanism(final List<DigestAlgorithm> supportedAlgorithms, final List<DigestQop> supportedQops,
-            final String realmName, final String domain, final NonceManager nonceManager, final String mechanismName) {
-        this(supportedAlgorithms, supportedQops, realmName, domain, nonceManager, mechanismName, null);
+            final String realmName, final String domain, final NonceManager nonceManager, final String mechanismName, boolean validateUri) {
+        this(supportedAlgorithms, supportedQops, realmName, domain, nonceManager, mechanismName, null, validateUri);
     }
 
     public DigestAuthenticationMechanism(final List<DigestAlgorithm> supportedAlgorithms, final List<DigestQop> supportedQops,
-            final String realmName, final String domain, final NonceManager nonceManager, final String mechanismName, final IdentityManager identityManager) {
+            final String realmName, final String domain, final NonceManager nonceManager, final String mechanismName, final IdentityManager identityManager, boolean validateUri) {
         this.supportedAlgorithms = supportedAlgorithms;
         this.supportedQops = supportedQops;
         this.realmName = realmName;
@@ -114,6 +122,7 @@ public class DigestAuthenticationMechanism implements AuthenticationMechanism {
         this.nonceManager = nonceManager;
         this.mechanismName = mechanismName;
         this.identityManager = identityManager;
+        this.validateDigestUrl = validateUri;
 
         if (!supportedQops.isEmpty()) {
             StringBuilder sb = new StringBuilder();
@@ -128,12 +137,12 @@ public class DigestAuthenticationMechanism implements AuthenticationMechanism {
         }
     }
 
-    public DigestAuthenticationMechanism(final String realmName, final String domain, final String mechanismName) {
-        this(realmName, domain, mechanismName, null);
+    public DigestAuthenticationMechanism(final String realmName, final String domain, final String mechanismName, boolean validateUri) {
+        this(realmName, domain, mechanismName, null, validateUri);
     }
 
-    public DigestAuthenticationMechanism(final String realmName, final String domain, final String mechanismName, final IdentityManager identityManager) {
-        this(Collections.singletonList(DigestAlgorithm.MD5), Collections.singletonList(DigestQop.AUTH), realmName, domain, new SimpleNonceManager(), DEFAULT_NAME, identityManager);
+    public DigestAuthenticationMechanism(final String realmName, final String domain, final String mechanismName, final IdentityManager identityManager, boolean validateUri) {
+        this(Collections.singletonList(DigestAlgorithm.MD5), Collections.singletonList(DigestQop.AUTH), realmName, domain, new SimpleNonceManager(), DEFAULT_NAME, identityManager, validateUri);
     }
 
     @SuppressWarnings("deprecation")
@@ -160,7 +169,7 @@ public class DigestAuthenticationMechanism implements AuthenticationMechanism {
 
                         return handleDigestHeader(exchange, securityContext);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        UndertowLogger.ROOT_LOGGER.unexceptedAuthentificationError(e.getLocalizedMessage(), e);
                     }
                 }
 
@@ -224,7 +233,33 @@ public class DigestAuthenticationMechanism implements AuthenticationMechanism {
             return AuthenticationMechanismOutcome.NOT_AUTHENTICATED;
         }
 
-        // TODO - Validate the URI
+        if (validateDigestUrl) {
+            if (parsedHeader.containsKey(DigestAuthorizationToken.DIGEST_URI)) {
+                String uri = parsedHeader.get(DigestAuthorizationToken.DIGEST_URI);
+                String requestURI = exchange.getRequestURI();
+                if (!exchange.getQueryString().isEmpty()) {
+                    requestURI = requestURI + "?" + exchange.getQueryString();
+                }
+                if (!uri.equals(requestURI)) {
+                    //it is possible we were given an absolute URI
+                    //we reconstruct the URI from the host header to make sure they match up
+                    //I am not sure if this is overly strict, however I think it is better
+                    //to be safe than sorry
+                    requestURI = exchange.getRequestURL();
+                    if (!exchange.getQueryString().isEmpty()) {
+                        requestURI = requestURI + "?" + exchange.getQueryString();
+                    }
+                    if (!uri.equals(requestURI)) {
+                        //just end the auth process
+                        exchange.setStatusCode(StatusCodes.BAD_REQUEST);
+                        exchange.endExchange();
+                        return AuthenticationMechanismOutcome.NOT_AUTHENTICATED;
+                    }
+                }
+            } else {
+                return AuthenticationMechanismOutcome.NOT_AUTHENTICATED;
+            }
+        }
 
         if (parsedHeader.containsKey(DigestAuthorizationToken.OPAQUE)) {
             if (!OPAQUE_VALUE.equals(parsedHeader.get(DigestAuthorizationToken.OPAQUE))) {
@@ -306,7 +341,6 @@ public class DigestAuthenticationMechanism implements AuthenticationMechanism {
 
         // TODO - Do QOP
     }
-
 
     private boolean validateNonceUse(DigestContext context, Map<DigestAuthorizationToken, String> parsedHeader, final HttpServerExchange exchange) {
         String suppliedNonce = parsedHeader.get(DigestAuthorizationToken.NONCE);

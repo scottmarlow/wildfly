@@ -22,7 +22,7 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<module xmlns="urn:jboss:module:1.3" name="org.wildfly.extension.rts">
+<module xmlns="urn:jboss:module:1.5" name="org.wildfly.extension.rts">
     <properties>
         <property name="jboss.api" value="private"/>
     </properties>
@@ -60,10 +60,10 @@
         <module name="org.jboss.resteasy.resteasy-jaxb-provider" services="export"/>
         <module name="org.hibernate.validator" services="export"/>
         <module name="org.jboss.narayana.rts"/>
+        <module name="org.wildfly.transaction.client"/>
         <!-- TODO WFLY-5966 validate the need for these and remove if not needed.
              Prior to WFLY-5922 they were exported by javax.ejb.api. -->
         <module name="javax.xml.rpc.api"/>
         <module name="javax.rmi.api"/>
-        <module name="org.omg.api"/>
     </dependencies>
 </module>

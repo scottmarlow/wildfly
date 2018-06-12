@@ -76,7 +76,7 @@ public class DeploymentArchiveTestCase extends AbstractCliTestBase {
 
     private static final String MODULE_XML =
               "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-              "<module xmlns=\"urn:jboss:module:1.1\" name=\"" + MODULE_NAME + "\" slot=\"main\">" +
+              "<module xmlns=\"urn:jboss:module:1.5\" name=\"" + MODULE_NAME + "\" slot=\"main\">" +
               "    <resources>" +
               "        <resource-root path=\"" + MODULE_ARCHIVE + "\"/>" +
               "    </resources>" +
@@ -155,8 +155,6 @@ public class DeploymentArchiveTestCase extends AbstractCliTestBase {
         cliArchive.add(webArchive, "/", ZipExporter.class);
         cliArchive.add(moduleArchive, "/", ZipExporter.class);
         cliArchive.add(new StringAsset(MODULE_XML), "/", "module.xml");
-
-        //System.out.println(cliArchive.toString(true));
 
         final String tempDir = TestSuiteEnvironment.getTmpDir();
         final File file = new File(tempDir, "deploymentarchive.cli");

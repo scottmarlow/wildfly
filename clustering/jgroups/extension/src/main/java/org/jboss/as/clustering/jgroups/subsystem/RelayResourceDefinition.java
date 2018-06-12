@@ -21,13 +21,9 @@
  */
 package org.jboss.as.clustering.jgroups.subsystem;
 
-import org.jboss.as.clustering.controller.ParentResourceServiceHandler;
-import org.jboss.as.clustering.controller.ResourceDescriptor;
-import org.jboss.as.clustering.controller.ResourceServiceBuilderFactory;
-import org.jboss.as.clustering.controller.ResourceServiceHandler;
-import org.jboss.as.clustering.controller.RestartParentResourceAddStepHandler;
-import org.jboss.as.clustering.controller.RestartParentResourceRemoveStepHandler;
+import org.jboss.as.clustering.controller.ResourceServiceConfiguratorFactory;
 import org.jboss.as.clustering.controller.SimpleAliasEntry;
+import org.jboss.as.clustering.controller.SimpleResourceDescriptorConfigurator;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.PathElement;
@@ -36,7 +32,6 @@ import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
 import org.jboss.dmr.ModelType;
-import org.wildfly.clustering.jgroups.spi.ChannelFactory;
 import org.wildfly.clustering.jgroups.spi.RelayConfiguration;
 
 /**
@@ -44,7 +39,7 @@ import org.wildfly.clustering.jgroups.spi.RelayConfiguration;
  *
  * @author Paul Ferraro
  */
-public class RelayResourceDefinition extends ProtocolResourceDefinition {
+public class RelayResourceDefinition extends AbstractProtocolResourceDefinition {
 
     static final PathElement PATH = pathElement(RelayConfiguration.PROTOCOL_NAME);
     static final PathElement LEGACY_PATH = pathElement("RELAY");
@@ -62,7 +57,7 @@ public class RelayResourceDefinition extends ProtocolResourceDefinition {
         Attribute(String name, ModelType type) {
             this.definition = new SimpleAttributeDefinitionBuilder(name, type)
                     .setAllowExpression(true)
-                    .setAllowNull(false)
+                    .setRequired(true)
                     .setFlags(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
                     .build();
         }
@@ -81,27 +76,25 @@ public class RelayResourceDefinition extends ProtocolResourceDefinition {
         PropertyResourceDefinition.buildTransformation(version, builder);
     }
 
-    private final ResourceServiceBuilderFactory<RelayConfiguration> builderFactory = new RelayConfigurationBuilderFactory();
+    private final ResourceServiceConfiguratorFactory serviceConfiguratorFactory;
 
-    RelayResourceDefinition(ResourceServiceBuilderFactory<ChannelFactory> parentBuilderFactory) {
-        super(new Parameters(PATH, new JGroupsResourceDescriptionResolver(WILDCARD_PATH, ProtocolResourceDefinition.WILDCARD_PATH)), parentBuilderFactory);
+    RelayResourceDefinition(ResourceServiceConfiguratorFactory parentServiceConfiguratorFactory) {
+        this(RelayConfigurationServiceConfigurator::new, parentServiceConfiguratorFactory);
+    }
+
+    private RelayResourceDefinition(ResourceServiceConfiguratorFactory serviceConfiguratorFactory, ResourceServiceConfiguratorFactory parentServiceConfiguratorFactory) {
+        super(new Parameters(PATH, JGroupsExtension.SUBSYSTEM_RESOLVER.createChildResolver(WILDCARD_PATH, ProtocolResourceDefinition.WILDCARD_PATH)), new SimpleResourceDescriptorConfigurator<>(Attribute.class), serviceConfiguratorFactory, parentServiceConfiguratorFactory);
+        this.serviceConfiguratorFactory = serviceConfiguratorFactory;
     }
 
     @Override
-    public void register(ManagementResourceRegistration parentRegistration) {
-        ManagementResourceRegistration registration = parentRegistration.registerSubModel(this);
-        parentRegistration.registerAlias(LEGACY_PATH, new SimpleAliasEntry(registration));
+    public ManagementResourceRegistration register(ManagementResourceRegistration parent) {
+        ManagementResourceRegistration registration = super.register(parent);
 
-        ResourceDescriptor descriptor = new ResourceDescriptor(this.getResourceDescriptionResolver())
-                .addAttributes(Attribute.class)
-                .addAttributes(ProtocolResourceDefinition.Attribute.PROPERTIES)
-                ;
-        ResourceServiceHandler handler = new ParentResourceServiceHandler<>(this.builderFactory);
-        new RestartParentResourceAddStepHandler<>(this.parentBuilderFactory, descriptor, handler).register(registration);
-        new RestartParentResourceRemoveStepHandler<>(this.parentBuilderFactory, descriptor, handler).register(registration);
+        parent.registerAlias(LEGACY_PATH, new SimpleAliasEntry(registration));
 
-        new RemoteSiteResourceDefinition(this.builderFactory).register(registration);
+        new RemoteSiteResourceDefinition(this.serviceConfiguratorFactory).register(registration);
 
-        super.register(registration);
+        return registration;
     }
 }

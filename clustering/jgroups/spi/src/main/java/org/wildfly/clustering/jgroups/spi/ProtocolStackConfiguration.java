@@ -22,9 +22,10 @@
 package org.wildfly.clustering.jgroups.spi;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
-import org.jboss.modules.ModuleLoader;
+import org.jgroups.protocols.TP;
+import org.jgroups.stack.Protocol;
 
 /**
  * Defines the configuration of a JGroups protocol stack.
@@ -34,15 +35,13 @@ public interface ProtocolStackConfiguration {
 
     String getName();
 
-    Map<String, String> getDefaultProperties(String protocol);
+    boolean isStatisticsEnabled();
 
-    TransportConfiguration getTransport();
+    TransportConfiguration<? extends TP> getTransport();
 
-    List<ProtocolConfiguration> getProtocols();
+    List<ProtocolConfiguration<? extends Protocol>> getProtocols();
 
     String getNodeName();
 
-    RelayConfiguration getRelay();
-
-    ModuleLoader getModuleLoader();
+    Optional<RelayConfiguration> getRelay();
 }

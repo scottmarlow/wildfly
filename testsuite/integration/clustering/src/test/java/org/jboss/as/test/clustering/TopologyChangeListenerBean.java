@@ -29,16 +29,16 @@ import javax.ejb.Remote;
 import javax.ejb.Stateless;
 
 import org.infinispan.Cache;
-import org.infinispan.manager.EmbeddedCacheManager;
+import org.infinispan.distribution.DistributionManager;
+import org.infinispan.distribution.LocalizedCacheTopology;
 import org.infinispan.notifications.Listener;
 import org.infinispan.notifications.cachelistener.annotation.TopologyChanged;
 import org.infinispan.notifications.cachelistener.event.TopologyChangedEvent;
-import org.infinispan.statetransfer.StateTransferManager;
-import org.infinispan.topology.CacheTopology;
-import org.jboss.as.clustering.msc.ServiceContainerHelper;
 import org.jboss.as.server.CurrentServiceContainer;
+import org.jboss.logging.Logger;
 import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.service.ServiceRegistry;
+import org.wildfly.clustering.infinispan.spi.InfinispanCacheRequirement;
+import org.wildfly.clustering.service.PassiveServiceSupplier;
 
 /**
  * EJB that establishes a stable topology.
@@ -49,48 +49,44 @@ import org.jboss.msc.service.ServiceRegistry;
 @Listener(sync = false)
 public class TopologyChangeListenerBean implements TopologyChangeListener {
 
+    private static final Logger logger = Logger.getLogger(TopologyChangeListenerBean.class);
+
     @Override
     public void establishTopology(String containerName, String cacheName, long timeout, String... nodes) throws InterruptedException {
         Set<String> expectedMembers = Stream.of(nodes).sorted().collect(Collectors.toSet());
-        ServiceRegistry registry = CurrentServiceContainer.getServiceContainer();
-        ServiceName name = ServiceName.JBOSS.append("infinispan", containerName);
-        EmbeddedCacheManager cacheContainer = ServiceContainerHelper.findValue(registry, name);
-        if (cacheContainer == null) {
-            throw new IllegalStateException(String.format("Failed to locate %s", name));
-        }
-        Cache<?, ?> cache = cacheContainer.getCache(cacheName);
+        ServiceName name = ServiceName.parse(InfinispanCacheRequirement.CACHE.resolve(containerName, cacheName));
+        Cache<?, ?> cache = new PassiveServiceSupplier<Cache<?, ?>>(CurrentServiceContainer.getServiceContainer(), name).get();
         if (cache == null) {
-            throw new IllegalStateException(String.format("Cache %s not found", cacheName));
+            throw new IllegalStateException(String.format("Cache %s not found", name));
         }
         cache.addListener(this);
-        try
-        {
-            long start = System.currentTimeMillis();
-            long now = start;
-            long endTime = start + timeout;
+        try {
             synchronized (this) {
-                StateTransferManager transfer = cache.getAdvancedCache().getComponentRegistry().getStateTransferManager();
-                CacheTopology topology = transfer.getCacheTopology();
+                DistributionManager dist = cache.getAdvancedCache().getDistributionManager();
+                LocalizedCacheTopology topology = dist.getCacheTopology();
                 Set<String> members = getMembers(topology);
+                long start = System.currentTimeMillis();
+                long now = start;
+                long endTime = start + timeout;
                 while (!expectedMembers.equals(members)) {
-                    System.out.println(String.format("%s != %s, waiting for a topology change event. Current topology id = %d", expectedMembers, members, topology.getTopologyId()));
+                    logger.infof("%s != %s, waiting for a topology change event. Current topology id = %d", expectedMembers, members, topology.getTopologyId());
                     this.wait(endTime - now);
                     now = System.currentTimeMillis();
                     if (now >= endTime) {
                         throw new InterruptedException(String.format("Cache %s/%s failed to establish view %s within %d ms.  Current view is: %s", containerName, cacheName, expectedMembers, timeout, members));
                     }
-                    topology = transfer.getCacheTopology();
+                    topology = dist.getCacheTopology();
                     members = getMembers(topology);
                 }
-                System.out.println(String.format("Cache %s/%s successfully established view %s within %d ms. Topology id = %d", containerName, cacheName, expectedMembers, now - start, topology.getTopologyId()));
+                logger.infof("Cache %s/%s successfully established view %s within %d ms. Topology id = %d", containerName, cacheName, expectedMembers, now - start, topology.getTopologyId());
             }
         } finally {
             cache.removeListener(this);
         }
     }
 
-    private static Set<String> getMembers(CacheTopology topology) {
-        return topology.getCurrentCH().getMembers().stream().map(address -> address.toString()).sorted().collect(Collectors.toSet());
+    private static Set<String> getMembers(LocalizedCacheTopology topology) {
+        return topology.getMembers().stream().map(Object::toString).sorted().collect(Collectors.toSet());
     }
 
     @TopologyChanged

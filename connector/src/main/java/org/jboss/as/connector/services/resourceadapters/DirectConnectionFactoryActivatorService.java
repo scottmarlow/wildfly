@@ -22,16 +22,10 @@
 
 package org.jboss.as.connector.services.resourceadapters;
 
-import static org.jboss.as.connector.logging.ConnectorLogger.ROOT_LOGGER;
-import static org.jboss.as.connector.logging.ConnectorLogger.SUBSYSTEM_RA_LOGGER;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.resource.spi.TransactionSupport;
-
 import org.jboss.as.connector.logging.ConnectorLogger;
+import org.jboss.as.connector.metadata.api.common.Security;
+import org.jboss.as.connector.metadata.api.resourceadapter.ActivationSecurityUtil;
+import org.jboss.as.connector.metadata.common.SecurityImpl;
 import org.jboss.as.connector.services.mdr.AS7MetadataRepository;
 import org.jboss.as.connector.services.resourceadapters.deployment.registry.ResourceAdapterDeploymentRegistry;
 import org.jboss.as.connector.subsystems.jca.JcaSubsystemConfiguration;
@@ -44,7 +38,6 @@ import org.jboss.as.security.service.SubjectFactoryService;
 import org.jboss.as.txn.service.TxnServices;
 import org.jboss.jca.common.api.metadata.Defaults;
 import org.jboss.jca.common.api.metadata.common.Pool;
-import org.jboss.jca.common.api.metadata.common.Security;
 import org.jboss.jca.common.api.metadata.common.TransactionSupportEnum;
 import org.jboss.jca.common.api.metadata.resourceadapter.Activation;
 import org.jboss.jca.common.api.metadata.resourceadapter.AdminObject;
@@ -52,7 +45,6 @@ import org.jboss.jca.common.api.metadata.spec.ConnectionDefinition;
 import org.jboss.jca.common.api.metadata.spec.Connector;
 import org.jboss.jca.common.api.metadata.spec.ResourceAdapter;
 import org.jboss.jca.common.metadata.common.PoolImpl;
-import org.jboss.jca.common.metadata.common.SecurityImpl;
 import org.jboss.jca.common.metadata.common.XaPoolImpl;
 import org.jboss.jca.common.metadata.resourceadapter.ActivationImpl;
 import org.jboss.jca.core.api.connectionmanager.ccm.CachedConnectionManager;
@@ -61,20 +53,20 @@ import org.jboss.jca.core.spi.rar.ResourceAdapterRepository;
 import org.jboss.jca.core.spi.transaction.TransactionIntegration;
 import org.jboss.modules.Module;
 import org.jboss.msc.inject.Injector;
-import org.jboss.msc.service.Service;
-import org.jboss.msc.service.ServiceBuilder;
-import org.jboss.msc.service.ServiceController;
-import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.service.ServiceTarget;
-import org.jboss.msc.service.StartContext;
-import org.jboss.msc.service.StartException;
-import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
 import org.jboss.security.SubjectFactory;
 
-public class DirectConnectionFactoryActivatorService implements Service<ContextNames.BindInfo> {
-    public static final ServiceName SERVICE_NAME_BASE =
-            ServiceName.JBOSS.append("connector").append("direct-connection-factory-activator");
+import javax.resource.spi.TransactionSupport;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.jboss.as.connector.logging.ConnectorLogger.ROOT_LOGGER;
+import static org.jboss.as.connector.logging.ConnectorLogger.SUBSYSTEM_RA_LOGGER;
+
+public class DirectConnectionFactoryActivatorService implements org.jboss.msc.service.Service<org.jboss.as.naming.deployment.ContextNames.BindInfo> {
+    public static final org.jboss.msc.service.ServiceName SERVICE_NAME_BASE =
+            org.jboss.msc.service.ServiceName.JBOSS.append("connector").append("direct-connection-factory-activator");
 
     protected final InjectedValue<AS7MetadataRepository> mdr = new InjectedValue<AS7MetadataRepository>();
 
@@ -123,7 +115,7 @@ public class DirectConnectionFactoryActivatorService implements Service<ContextN
     }
 
     @Override
-    public void start(StartContext context) throws StartException {
+    public void start(org.jboss.msc.service.StartContext context) throws org.jboss.msc.service.StartException {
         ROOT_LOGGER.debugf("started DirectConnectionFactoryActivatorService %s", context.getController().getName());
         String cfInterface = null;
 
@@ -149,14 +141,20 @@ public class DirectConnectionFactoryActivatorService implements Service<ContextN
             Map<String, String> mcfConfigProperties = new HashMap<String, String>();
             String securitySetting = null;
             String securitySettingDomain = null;
+            boolean elytronEnabled = false;
 
             if (properties != null) {
                 for (Map.Entry<String,String> prop : properties.entrySet()) {
                     String key = prop.getKey();
                     String value = prop.getValue();
-                    if (key.startsWith("ironjacamar.security")) {
+                    if (key.equals("ironjacamar.security")) {
                         securitySetting = value;
-                    } else if (key.startsWith("ironjacamar.security.domain")) {
+                    } else if (key.equals("ironjacamar.security.elytron") && value.equals("true")) {
+                        elytronEnabled = true;
+                    } else if (key.equals("ironjacamar.security.elytron-authentication-context")) {
+                        securitySettingDomain = value;
+                        elytronEnabled = true;
+                    } else if (key.equals("ironjacamar.security.domain")) {
                         securitySettingDomain = value;
                     } else {
                         if (key.startsWith("ra.")) {
@@ -184,13 +182,13 @@ public class DirectConnectionFactoryActivatorService implements Service<ContextN
             Security security = null;
             if (securitySetting != null) {
                 if ("".equals(securitySetting)) {
-                    security = new SecurityImpl(null, null, false);
+                    security = new SecurityImpl(null, null, false, false);
                 } else if ("application".equals(securitySetting)) {
-                    security = new SecurityImpl(null, null, true);
+                    security = new SecurityImpl(null, null, true, false);
                 } else if ("domain".equals(securitySetting) && securitySettingDomain != null) {
-                    security = new SecurityImpl(securitySettingDomain, null, false);
+                    security = new SecurityImpl(securitySettingDomain, null, false, elytronEnabled);
                 } else if ("domain-and-application".equals(securitySetting) && securitySettingDomain != null) {
-                    security = new SecurityImpl(null, securitySettingDomain, false);
+                    security = new SecurityImpl(null, securitySettingDomain, false, elytronEnabled);
                 }
             }
 
@@ -231,9 +229,9 @@ public class DirectConnectionFactoryActivatorService implements Service<ContextN
             ResourceAdapterActivatorService activator = new ResourceAdapterActivatorService(cmd, activation, module.getClassLoader(), serviceName);
             activator.setCreateBinderService(false);
             activator.setBindInfo(bindInfo);
-            ServiceTarget serviceTarget = context.getChildTarget();
-            ServiceName activatorServiceName = ConnectorServices.RESOURCE_ADAPTER_ACTIVATOR_SERVICE.append(serviceName);
-            ServiceBuilder connectionFactoryServiceBuilder = serviceTarget
+            org.jboss.msc.service.ServiceTarget serviceTarget = context.getChildTarget();
+            org.jboss.msc.service.ServiceName activatorServiceName = ConnectorServices.RESOURCE_ADAPTER_ACTIVATOR_SERVICE.append(serviceName);
+            org.jboss.msc.service.ServiceBuilder connectionFactoryServiceBuilder = serviceTarget
                     .addService(activatorServiceName, activator)
                     .addDependency(ConnectorServices.IRONJACAMAR_MDR, AS7MetadataRepository.class,
                             activator.getMdrInjector())
@@ -245,10 +243,6 @@ public class DirectConnectionFactoryActivatorService implements Service<ContextN
                             ResourceAdapterDeploymentRegistry.class, activator.getRegistryInjector())
                     .addDependency(ConnectorServices.CONNECTOR_CONFIG_SERVICE,
                             JcaSubsystemConfiguration.class, activator.getConfigInjector())
-                    .addDependency(SubjectFactoryService.SERVICE_NAME, SubjectFactory.class,
-                            activator.getSubjectFactoryInjector())
-                    .addDependency(SimpleSecurityManagerService.SERVICE_NAME,
-                            ServerSecurityManager.class, activator.getServerSecurityManager())
                     .addDependency(ConnectorServices.CCM_SERVICE, CachedConnectionManager.class,
                             activator.getCcmInjector())
                     .addDependency(NamingService.SERVICE_NAME)
@@ -257,12 +251,19 @@ public class DirectConnectionFactoryActivatorService implements Service<ContextN
                     .addDependency(TxnServices.JBOSS_TXN_TRANSACTION_MANAGER)
                     .addDependency(ConnectorServices.BOOTSTRAP_CONTEXT_SERVICE.append("default"));
 
+            if (ActivationSecurityUtil.isLegacySecurityRequired(security)) {
+                connectionFactoryServiceBuilder
+                        .addDependency(SubjectFactoryService.SERVICE_NAME, SubjectFactory.class,
+                                activator.getSubjectFactoryInjector())
+                        .addDependency(SimpleSecurityManagerService.SERVICE_NAME,
+                                ServerSecurityManager.class, activator.getServerSecurityManager());
+            }
 
-            connectionFactoryServiceBuilder.setInitialMode(ServiceController.Mode.ACTIVE).install();
+            connectionFactoryServiceBuilder.setInitialMode(org.jboss.msc.service.ServiceController.Mode.ACTIVE).install();
 
 
         } catch (Exception e) {
-            throw new StartException(e);
+            throw new org.jboss.msc.service.StartException(e);
         }
     }
 
@@ -271,7 +272,7 @@ public class DirectConnectionFactoryActivatorService implements Service<ContextN
     }
 
     @Override
-    public void stop(StopContext context) {
+    public void stop(org.jboss.msc.service.StopContext context) {
         ROOT_LOGGER.debugf("stopped DirectConnectionFactoryActivatorService %s", context.getController().getName());
 
     }

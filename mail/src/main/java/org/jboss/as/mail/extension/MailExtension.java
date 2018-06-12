@@ -22,10 +22,6 @@
 
 package org.jboss.as.mail.extension;
 
-import static org.jboss.as.mail.extension.MailSubsystemModel.CUSTOM_SERVER_PATH;
-import static org.jboss.as.mail.extension.MailSubsystemModel.SERVER_TYPE;
-import static org.jboss.as.mail.extension.MailSubsystemModel.TLS;
-
 import org.jboss.as.controller.Extension;
 import org.jboss.as.controller.ExtensionContext;
 import org.jboss.as.controller.ModelVersion;
@@ -36,16 +32,11 @@ import org.jboss.as.controller.descriptions.StandardResourceDescriptionResolver;
 import org.jboss.as.controller.operations.common.GenericSubsystemDescribeHandler;
 import org.jboss.as.controller.parsing.ExtensionParsingContext;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
-import org.jboss.as.controller.transform.description.DiscardAttributeChecker;
-import org.jboss.as.controller.transform.description.RejectAttributeChecker;
-import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
-import org.jboss.as.controller.transform.description.TransformationDescription;
-import org.jboss.as.controller.transform.description.TransformationDescriptionBuilder;
 
 
 /**
  * @author <a href="tomaz.cerar@gmail.com">Tomaz Cerar</a>
- * @since 7.1.0
+ * @since Jboss AS 7.1.0
  */
 public class MailExtension implements Extension {
 
@@ -64,13 +55,14 @@ public class MailExtension implements Extension {
 
     @Override
     public void initializeParsers(ExtensionParsingContext context) {
-        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.MAIL_1_0.getUriString(), MailSubsystemParser.INSTANCE);
-        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.MAIL_1_1.getUriString(), MailSubsystemParser.INSTANCE);
-        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.MAIL_1_2.getUriString(), MailSubsystemParser.INSTANCE);
-        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.MAIL_2_0.getUriString(), MailSubsystemParser2_0.INSTANCE);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.MAIL_1_0.getUriString(), MailSubsystemParser::new);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.MAIL_1_1.getUriString(), MailSubsystemParser::new);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.MAIL_1_2.getUriString(), MailSubsystemParser::new);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.MAIL_2_0.getUriString(), MailSubsystemParser2_0::new);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.MAIL_3_0.getUriString(), MailSubsystemParser3_0::new);
     }
 
-    private static final ModelVersion CURRENT_MODEL_VERSION = ModelVersion.create(2, 0, 0);
+    static final ModelVersion CURRENT_MODEL_VERSION = ModelVersion.create(3, 0, 0);
 
 
     @Override
@@ -80,22 +72,7 @@ public class MailExtension implements Extension {
         final ManagementResourceRegistration subsystemRegistration = subsystem.registerSubsystemModel(MailSubsystemResource.INSTANCE);
         subsystemRegistration.registerOperationHandler(GenericSubsystemDescribeHandler.DEFINITION, GenericSubsystemDescribeHandler.INSTANCE);
 
-        if (context.isRegisterTransformers()) {
-            registerTransformers(subsystem);
-        }
-        subsystem.registerXMLElementWriter(MailSubsystemParser2_0.INSTANCE);
-    }
-
-    private void registerTransformers(SubsystemRegistration subsystem) {
-        ResourceTransformationDescriptionBuilder builder = TransformationDescriptionBuilder.Factory.createSubsystemInstance();
-        ResourceTransformationDescriptionBuilder sessionBuilder = builder.addChildResource(MAIL_SESSION_PATH);
-        sessionBuilder.addChildResource(PathElement.pathElement(SERVER_TYPE))
-                .getAttributeBuilder()
-                .addRejectCheck(RejectAttributeChecker.DEFINED, TLS)
-                .setDiscard(DiscardAttributeChecker.UNDEFINED, TLS)
-                .end();
-        sessionBuilder.discardChildResource(CUSTOM_SERVER_PATH);
-        TransformationDescription.Tools.register(builder.build(), subsystem, ModelVersion.create(1, 1, 0));
+        subsystem.registerXMLElementWriter(new MailSubsystemParser3_0());
     }
 
 }

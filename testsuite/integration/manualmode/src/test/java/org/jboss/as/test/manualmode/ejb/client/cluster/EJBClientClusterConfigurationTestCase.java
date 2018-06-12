@@ -37,11 +37,6 @@ import org.jboss.as.test.integration.security.common.Utils;
 import org.jboss.as.test.manualmode.ejb.Util;
 import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.jboss.dmr.ModelNode;
-import org.jboss.ejb.client.ContextSelector;
-import org.jboss.ejb.client.EJBClientConfiguration;
-import org.jboss.ejb.client.EJBClientContext;
-import org.jboss.ejb.client.PropertiesBasedEJBClientConfiguration;
-import org.jboss.ejb.client.remoting.ConfigBasedEJBClientContextSelector;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -99,21 +94,16 @@ public class EJBClientClusterConfigurationTestCase {
     private Deployer deployer;
 
     private Context context;
-    private ContextSelector<EJBClientContext> previousClientContextSelector;
 
     @Before
     public void before() throws Exception {
-        this.context = Util.createNamingContext();
-        // setup the client context selector
-        this.previousClientContextSelector = setupEJBClientContextSelector();
+        final Properties ejbClientProperties = setupEJBClientProperties();
+        this.context = Util.createNamingContext(ejbClientProperties);
 
     }
 
     @After
     public void after() throws NamingException {
-        if (this.previousClientContextSelector != null) {
-            EJBClientContext.setSelector(this.previousClientContextSelector);
-        }
         this.context.close();
     }
 
@@ -190,7 +180,7 @@ public class EJBClientClusterConfigurationTestCase {
                 this.deployer.undeploy(DEPLOYMENT_WITH_JBOSS_EJB_CLIENT_XML);
                 SystemPropertySetup.INSTANCE.tearDown(createManagementClient(serverAClient, JBOSSAS_WITH_REMOTE_OUTBOUND_CONNECTION), JBOSSAS_WITH_REMOTE_OUTBOUND_CONNECTION);
             } catch (Exception e) {
-                logger.info("Exception during container shutdown", e);
+                logger.trace("Exception during container shutdown", e);
             } finally {
                 this.container.stop(JBOSSAS_WITH_REMOTE_OUTBOUND_CONNECTION);
             }
@@ -201,7 +191,7 @@ public class EJBClientClusterConfigurationTestCase {
                 }
                 this.deployer.undeploy(DEFAULT_AS_DEPLOYMENT);
             } catch (Exception e) {
-                logger.info("Exception during container shutdown", e);
+                logger.trace("Exception during container shutdown", e);
             } finally {
                 this.container.stop(DEFAULT_JBOSSAS);
             }
@@ -214,14 +204,13 @@ public class EJBClientClusterConfigurationTestCase {
     }
 
     /**
-     * Sets up the EJB client context to use a selector which processes and sets up EJB receivers
-     * based on this testcase specific jboss-ejb-client.properties file
+     * Sets up the EJB client properties based on this testcase specific jboss-ejb-client.properties file
      *
      * @return
      * @throws java.io.IOException
      */
-    private static ContextSelector<EJBClientContext> setupEJBClientContextSelector() throws IOException {
-        // setup the selector
+    private static Properties setupEJBClientProperties() throws IOException {
+        // setup the properties
         final String clientPropertiesFile = "jboss-ejb-client.properties";
         final InputStream inputStream = EJBClientClusterConfigurationTestCase.class.getResourceAsStream(clientPropertiesFile);
         if (inputStream == null) {
@@ -229,10 +218,7 @@ public class EJBClientClusterConfigurationTestCase {
         }
         final Properties properties = new Properties();
         properties.load(inputStream);
-        final EJBClientConfiguration ejbClientConfiguration = new PropertiesBasedEJBClientConfiguration(properties);
-        final ConfigBasedEJBClientContextSelector selector = new ConfigBasedEJBClientContextSelector(ejbClientConfiguration);
-
-        return EJBClientContext.setSelector(selector);
+        return properties;
     }
 
     private static ModelControllerClient createModelControllerClient(final String container) throws UnknownHostException {
@@ -275,9 +261,9 @@ public class EJBClientClusterConfigurationTestCase {
 
     private static String getServerAddress(final String container) {
         if (JBOSSAS_WITH_REMOTE_OUTBOUND_CONNECTION.equals(container)) {
-            return TestSuiteEnvironment.formatPossibleIpv6Address(System.getProperty("node1", "localhost"));
+            return TestSuiteEnvironment.formatPossibleIpv6Address(TestSuiteEnvironment.getServerAddressNode1());
         }
-        return TestSuiteEnvironment.formatPossibleIpv6Address(System.getProperty("node0", "localhost"));
+        return TestSuiteEnvironment.formatPossibleIpv6Address(TestSuiteEnvironment.getServerAddress());
     }
 
 

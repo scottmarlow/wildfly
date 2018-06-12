@@ -29,13 +29,13 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.Test;
-import org.wildfly.clustering.ee.infinispan.Mutator;
+import org.wildfly.clustering.ee.Mutator;
 import org.wildfly.clustering.web.sso.Sessions;
 
 public class CoarseSessionsTestCase {
     private Mutator mutator = mock(Mutator.class);
     private Map<String, String> map = mock(Map.class);
-    private Sessions<String> sessions = new CoarseSessions<>(this.map, this.mutator);
+    private Sessions<String, String> sessions = new CoarseSessions<>(this.map, this.mutator);
 
     @Test
     public void getApplications() {

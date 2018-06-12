@@ -22,18 +22,20 @@
 
 package org.wildfly.clustering.service.concurrent;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
 import org.junit.Test;
+import org.wildfly.common.function.ExceptionRunnable;
+import org.wildfly.common.function.ExceptionSupplier;
 
 /**
  * @author Paul Ferraro
@@ -41,7 +43,7 @@ import org.junit.Test;
 public class StampedLockServiceExecutorTestCase {
 
     @Test
-    public void test() {
+    public void testExecuteRunnable() {
         ServiceExecutor executor = new StampedLockServiceExecutor();
 
         Runnable executeTask = mock(Runnable.class);
@@ -68,6 +70,127 @@ public class StampedLockServiceExecutorTestCase {
 
         // Task should no longer run since service is closed
         verify(executeTask, never()).run();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testExecuteExceptionRunnable() throws Exception {
+        ServiceExecutor executor = new StampedLockServiceExecutor();
+
+        ExceptionRunnable<Exception> executeTask = mock(ExceptionRunnable.class);
+
+        executor.execute(executeTask);
+
+        // Task should run
+        verify(executeTask).run();
+        reset(executeTask);
+
+        doThrow(new Exception()).when(executeTask).run();
+
+        try {
+            executor.execute(executeTask);
+            fail("Should have thrown an exception");
+        } catch (Exception e) {
+            assertNotNull(e);
+        }
+        reset(executeTask);
+
+        Runnable closeTask = mock(Runnable.class);
+
+        executor.close(closeTask);
+
+        verify(closeTask).run();
+        reset(closeTask);
+
+        executor.close(closeTask);
+
+        // Close task should only run once
+        verify(closeTask, never()).run();
+
+        executor.execute(executeTask);
+
+        // Task should no longer run since service is closed
+        verify(executeTask, never()).run();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testExecuteSupplier() {
+        ServiceExecutor executor = new StampedLockServiceExecutor();
+        Object expected = new Object();
+
+        Supplier<Object> executeTask = mock(Supplier.class);
+
+        when(executeTask.get()).thenReturn(expected);
+
+        Optional<Object> result = executor.execute(executeTask);
+
+        // Task should run
+        assertTrue(result.isPresent());
+        assertSame(expected, result.get());
+        reset(executeTask);
+
+        Runnable closeTask = mock(Runnable.class);
+
+        executor.close(closeTask);
+
+        verify(closeTask).run();
+        reset(closeTask);
+
+        executor.close(closeTask);
+
+        // Close task should only run once
+        verify(closeTask, never()).run();
+
+        result = executor.execute(executeTask);
+
+        // Task should no longer run since service is closed
+        assertFalse(result.isPresent());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testExecuteExceptionSupplier() throws Exception {
+        ServiceExecutor executor = new StampedLockServiceExecutor();
+        Object expected = new Object();
+
+        ExceptionSupplier<Object, Exception> executeTask = mock(ExceptionSupplier.class);
+
+        when(executeTask.get()).thenReturn(expected);
+
+        Optional<Object> result = executor.execute(executeTask);
+
+        // Task should run
+        assertTrue(result.isPresent());
+        assertSame(expected, result.get());
+        reset(executeTask);
+
+        doThrow(new Exception()).when(executeTask).get();
+
+        try {
+            executor.execute(executeTask);
+            fail("Should have thrown an exception");
+        } catch (Exception e) {
+            assertNotNull(e);
+        }
+        reset(executeTask);
+
+        Runnable closeTask = mock(Runnable.class);
+
+        executor.close(closeTask);
+
+        verify(closeTask).run();
+        reset(closeTask);
+
+        executor.close(closeTask);
+
+        // Close task should only run once
+        verify(closeTask, never()).run();
+
+        result = executor.execute(executeTask);
+
+        // Task should no longer run since service is closed
+        assertFalse(result.isPresent());
     }
 
     @Test

@@ -28,6 +28,12 @@ import java.util.Set;
 import javax.xml.stream.XMLStreamException;
 
 import org.jboss.as.clustering.controller.Attribute;
+import org.jboss.as.clustering.infinispan.subsystem.remote.ConnectionPoolResourceDefinition;
+import org.jboss.as.clustering.infinispan.subsystem.remote.HotRodStoreResourceDefinition;
+import org.jboss.as.clustering.infinispan.subsystem.remote.InvalidationNearCacheResourceDefinition;
+import org.jboss.as.clustering.infinispan.subsystem.remote.RemoteCacheContainerResourceDefinition;
+import org.jboss.as.clustering.infinispan.subsystem.remote.RemoteClusterResourceDefinition;
+import org.jboss.as.clustering.infinispan.subsystem.remote.SecurityResourceDefinition;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.persistence.SubsystemMarshallingContext;
 import org.jboss.dmr.ModelNode;
@@ -43,10 +49,6 @@ import org.jboss.staxmapper.XMLExtendedStreamWriter;
  */
 public class InfinispanSubsystemXMLWriter implements XMLElementWriter<SubsystemMarshallingContext> {
 
-    /**
-     * {@inheritDoc}
-     * @see org.jboss.staxmapper.XMLElementWriter#writeContent(org.jboss.staxmapper.XMLExtendedStreamWriter, java.lang.Object)
-     */
     @SuppressWarnings("deprecation")
     @Override
     public void writeContent(XMLExtendedStreamWriter writer, SubsystemMarshallingContext context) throws XMLStreamException {
@@ -130,7 +132,7 @@ public class InfinispanSubsystemXMLWriter implements XMLElementWriter<SubsystemM
 
                             writer.writeStartElement(XMLElement.DISTRIBUTED_CACHE.getLocalName());
 
-                            writeClusteredCacheAttributes(writer, property.getName(), cache);
+                            writeSegmentedCacheAttributes(writer, property.getName(), cache);
                             writeAttributes(writer, cache, EnumSet.allOf(DistributedCacheResourceDefinition.Attribute.class));
 
                             writeCacheElements(writer, cache);
@@ -138,7 +140,77 @@ public class InfinispanSubsystemXMLWriter implements XMLElementWriter<SubsystemM
                             writer.writeEndElement();
                         }
                     }
+
+                    if (container.hasDefined(ScatteredCacheResourceDefinition.WILDCARD_PATH.getKey())) {
+                        for (Property property : container.get(ScatteredCacheResourceDefinition.WILDCARD_PATH.getKey()).asPropertyList()) {
+                            ModelNode cache = property.getValue();
+
+                            writer.writeStartElement(XMLElement.SCATTERED_CACHE.getLocalName());
+
+                            writeSegmentedCacheAttributes(writer, property.getName(), cache);
+                            writeAttributes(writer, cache, EnumSet.allOf(ScatteredCacheResourceDefinition.Attribute.class));
+
+                            writeCacheElements(writer, cache);
+
+                            writer.writeEndElement();
+                        }
+                    }
                     writer.writeEndElement();
+                }
+            }
+
+            if (model.hasDefined(RemoteCacheContainerResourceDefinition.WILDCARD_PATH.getKey())) {
+                for (Property entry : model.get(RemoteCacheContainerResourceDefinition.WILDCARD_PATH.getKey()).asPropertyList()) {
+
+                    String remoteContainerName = entry.getName();
+                    ModelNode remoteContainer = entry.getValue();
+
+                    writer.writeStartElement(XMLElement.REMOTE_CACHE_CONTAINER.getLocalName());
+                    writer.writeAttribute(XMLAttribute.NAME.getLocalName(), remoteContainerName);
+
+                    writeAttributes(writer, remoteContainer, EnumSet.allOf(RemoteCacheContainerResourceDefinition.Attribute.class));
+
+                    writeThreadPoolElements(XMLElement.ASYNC_THREAD_POOL, ThreadPoolResourceDefinition.CLIENT, writer, remoteContainer);
+
+                    ModelNode connectionPool = remoteContainer.get(ConnectionPoolResourceDefinition.PATH.getKeyValuePair());
+                    EnumSet<ConnectionPoolResourceDefinition.Attribute> attributes = EnumSet.allOf(ConnectionPoolResourceDefinition.Attribute.class);
+                    if (hasDefined(connectionPool, attributes)) {
+                        writer.writeStartElement(XMLElement.CONNECTION_POOL.getLocalName());
+                        writeAttributes(writer, connectionPool, attributes);
+                        writer.writeEndElement();
+                    }
+
+                    if (remoteContainer.hasDefined(InvalidationNearCacheResourceDefinition.PATH.getKeyValuePair())) {
+                        writer.writeStartElement(XMLElement.INVALIDATION_NEAR_CACHE.getLocalName());
+                        ModelNode nearCache = remoteContainer.get(InvalidationNearCacheResourceDefinition.PATH.getKeyValuePair());
+                        writeAttributes(writer, nearCache, EnumSet.allOf(InvalidationNearCacheResourceDefinition.Attribute.class));
+                        writer.writeEndElement();
+                    }
+
+                    writer.writeStartElement(XMLElement.REMOTE_CLUSTERS.getLocalName());
+
+                    for (Property clusterEntry : remoteContainer.get(RemoteClusterResourceDefinition.WILDCARD_PATH.getKey()).asPropertyList()) {
+                        writer.writeStartElement(XMLElement.REMOTE_CLUSTER.getLocalName());
+
+                        String remoteClusterName = clusterEntry.getName();
+                        ModelNode remoteCluster = clusterEntry.getValue();
+
+                        writer.writeAttribute(XMLAttribute.NAME.getLocalName(), remoteClusterName);
+                        writeAttributes(writer, remoteCluster, RemoteClusterResourceDefinition.Attribute.class);
+                        writer.writeEndElement();
+                    }
+
+                    writer.writeEndElement(); // </remote-clusters>
+
+                    ModelNode securityModel = remoteContainer.get(SecurityResourceDefinition.PATH.getKeyValuePair());
+                    EnumSet<SecurityResourceDefinition.Attribute> securityAttributes = EnumSet.allOf(SecurityResourceDefinition.Attribute.class);
+                    if (hasDefined(securityModel, securityAttributes)) {
+                        writer.writeStartElement(XMLElement.SECURITY.getLocalName());
+                        writeAttributes(writer, securityModel, securityAttributes);
+                        writer.writeEndElement();
+                    }
+
+                    writer.writeEndElement(); // </remote-cache-container>
                 }
             }
         }
@@ -153,9 +225,14 @@ public class InfinispanSubsystemXMLWriter implements XMLElementWriter<SubsystemM
     private static void writeClusteredCacheAttributes(XMLExtendedStreamWriter writer, String name, ModelNode cache) throws XMLStreamException {
         writeCacheAttributes(writer, name, cache);
         writeAttributes(writer, cache, ClusteredCacheResourceDefinition.Attribute.class);
-        writeAttributes(writer, cache, ClusteredCacheResourceDefinition.DeprecatedAttribute.class);
     }
 
+    private static void writeSegmentedCacheAttributes(XMLExtendedStreamWriter writer, String name, ModelNode cache) throws XMLStreamException {
+        writeClusteredCacheAttributes(writer, name, cache);
+        writeAttributes(writer, cache, SegmentedCacheResourceDefinition.Attribute.class);
+    }
+
+    @SuppressWarnings("deprecation")
     private static void writeCacheElements(XMLExtendedStreamWriter writer, ModelNode cache) throws XMLStreamException {
 
         if (cache.hasDefined(LockingResourceDefinition.PATH.getKeyValuePair())) {
@@ -178,14 +255,27 @@ public class InfinispanSubsystemXMLWriter implements XMLElementWriter<SubsystemM
             }
         }
 
-        if (cache.hasDefined(EvictionResourceDefinition.PATH.getKeyValuePair())) {
-            ModelNode eviction = cache.get(EvictionResourceDefinition.PATH.getKeyValuePair());
-            Set<EvictionResourceDefinition.Attribute> attributes = EnumSet.allOf(EvictionResourceDefinition.Attribute.class);
-            if (hasDefined(eviction, attributes)) {
-                writer.writeStartElement(XMLElement.EVICTION.getLocalName());
-                writeAttributes(writer, eviction, attributes);
+        if (cache.hasDefined(ObjectMemoryResourceDefinition.PATH.getKeyValuePair())) {
+            ModelNode memory = cache.get(ObjectMemoryResourceDefinition.PATH.getKeyValuePair());
+            Set<ObjectMemoryResourceDefinition.Attribute> attributes = EnumSet.allOf(MemoryResourceDefinition.Attribute.class);
+            if (hasDefined(memory, attributes)) {
+                writer.writeStartElement(XMLElement.OBJECT_MEMORY.getLocalName());
+                writeAttributes(writer, memory, attributes);
                 writer.writeEndElement();
             }
+        } else if (cache.hasDefined(BinaryMemoryResourceDefinition.PATH.getKeyValuePair())) {
+            ModelNode memory = cache.get(BinaryMemoryResourceDefinition.PATH.getKeyValuePair());
+            writer.writeStartElement(XMLElement.BINARY_MEMORY.getLocalName());
+            writeAttributes(writer, memory, MemoryResourceDefinition.Attribute.class);
+            writeAttributes(writer, memory, BinaryMemoryResourceDefinition.Attribute.class);
+            writer.writeEndElement();
+        } else if (cache.hasDefined(OffHeapMemoryResourceDefinition.PATH.getKeyValuePair())) {
+            ModelNode memory = cache.get(OffHeapMemoryResourceDefinition.PATH.getKeyValuePair());
+            writer.writeStartElement(XMLElement.OFF_HEAP_MEMORY.getLocalName());
+            writeAttributes(writer, memory, MemoryResourceDefinition.Attribute.class);
+            writeAttributes(writer, memory, BinaryMemoryResourceDefinition.Attribute.class);
+            writeAttributes(writer, memory, OffHeapMemoryResourceDefinition.Attribute.class);
+            writer.writeEndElement();
         }
 
         if (cache.hasDefined(ExpirationResourceDefinition.PATH.getKeyValuePair())) {
@@ -231,11 +321,11 @@ public class InfinispanSubsystemXMLWriter implements XMLElementWriter<SubsystemM
 
         if (cache.hasDefined(StringKeyedJDBCStoreResourceDefinition.PATH.getKeyValuePair())) {
             ModelNode store = cache.get(StringKeyedJDBCStoreResourceDefinition.PATH.getKeyValuePair());
-            writer.writeStartElement(XMLElement.STRING_KEYED_JDBC_STORE.getLocalName());
+            writer.writeStartElement(XMLElement.JDBC_STORE.getLocalName());
             writeAttributes(writer, store, JDBCStoreResourceDefinition.Attribute.class);
             writeAttributes(writer, store, storeAttributes);
             writeStoreElements(writer, store);
-            writeJDBCStoreTable(writer, XMLElement.STRING_KEYED_TABLE, store, StringTableResourceDefinition.PATH, StringTableResourceDefinition.Attribute.PREFIX);
+            writeJDBCStoreTable(writer, XMLElement.TABLE, store, StringTableResourceDefinition.PATH, StringTableResourceDefinition.Attribute.PREFIX);
             writer.writeEndElement();
         }
 
@@ -256,6 +346,15 @@ public class InfinispanSubsystemXMLWriter implements XMLElementWriter<SubsystemM
             writeAttributes(writer, store, RemoteStoreResourceDefinition.Attribute.class);
             writeAttributes(writer, store, storeAttributes);
             writeStoreElements(writer, store);
+            writer.writeEndElement();
+        }
+
+        if (cache.hasDefined(HotRodStoreResourceDefinition.PATH.getKeyValuePair())) {
+            ModelNode hotRodStore = cache.get(HotRodStoreResourceDefinition.PATH.getKeyValuePair());
+            writer.writeStartElement(XMLElement.HOTROD_STORE.getLocalName());
+            writeAttributes(writer, hotRodStore, HotRodStoreResourceDefinition.Attribute.class);
+            writeAttributes(writer, hotRodStore, storeAttributes);
+            writeStoreElements(writer, hotRodStore);
             writer.writeEndElement();
         }
 
@@ -299,16 +398,6 @@ public class InfinispanSubsystemXMLWriter implements XMLElementWriter<SubsystemM
                 writer.writeEndElement();
             }
         }
-
-        if (cache.hasDefined(BackupForResourceDefinition.PATH.getKeyValuePair())) {
-            ModelNode backupFor = cache.get(BackupForResourceDefinition.PATH.getKeyValuePair());
-            Set<BackupForResourceDefinition.Attribute> attributes = EnumSet.allOf(BackupForResourceDefinition.Attribute.class);
-            if (hasDefined(backupFor, attributes)) {
-                writer.writeStartElement(XMLElement.BACKUP_FOR.getLocalName());
-                writeAttributes(writer, backupFor, attributes);
-                writer.writeEndElement();
-            }
-        }
     }
 
     private static void writeJDBCStoreTable(XMLExtendedStreamWriter writer, XMLElement element, ModelNode store, PathElement path, Attribute prefixAttribute) throws XMLStreamException {
@@ -318,8 +407,8 @@ public class InfinispanSubsystemXMLWriter implements XMLElementWriter<SubsystemM
             writeAttributes(writer, table, TableResourceDefinition.Attribute.class);
             writeAttribute(writer, table, prefixAttribute);
             for (TableResourceDefinition.ColumnAttribute attribute : TableResourceDefinition.ColumnAttribute.values()) {
-                if (table.hasDefined(attribute.getDefinition().getName())) {
-                    ModelNode column = table.get(attribute.getDefinition().getName());
+                if (table.hasDefined(attribute.getName())) {
+                    ModelNode column = table.get(attribute.getName());
                     writer.writeStartElement(attribute.getDefinition().getXmlName());
                     writeAttribute(writer, column, attribute.getColumnName());
                     writeAttribute(writer, column, attribute.getColumnType());
@@ -345,7 +434,7 @@ public class InfinispanSubsystemXMLWriter implements XMLElementWriter<SubsystemM
 
     private static boolean hasDefined(ModelNode model, Iterable<? extends Attribute> attributes) {
         for (Attribute attribute : attributes) {
-            if (model.hasDefined(attribute.getDefinition().getName())) return true;
+            if (model.hasDefined(attribute.getName())) return true;
         }
         return false;
     }
@@ -361,11 +450,11 @@ public class InfinispanSubsystemXMLWriter implements XMLElementWriter<SubsystemM
     }
 
     private static void writeAttribute(XMLExtendedStreamWriter writer, ModelNode model, Attribute attribute) throws XMLStreamException {
-        attribute.getDefinition().getAttributeMarshaller().marshallAsAttribute(attribute.getDefinition(), model, true, writer);
+        attribute.getDefinition().getMarshaller().marshallAsAttribute(attribute.getDefinition(), model, true, writer);
     }
 
     private static void writeElement(XMLExtendedStreamWriter writer, ModelNode model, Attribute attribute) throws XMLStreamException {
-        attribute.getDefinition().getAttributeMarshaller().marshallAsElement(attribute.getDefinition(), model, true, writer);
+        attribute.getDefinition().getMarshaller().marshallAsElement(attribute.getDefinition(), model, true, writer);
     }
 
     private static void writeThreadPoolElements(XMLElement element, ThreadPoolResourceDefinition pool, XMLExtendedStreamWriter writer, ModelNode container) throws XMLStreamException {

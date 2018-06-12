@@ -22,28 +22,26 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<module xmlns="urn:jboss:module:1.3" name="org.apache.activemq.artemis">
+<module xmlns="urn:jboss:module:1.5" name="org.apache.activemq.artemis">
     <resources>
-        <resource-root path="lib"/>
         <artifact name="${org.apache.activemq:artemis-core-client}"/>
         <artifact name="${org.apache.activemq:artemis-selector}"/>
         <artifact name="${org.apache.activemq:artemis-server}"/>
         <artifact name="${org.apache.activemq:artemis-cli}"/>
-        <artifact name="${org.apache.activemq:artemis-commons}"/>
         <artifact name="${org.apache.activemq:artemis-dto}"/>
         <artifact name="${org.apache.activemq:artemis-hqclient-protocol}"/>
-        <artifact name="${org.apache.activemq:artemis-journal}"/>
+        <artifact name="${org.apache.activemq:artemis-jdbc-store}"/>
         <artifact name="${org.apache.activemq:artemis-jms-client}"/>
         <artifact name="${org.apache.activemq:artemis-jms-server}"/>
-        <artifact name="${org.apache.activemq:artemis-native}"/>
+        <artifact name="${org.apache.activemq:artemis-service-extensions}"/>
     </resources>
 
     <dependencies>
-        <!-- required for ARTEMIS-298 -->
-        <module name="com.google.guava"/>
         <module name="javax.api"/>
         <module name="javax.jms.api" />
+        <module name="javax.json.api"/>
         <module name="org.apache.commons.beanutils" />
+        <module name="org.apache.activemq.artemis.journal" export="true"/>
         <module name="org.jboss.jts"/>
         <module name="org.jboss.logging"/>
         <module name="io.netty"/>
@@ -58,19 +56,12 @@
         <module name="org.picketbox"/>
         <!-- this optional dependency is required to be able to use this module from a jms-bridge to connect to a remote
              WildFly server [AS7-6549] -->
-        <module name="org.jboss.remote-naming" optional="true"/>
+        <module name="org.wildfly.naming-client" optional="true"  services="import"/>
         <!-- https://issues.jboss.org/browse/AS7-4936  this is to avoid an issue on IBM JDK -->
         <module name="sun.jdk"/>
         <!-- supported protocols (in addition to the CORE protocol) -->
         <module name="org.apache.activemq.artemis.protocol.amqp" services="import" optional="true"/>
         <module name="org.apache.activemq.artemis.protocol.hornetq" services="import" optional="true"/>
         <module name="org.apache.activemq.artemis.protocol.stomp" services="import" optional="true"/>
-
-        <!--
-          WFLY-6301 This module can be used to load user-created classes that are
-          used by Artemis resources (e.g. connector-service, transformers, etc.)
-        -->
-        <module name="org.apache.activemq.artemis.addons" slot="main" optional="true"/>
-
     </dependencies>
 </module>

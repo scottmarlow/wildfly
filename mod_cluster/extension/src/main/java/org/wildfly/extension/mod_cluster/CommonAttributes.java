@@ -42,6 +42,7 @@ interface CommonAttributes {
     String AUTO_ENABLE_CONTEXTS = "auto-enable-contexts";
     String STOP_CONTEXT_TIMEOUT = "stop-context-timeout";
     String SOCKET_TIMEOUT = "socket-timeout";
+    String SSL_CONTEXT = "ssl-context";
     String CONNECTOR = "connector";
     String SESSION_DRAINING_STRATEGY = "session-draining-strategy";
     String STATUS_INTERVAL = "status-interval";
@@ -108,4 +109,6 @@ interface CommonAttributes {
     String ADD_CUSTOM_METRIC = "add-custom-metric";
     String REMOVE_METRIC = "remove-metric";
     String REMOVE_CUSTOM_METRIC = "remove-custom-metric";
+
+    String SESSION_DRAINING_COMPLETE = "session-draining-complete";
 }

@@ -22,7 +22,6 @@
 package org.jboss.as.test.integration.domain.mixed;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PROFILE;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -30,37 +29,26 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringReader;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.xml.namespace.QName;
-import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
 
 import org.jboss.as.controller.Extension;
 import org.jboss.as.controller.PathAddress;
-import org.jboss.as.controller.ProcessType;
-import org.jboss.as.controller.RunningMode;
-import org.jboss.as.controller.RunningModeControl;
-import org.jboss.as.controller.extension.ExtensionRegistry;
-import org.jboss.as.controller.extension.RuntimeHostControllerInfoAccessor;
-import org.jboss.as.subsystem.test.TestParser;
 import org.jboss.dmr.ModelNode;
-import org.jboss.staxmapper.XMLMapper;
 import org.wildfly.build.configassembly.ConfigurationAssembler;
 import org.wildfly.build.configassembly.SubsystemConfig;
 import org.wildfly.build.configassembly.SubsystemInputStreamSources;
 import org.wildfly.build.util.FileInputStreamSource;
 import org.wildfly.build.util.InputStreamSource;
+import org.wildfly.test.mixed.domain.TestParserUtils;
 
 /**
  * Used by the domain adjuster to generate subsystem.xml files from existing templates for large/complex susbsystems.
@@ -79,19 +67,20 @@ public class LegacySubsystemConfigurationUtil {
     final String subsystemName;
     final String supplement;
     final String resourceName;
+    final PathAddress profile;
 
-    public LegacySubsystemConfigurationUtil(Extension extension, String subsystemName, String supplement, String resourceName) {
+    public LegacySubsystemConfigurationUtil(Extension extension, PathAddress profile, String subsystemName, String supplement, String resourceName) {
         this.extension = extension;
         this.subsystemName = subsystemName;
         this.supplement = supplement;
         this.resourceName = resourceName;
+        this.profile = profile;
     }
 
     public List<ModelNode> getSubsystemOperations() throws Exception {
         File file = createAssembly();
         String subsystemXml = extractSubsystemXml(file);
         List<ModelNode> list = parseSubsystemXml(subsystemXml);
-        PathAddress profile = PathAddress.pathAddress(PROFILE, "full-ha");
         for (ModelNode op : list) {
             PathAddress address = PathAddress.pathAddress(op.get(OP_ADDR));
             op.get(OP_ADDR).set(profile.append(address).toModelNode());
@@ -100,18 +89,9 @@ public class LegacySubsystemConfigurationUtil {
     }
 
     private List<ModelNode> parseSubsystemXml(String subsystemXml) throws XMLStreamException {
-        XMLMapper xmlMapper = XMLMapper.Factory.create();
-        ExtensionRegistry extensionParsingRegistry = new ExtensionRegistry(ProcessType.HOST_CONTROLLER, new RunningModeControl(RunningMode.NORMAL), null, null, RuntimeHostControllerInfoAccessor.SERVER);
-        TestParser testParser = new TestParser(subsystemName, extensionParsingRegistry);
-        xmlMapper.registerRootElement(new QName(TEST_NAMESPACE, "test"), testParser);
-        extension.initializeParsers(extensionParsingRegistry.getExtensionParsingContext("Test", xmlMapper));
-        String xml = "<test xmlns=\"" + TEST_NAMESPACE + "\">" +
-                subsystemXml +
-                "</test>";
-        final XMLStreamReader reader = XMLInputFactory.newInstance().createXMLStreamReader(new StringReader(xml));
-        final List<ModelNode> operationList = new ArrayList<ModelNode>();
-        xmlMapper.parseDocument(operationList, reader);
-        return operationList;
+        return new TestParserUtils.Builder(extension, subsystemName, subsystemXml)
+                .build()
+                .parseOperations();
     }
 
 

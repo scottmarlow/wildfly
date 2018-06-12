@@ -21,6 +21,8 @@
  */
 package org.jboss.as.test.integration.ejb.security;
 
+import java.util.concurrent.Callable;
+
 import javax.ejb.EJBAccessException;
 import javax.naming.InitialContext;
 
@@ -44,8 +46,6 @@ import org.jboss.as.test.integration.ejb.security.runasprincipal.transitive.Stat
 import org.jboss.as.test.integration.security.common.AbstractSecurityDomainSetup;
 import org.jboss.as.test.shared.integration.ejb.security.Util;
 import org.jboss.logging.Logger;
-import org.jboss.security.client.SecurityClient;
-import org.jboss.security.client.SecurityClientFactory;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
@@ -54,6 +54,9 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.wildfly.security.permission.ElytronPermission;
+
+import static org.jboss.as.test.shared.integration.ejb.security.PermissionUtils.createPermissionsXmlAsset;
 
 /**
  * Migration of test from EJB3 testsuite [JBQA-5451] Testing calling with runasprincipal annotation (ejbthree1945)
@@ -85,7 +88,8 @@ public class RunAsPrincipalTestCase  {
                 .addClass(RunAsPrincipalTestCase.class)
                 .addClasses(AbstractSecurityDomainSetup.class, EjbSecurityDomainSetup.class)
                 .addAsWebInfResource(RunAsPrincipalTestCase.class.getPackage(), "jboss-ejb3.xml", "jboss-ejb3.xml")
-                .addAsManifestResource(new StringAsset("Dependencies: org.jboss.as.controller-client,org.jboss.dmr\n"), "MANIFEST.MF");
+                .addAsManifestResource(new StringAsset("Dependencies: org.jboss.as.controller-client,org.jboss.dmr\n"), "MANIFEST.MF")
+                .addAsManifestResource(createPermissionsXmlAsset(new ElytronPermission("getSecurityDomain")), "permissions.xml");
         war.addPackage(CommonCriteria.class.getPackage());
         return war;
     }
@@ -102,7 +106,8 @@ public class RunAsPrincipalTestCase  {
                 .addClass(RunAsPrincipalTestCase.class)
                 .addClasses(AbstractSecurityDomainSetup.class, EjbSecurityDomainSetup.class)
                 .addAsWebInfResource(RunAsPrincipalTestCase.class.getPackage(), "jboss-ejb3.xml", "jboss-ejb3.xml")
-                .addAsManifestResource(new StringAsset("Dependencies: org.jboss.as.controller-client,org.jboss.dmr\n"), "MANIFEST.MF");
+                .addAsManifestResource(new StringAsset("Dependencies: org.jboss.as.controller-client,org.jboss.dmr\n"), "MANIFEST.MF")
+                .addAsManifestResource(createPermissionsXmlAsset(new ElytronPermission("getSecurityDomain")), "permissions.xml");
         war.addPackage(CommonCriteria.class.getPackage());
         return war;
     }
@@ -130,30 +135,24 @@ public class RunAsPrincipalTestCase  {
 
     @Test
     public void testJackInABox() throws Exception {
-        SecurityClient client = SecurityClientFactory.getSecurityClient();
-        client.setSimple("user1", "password1");
-        client.login();
-        try {
+        final Callable<Void> callable = () -> {
             WhoAmI bean =  lookupCallerWithIdentity();
             String actual = bean.getCallerPrincipal();
             Assert.assertEquals("jackinabox", actual);
-        } finally {
-            client.logout();
-        }
+            return null;
+        };
+        Util.switchIdentitySCF("user1", "password1", callable);
     }
 
     @Test
     public void testSingletonPostconstructSecurity() throws Exception {
-        SecurityClient client = SecurityClientFactory.getSecurityClient();
-        client.setSimple("user1", "password1");
-        client.login();
-        try {
+        final Callable<Void> callable = () -> {
             WhoAmI bean = lookupSingleCallerWithIdentity();
             String actual = bean.getCallerPrincipal();
             Assert.assertEquals("Helloween", actual);
-        } finally {
-            client.logout();
-        }
+            return null;
+        };
+        Util.switchIdentitySCF("user1", "password1", callable);
     }
 
     @Test
@@ -169,16 +168,13 @@ public class RunAsPrincipalTestCase  {
 
     @Test
     public void testAnonymous() throws Exception {
-        SecurityClient client = SecurityClientFactory.getSecurityClient();
-        client.setSimple("user1", "password1");
-        client.login();
-        try {
+        final Callable<Void> callable = () -> {
             WhoAmI bean = lookupCaller();
             String actual = bean.getCallerPrincipal();
             Assert.assertEquals("anonymous", actual);
-        } finally {
-            client.logout();
-        }
+            return null;
+        };
+        Util.switchIdentitySCF("user1", "password1", callable);
     }
 
     @Test
@@ -189,7 +185,7 @@ public class RunAsPrincipalTestCase  {
             Assert.fail("Deployment should fail");
         } catch (Exception dex) {
             Throwable t = checkEjbException(dex);
-            log.info("Expected deployment error because the Singleton has nosecurity context per itself", dex.getCause());
+            log.trace("Expected deployment error because the Singleton has nosecurity context per itself", dex.getCause());
             Assert.assertThat(t.getMessage(), t.getMessage(), CoreMatchers.containsString("WFLYEJB0364"));
         } finally {
             deployer.undeploy(STARTUP_SINGLETON_DEPLOYMENT);
@@ -198,19 +194,18 @@ public class RunAsPrincipalTestCase  {
 
     @Test
     public void testSingletonPostconstructSecurityNotPropagating() throws Exception {
-        SecurityClient client = SecurityClientFactory.getSecurityClient();
-        client.setSimple("user1", "password1");
-        client.login();
-        try {
+        final Callable<Void> callable = () -> {
             WhoAmI bean = lookupSingletonUseBeanWithIdentity(); //To load the singleton
             bean.getCallerPrincipal();
-            Assert.fail("Deployment should fail");
+            Assert.fail("EJB call should fail - identity should not be propagated from @PostConstruct method");
+            return null;
+        };
+        try {
+            Util.switchIdentitySCF("user1", "password1", callable);
         } catch (Exception dex) {
             Throwable t = checkEjbException(dex);
-            log.info("Expected deployment error because the Singleton has nosecurity context per itself", dex.getCause());
+            log.trace("Expected EJB call fail because identity should not be propagated from @PostConstruct method", dex.getCause());
             Assert.assertThat(t.getMessage(), t.getMessage(), CoreMatchers.containsString("WFLYEJB0364"));
-        } finally {
-            client.logout();
         }
     }
 

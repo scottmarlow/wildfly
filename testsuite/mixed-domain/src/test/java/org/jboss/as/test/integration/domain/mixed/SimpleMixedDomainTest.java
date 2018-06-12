@@ -37,6 +37,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MAN
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAMES;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PROFILE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PROXIES;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_CHILDREN_NAMES_OPERATION;
@@ -44,11 +45,13 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.REA
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RECURSIVE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESTART;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESTART_SERVERS;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RUNNING_SERVER;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_CONFIG;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_GROUP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SOCKET_BINDING_GROUP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.STEPS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SYSTEM_PROPERTY;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.TO_PROFILE;
 import static org.jboss.as.test.integration.domain.management.util.DomainTestSupport.validateResponse;
@@ -60,9 +63,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.jboss.as.clustering.jgroups.subsystem.JGroupsSubsystemResourceDefinition;
-import org.jboss.as.clustering.jgroups.subsystem.ProtocolResourceDefinition;
-import org.jboss.as.clustering.jgroups.subsystem.StackResourceDefinition;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.client.helpers.domain.DomainClient;
@@ -218,6 +218,31 @@ public abstract class SimpleMixedDomainTest  {
         }
     }
 
+
+    /**
+     * Tests test-connection-in-pool() of ExampleDS.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void test00011_ExampleDSConnection() throws Exception{
+        if (version == Version.AsVersion.EAP_6_2_0) {
+            // see: https://issues.jboss.org/browse/WFLY-7792
+            return;
+        }
+        PathAddress exampleDSAddress = PathAddress.pathAddress(PathElement.pathElement(HOST, "slave"),
+                PathElement.pathElement(RUNNING_SERVER, "server-one"), PathElement.pathElement(SUBSYSTEM, "datasources"),
+                PathElement.pathElement("data-source", "ExampleDS"));
+        DomainClient masterClient = support.getDomainMasterLifecycleUtil().createDomainClient();
+        try {
+            ModelNode op = Util.createOperation("test-connection-in-pool", PathAddress.pathAddress(exampleDSAddress));
+            ModelNode response = masterClient.execute(op);
+            assertEquals(op.toString() + '\n' + response.toString(), SUCCESS, response.get(OUTCOME).asString());
+        } finally {
+            IoUtils.safeClose(masterClient);
+        }
+    }
+
     //Do this one last since it changes the host model of the slaves
     @Test
     public void test99999_ProfileClone() throws Exception {
@@ -334,9 +359,9 @@ public abstract class SimpleMixedDomainTest  {
 
     private static ModelNode createProtocolPutPropertyOperation(String stackName, String protocolName, String propertyName, String propertyValue) {
         PathAddress address = PathAddress.pathAddress(PathElement.pathElement(PROFILE, ACTIVE_PROFILE))
-                .append(JGroupsSubsystemResourceDefinition.PATH)
-                .append(StackResourceDefinition.pathElement(stackName))
-                .append(ProtocolResourceDefinition.pathElement(protocolName));
+                .append(PathElement.pathElement(ModelDescriptionConstants.SUBSYSTEM, "jgroups"))
+                .append(PathElement.pathElement("stack", stackName))
+                .append(PathElement.pathElement("protocol", protocolName));
 
         ModelNode operation = Util.createOperation(MapOperations.MAP_PUT_DEFINITION, address);
         operation.get(ModelDescriptionConstants.NAME).set("properties");

@@ -22,15 +22,10 @@
 
 package org.wildfly.extension.clustering.singleton;
 
-import org.jboss.as.clustering.controller.AddStepHandler;
-import org.jboss.as.clustering.controller.ResourceDescriptor;
-import org.jboss.as.clustering.controller.RemoveStepHandler;
-import org.jboss.as.clustering.controller.ResourceServiceHandler;
-import org.jboss.as.clustering.controller.SimpleResourceServiceHandler;
+import org.jboss.as.clustering.controller.SimpleResourceDescriptorConfigurator;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
-import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 
@@ -48,10 +43,10 @@ public class SimpleElectionPolicyResourceDefinition extends ElectionPolicyResour
         ;
         private final SimpleAttributeDefinition definition;
 
-        private Attribute(String name, ModelType type, ModelNode defaultValue) {
+        Attribute(String name, ModelType type, ModelNode defaultValue) {
             this.definition = new SimpleAttributeDefinitionBuilder(name, type)
                     .setAllowExpression(true)
-                    .setAllowNull(true)
+                    .setRequired(false)
                     .setDefaultValue(defaultValue)
                     .build();
         }
@@ -63,20 +58,6 @@ public class SimpleElectionPolicyResourceDefinition extends ElectionPolicyResour
     }
 
     SimpleElectionPolicyResourceDefinition() {
-        super(PATH, new SingletonResourceDescriptionResolver(PATH, WILDCARD_PATH));
-    }
-
-    @Override
-    public void register(ManagementResourceRegistration parentRegistration) {
-        ManagementResourceRegistration registration = parentRegistration.registerSubModel(this);
-
-        ResourceDescriptor descriptor = new ResourceDescriptor(this.getResourceDescriptionResolver())
-                .addAttributes(Attribute.class)
-                .addAttributes(ElectionPolicyResourceDefinition.Attribute.class)
-                .addCapabilities(ElectionPolicyResourceDefinition.Capability.class)
-                ;
-        ResourceServiceHandler handler = new SimpleResourceServiceHandler<>(address -> new SimpleElectionPolicyBuilder(address.getParent()));
-        new AddStepHandler(descriptor, handler).register(registration);
-        new RemoveStepHandler(descriptor, handler).register(registration);
+        super(PATH, SingletonExtension.SUBSYSTEM_RESOLVER.createChildResolver(PATH, WILDCARD_PATH), new SimpleResourceDescriptorConfigurator<>(Attribute.class), SimpleElectionPolicyServiceConfigurator::new);
     }
 }

@@ -22,10 +22,9 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<module xmlns="urn:jboss:module:1.3" name="org.apache.activemq.artemis.protocol.amqp">
+<module xmlns="urn:jboss:module:1.5" name="org.apache.activemq.artemis.protocol.amqp">
     <resources>
         <artifact name="${org.apache.activemq:artemis-amqp-protocol}"/>
-        <artifact name="${org.apache.activemq:artemis-proton-plug}"/>
     </resources>
 
     <dependencies>
@@ -33,5 +32,6 @@
         <module name="org.apache.qpid.proton"/>
         <!-- required to load ActiveMQ protocol SPI -->
         <module name="org.apache.activemq.artemis"/>
+        <module name="org.jboss.logging"/>
     </dependencies>
 </module>

@@ -37,7 +37,7 @@ import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.test.integration.common.jms.JMSOperations;
 import org.jboss.as.test.integration.common.jms.JMSOperationsProvider;
 import org.jboss.dmr.ModelNode;
-import org.jboss.logging.Logger;
+import org.jboss.remoting3.security.RemotingPermission;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
@@ -45,6 +45,10 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import static org.jboss.as.test.shared.integration.ejb.security.PermissionUtils.createPermissionsXmlAsset;
+
+import java.io.FilePermission;
 
 /**
  * Tests MDB deployments
@@ -54,8 +58,6 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 @ServerSetup({MDBTestCase.JmsQueueSetup.class})
 public class MDBTestCase {
-
-    private static final Logger logger = Logger.getLogger(MDBTestCase.class);
 
     @EJB (mappedName = "java:module/JMSMessagingUtil")
     private JMSMessagingUtil jmsUtil;
@@ -81,7 +83,7 @@ public class MDBTestCase {
 
         @Override
         public void setup(ManagementClient managementClient, String containerId) throws Exception {
-            jmsAdminOperations = JMSOperationsProvider.getInstance(managementClient);
+            jmsAdminOperations = JMSOperationsProvider.getInstance(managementClient.getControllerClient());
             jmsAdminOperations.createJmsQueue("mdbtest/queue", "java:jboss/mdbtest/queue");
             jmsAdminOperations.createJmsQueue("mdbtest/replyQueue", "java:jboss/mdbtest/replyQueue");
             jmsAdminOperations.createJmsQueue("mdbtest/annoQueue", "java:jboss/mdbtest/annoQueue");
@@ -110,8 +112,13 @@ public class MDBTestCase {
         ejbJar.addPackage(JMSOperations.class.getPackage());
         ejbJar.addClass(JmsQueueSetup.class);
         ejbJar.addAsManifestResource(MDBTestCase.class.getPackage(), "ejb-jar.xml", "ejb-jar.xml");
-        ejbJar.addAsManifestResource(new StringAsset("Dependencies: org.jboss.as.controller-client, org.jboss.dmr \n"), "MANIFEST.MF");
-        logger.info(ejbJar.toString(true));
+        ejbJar.addAsManifestResource(new StringAsset("Dependencies: org.jboss.as.controller-client, org.jboss.dmr, org.jboss.remoting3\n"), "MANIFEST.MF");
+        ejbJar.addAsManifestResource(createPermissionsXmlAsset(
+                new RemotingPermission("createEndpoint"),
+                new RemotingPermission("connect"),
+                new FilePermission(System.getProperty("jboss.inst") + "/standalone/tmp/auth/*", "read")
+        ), "permissions.xml");
+
         return ejbJar;
     }
 

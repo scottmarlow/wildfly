@@ -30,7 +30,11 @@
     <parent>
         <groupId>org.wildfly</groupId>
         <artifactId>wildfly-parent</artifactId>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-dist</artifactId>
@@ -38,14 +42,14 @@
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
-            <groupId>org.wildfly</groupId>
-            <artifactId>wildfly-feature-pack</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>wildfly-galleon-pack</artifactId>
             <type>pom</type>
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.wildfly</groupId>
-            <artifactId>wildfly-feature-pack</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>wildfly-galleon-pack</artifactId>
             <type>zip</type>
             <exclusions>
                 <exclusion>
@@ -54,26 +58,46 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.metadata</groupId>
+            <artifactId>jboss-metadata-common</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
-    <properties>
-        <product.release.name>WildFly Full</product.release.name>
-    </properties>
     <build>
-        <finalName>${server.output.dir.prefix}-${project.version}</finalName>
+        <finalName>${server.output.dir.prefix}-${server.output.dir.version}</finalName>
         <plugins>
             <plugin>
-                <groupId>org.wildfly.build</groupId>
-                <artifactId>wildfly-server-provisioning-maven-plugin</artifactId>
+                <groupId>org.jboss.galleon</groupId>
+                <artifactId>galleon-maven-plugins</artifactId>
                 <executions>
                     <execution>
                         <id>server-provisioning</id>
                         <goals>
-                            <goal>build</goal>
+                            <goal>provision</goal>
                         </goals>
                         <phase>compile</phase>
                         <configuration>
-                            <config-file>server-provisioning.xml</config-file>
+                            <install-dir>${basedir}/target/${project.build.finalName}</install-dir>
+                            <plugin-options>
+                                <jboss-fork-embedded/>
+                            </plugin-options>
+                            <feature-packs>
+                                <feature-pack>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>wildfly-galleon-pack</artifactId>
+                                    <version>${project.version}</version>
+                                    <included-packages>
+                                        <name>docs.examples.configs</name>
+                                    </included-packages>
+                                </feature-pack>
+                            </feature-packs>
                         </configuration>
                     </execution>
                 </executions>
@@ -83,23 +107,59 @@
                 <artifactId>maven-resources-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>distribution-configuration</id>
+                        <id>verifications-configuration</id>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
                         <phase>process-classes</phase>
                         <configuration>
                             <overwrite>true</overwrite>
-                            <outputDirectory>${basedir}/target/${server.output.dir.prefix}-${project.version}</outputDirectory>
+                            <outputDirectory>${basedir}/target/verifier</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>src/distribution/resources</directory>
+                                    <directory>src/verifier</directory>
                                     <filtering>true</filtering>
                                 </resource>
                             </resources>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>ts.copy-widfly-for-validation</id>
+                        <phase>generate-test-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <inherited>true</inherited>
+                        <configuration>
+                            <outputDirectory>${basedir}/target/xml-validation</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/target/${project.build.finalName}</directory>
+                                    <includes>
+                                        <include>docs/**/*.xml</include>
+                                        <include>docs/**/*.xsd</include>
+                                        <include>standalone/**/*.xml</include>
+                                        <include>domain/**/*.xml</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-verifier-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Parameters to test cases. -->
+                    <systemPropertyVariables combine.children="append">
+                        <jboss.dist>${basedir}/target/xml-validation</jboss.dist>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -130,7 +190,7 @@
                                         <descriptor>assembly.xml</descriptor>
                                     </descriptors>
                                     <recompressZippedFiles>true</recompressZippedFiles>
-                                    <finalName>${server.output.dir.prefix}-${project.version}</finalName>
+                                    <finalName>${project.build.finalName}</finalName>
                                     <appendAssemblyId>false</appendAssemblyId>
                                     <outputDirectory>${project.build.directory}</outputDirectory>
                                     <workDirectory>${project.build.directory}/assembly/work</workDirectory>
@@ -147,7 +207,7 @@
                                     <descriptors>
                                         <descriptor>assembly-src.xml</descriptor>
                                     </descriptors>
-                                    <finalName>${server.output.dir.prefix}-${project.version}</finalName>
+                                    <finalName>${project.build.finalName}</finalName>
                                     <appendAssemblyId>true</appendAssemblyId>
                                     <outputDirectory>${project.build.directory}</outputDirectory>
                                     <workDirectory>${project.build.directory}/assembly-src/work</workDirectory>

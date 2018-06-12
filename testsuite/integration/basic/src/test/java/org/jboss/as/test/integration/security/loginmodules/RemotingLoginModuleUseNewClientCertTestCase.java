@@ -336,7 +336,7 @@ public class RemotingLoginModuleUseNewClientCertTestCase {
 
         public void setup(ManagementClient managementClient, String containerId) throws Exception {
             final List<ModelNode> updates = new LinkedList<ModelNode>();
-            LOGGER.info("Adding new socket binding and remoting connector");
+            LOGGER.trace("Adding new socket binding and remoting connector");
             // /socket-binding-group=standard-sockets/socket-binding=remoting-xxx:add(port=14447)
             ModelNode socketBindingModelNode = Util.createAddOperation(ADDR_SOCKET_BINDING);
             socketBindingModelNode.get(PORT).set(REMOTING_PORT_TEST);
@@ -417,7 +417,7 @@ public class RemotingLoginModuleUseNewClientCertTestCase {
             v3CertGen.setIssuerDN(dn);
             v3CertGen.setSubjectDN(dn);
             v3CertGen.setPublicKey(keyPair.getPublic());
-            v3CertGen.setSignatureAlgorithm("MD5withRSA");
+            v3CertGen.setSignatureAlgorithm("SHA256withRSA");
             final SecureRandom sr = new SecureRandom();
             v3CertGen.setSerialNumber(BigInteger.ONE);
             X509Certificate certificate = v3CertGen.generate(keyPair.getPrivate(), sr);

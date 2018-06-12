@@ -62,7 +62,10 @@ public class JaxrsExtension implements Extension {
     public static final String SUBSYSTEM_NAME = "jaxrs";
     public static final String NAMESPACE = "urn:jboss:domain:jaxrs:1.0";
 
-    private static final ModelVersion CURRENT_MODEL_VERSION = ModelVersion.create(1, 0, 0);
+    public static final ModelVersion MODEL_VERSION_1_0_0 = ModelVersion.create(1, 0, 0);
+    public static final ModelVersion MODEL_VERSION_2_0_0 = ModelVersion.create(2, 0, 0);
+
+    private static final ModelVersion CURRENT_MODEL_VERSION = MODEL_VERSION_2_0_0;
 
     private static final JaxrsSubsystemParser parser = new JaxrsSubsystemParser();
 
@@ -84,9 +87,10 @@ public class JaxrsExtension implements Extension {
     public void initialize(final ExtensionContext context) {
         JAXRS_LOGGER.debug("Activating JAX-RS Extension");
         final SubsystemRegistration subsystem = context.registerSubsystem(SUBSYSTEM_NAME, CURRENT_MODEL_VERSION);
-        final ManagementResourceRegistration registration = subsystem.registerSubsystemModel(JaxrsDeploymentDefinition.SUBSYSTEM_INSTANCE);
+        final ManagementResourceRegistration registration = subsystem.registerSubsystemModel(JaxrsSubsystemDefinition.INSTANCE);
         registration.registerOperationHandler(GenericSubsystemDescribeHandler.DEFINITION, GenericSubsystemDescribeHandler.INSTANCE);
-        subsystem.registerDeploymentModel(JaxrsDeploymentDefinition.DEPLOYMENT_INSTANCE);
+        ManagementResourceRegistration jaxrsResReg = subsystem.registerDeploymentModel(JaxrsDeploymentDefinition.INSTANCE);
+        jaxrsResReg.registerSubModel(DeploymentRestResourcesDefintion.INSTANCE);
         subsystem.registerXMLElementWriter(parser);
     }
 
@@ -95,7 +99,7 @@ public class JaxrsExtension implements Extension {
      */
     @Override
     public void initializeParsers(final ExtensionParsingContext context) {
-        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, JaxrsExtension.NAMESPACE, parser);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, JaxrsExtension.NAMESPACE, () -> parser);
     }
 
     static class JaxrsSubsystemParser implements XMLStreamConstants, XMLElementReader<List<ModelNode>>, XMLElementWriter<SubsystemMarshallingContext> {

@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2014, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -17,10 +17,18 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this software; if not, write to the Free
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 2110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
 package org.wildfly.extension.undertow;
+
+import static org.wildfly.extension.undertow.Capabilities.CAPABILITY_BYTE_BUFFER_POOL;
+import static org.wildfly.extension.undertow.Capabilities.REF_IO_WORKER;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
@@ -31,14 +39,13 @@ import org.jboss.as.controller.RestartParentResourceAddHandler;
 import org.jboss.as.controller.RestartParentResourceRemoveHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
+import org.jboss.as.controller.capability.RuntimeCapability;
+import org.jboss.as.controller.operations.validation.IntRangeValidator;
 import org.jboss.as.controller.registry.AttributeAccess;
+import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.jboss.msc.service.ServiceName;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Global websocket configuration
@@ -47,18 +54,24 @@ import java.util.Map;
  */
 class WebsocketsDefinition extends PersistentResourceDefinition {
 
-    static final WebsocketsDefinition INSTANCE = new WebsocketsDefinition();
+    private static final RuntimeCapability<Void> WEBSOCKET_CAPABILITY = RuntimeCapability.Builder.of(Capabilities.CAPABILITY_WEBSOCKET, true, UndertowListener.class)
+            .setDynamicNameMapper(pathElements -> new String[]{
+                    pathElements.getParent().getLastElement().getValue()
+            })
+            .build();
 
     protected static final SimpleAttributeDefinition BUFFER_POOL =
             new SimpleAttributeDefinitionBuilder("buffer-pool", ModelType.STRING, true)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setDefaultValue(new ModelNode("default"))
+                    .setCapabilityReference(CAPABILITY_BYTE_BUFFER_POOL)
                     .build();
 
     protected static final SimpleAttributeDefinition WORKER =
             new SimpleAttributeDefinitionBuilder("worker", ModelType.STRING, true)
                     .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
                     .setDefaultValue(new ModelNode("default"))
+                    .setCapabilityReference(REF_IO_WORKER)
                     .build();
 
     protected static final SimpleAttributeDefinition DISPATCH_TO_WORKER =
@@ -68,18 +81,30 @@ class WebsocketsDefinition extends PersistentResourceDefinition {
                     .setDefaultValue(new ModelNode(true))
                     .build();
 
-    protected static final SimpleAttributeDefinition[] ATTRIBUTES = {
+    protected static final SimpleAttributeDefinition PER_MESSAGE_DEFLATE =
+            new SimpleAttributeDefinitionBuilder("per-message-deflate", ModelType.BOOLEAN, true)
+                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setAllowExpression(true)
+                    .setDefaultValue(new ModelNode(false))
+                    .build();
+
+    protected static final SimpleAttributeDefinition DEFLATER_LEVEL =
+            new SimpleAttributeDefinitionBuilder("deflater-level", ModelType.INT, true)
+                    .setFlags(AttributeAccess.Flag.RESTART_ALL_SERVICES)
+                    .setAllowExpression(true)
+                    .setValidator(new IntRangeValidator(0, 9, true, true))
+                    .setDefaultValue(new ModelNode(0))
+                    .build();
+
+    protected static final List<AttributeDefinition> ATTRIBUTES = Arrays.asList(
             BUFFER_POOL,
             WORKER,
-            DISPATCH_TO_WORKER
-    };
-    static final Map<String, AttributeDefinition> ATTRIBUTES_MAP = new HashMap<>();
+            DISPATCH_TO_WORKER,
+            PER_MESSAGE_DEFLATE,
+            DEFLATER_LEVEL
+    );
 
-    static {
-        for (SimpleAttributeDefinition attr : ATTRIBUTES) {
-            ATTRIBUTES_MAP.put(attr.getName(), attr);
-        }
-    }
+    static final WebsocketsDefinition INSTANCE = new WebsocketsDefinition();
 
 
     private WebsocketsDefinition() {
@@ -90,8 +115,13 @@ class WebsocketsDefinition extends PersistentResourceDefinition {
     }
 
     @Override
+    public void registerCapabilities(ManagementResourceRegistration resourceRegistration) {
+        resourceRegistration.registerCapability(WEBSOCKET_CAPABILITY);
+    }
+
+    @Override
     public Collection<AttributeDefinition> getAttributes() {
-        return ATTRIBUTES_MAP.values();
+        return ATTRIBUTES;
     }
 
     public WebSocketInfo getConfig(final OperationContext context, final ModelNode model) throws OperationFailedException {
@@ -101,13 +131,15 @@ class WebsocketsDefinition extends PersistentResourceDefinition {
         boolean dispatchToWorker = DISPATCH_TO_WORKER.resolveModelAttribute(context, model).asBoolean();
         String bufferPool = BUFFER_POOL.resolveModelAttribute(context, model).asString();
         String worker = WORKER.resolveModelAttribute(context, model).asString();
+        boolean perMessageDeflate = PER_MESSAGE_DEFLATE.resolveModelAttribute(context, model).asBoolean();
+        int deflaterLevel = DEFLATER_LEVEL.resolveModelAttribute(context, model).asInt();
 
-        return new WebSocketInfo(worker, bufferPool, dispatchToWorker);
+        return new WebSocketInfo(worker, bufferPool, dispatchToWorker, perMessageDeflate, deflaterLevel);
     }
 
     private static class WebsocketsAdd extends RestartParentResourceAddHandler {
         protected WebsocketsAdd() {
-            super(ServletContainerDefinition.INSTANCE.getPathElement().getKey());
+            super(ServletContainerDefinition.INSTANCE.getPathElement().getKey(), Collections.singleton(WEBSOCKET_CAPABILITY), ATTRIBUTES);
         }
 
         @Override
@@ -124,7 +156,7 @@ class WebsocketsDefinition extends PersistentResourceDefinition {
 
         @Override
         protected ServiceName getParentServiceName(PathAddress parentAddress) {
-            return UndertowService.SERVLET_CONTAINER.append(parentAddress.getLastElement().getValue());
+            return ServletContainerDefinition.SERVLET_CONTAINER_CAPABILITY.getCapabilityServiceName(parentAddress);
         }
     }
 
@@ -141,7 +173,7 @@ class WebsocketsDefinition extends PersistentResourceDefinition {
 
         @Override
         protected ServiceName getParentServiceName(PathAddress parentAddress) {
-            return UndertowService.SERVLET_CONTAINER.append(parentAddress.getLastElement().getValue());
+            return ServletContainerDefinition.SERVLET_CONTAINER_CAPABILITY.getCapabilityServiceName(parentAddress);
         }
     }
 
@@ -149,12 +181,16 @@ class WebsocketsDefinition extends PersistentResourceDefinition {
         private final String worker;
         private final String bufferPool;
         private final boolean dispatchToWorker;
+        private final boolean perMessageDeflate;
+        private final int deflaterLevel;
 
-
-        public WebSocketInfo(String worker, String bufferPool, boolean dispatchToWorker) {
+        public WebSocketInfo(String worker, String bufferPool, boolean dispatchToWorker, boolean perMessageDeflate,
+                int deflaterLevel) {
             this.worker = worker;
             this.bufferPool = bufferPool;
             this.dispatchToWorker = dispatchToWorker;
+            this.perMessageDeflate = perMessageDeflate;
+            this.deflaterLevel = deflaterLevel;
         }
 
         public String getWorker() {
@@ -167,6 +203,14 @@ class WebsocketsDefinition extends PersistentResourceDefinition {
 
         public boolean isDispatchToWorker() {
             return dispatchToWorker;
+        }
+
+        public boolean isPerMessageDeflate() {
+            return perMessageDeflate;
+        }
+
+        public int getDeflaterLevel() {
+            return deflaterLevel;
         }
     }
 }

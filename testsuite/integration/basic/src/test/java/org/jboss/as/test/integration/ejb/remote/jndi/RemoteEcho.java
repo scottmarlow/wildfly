@@ -28,4 +28,6 @@ package org.jboss.as.test.integration.ejb.remote.jndi;
 public interface RemoteEcho {
 
     String echo(String msg);
+
+    EchoMessage echo(EchoMessage message);
 }

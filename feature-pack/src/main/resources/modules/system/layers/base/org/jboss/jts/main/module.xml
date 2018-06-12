@@ -22,7 +22,7 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<module xmlns="urn:jboss:module:1.3" name="org.jboss.jts">
+<module xmlns="urn:jboss:module:1.5" name="org.jboss.jts">
     <properties>
         <property name="jboss.api" value="private"/>
     </properties>
@@ -41,11 +41,17 @@
         <module name="javax.api"/>
         <module name="javax.transaction.api"/>
         <module name="javax.resource.api"/>
-        <module name="org.apache.activemq.artemis"/>
+        <module name="org.apache.activemq.artemis.journal"/>
         <module name="javax.orb.api"/>
         <module name="javax.enterprise.api"/>
         <module name="org.jboss.weld.core"/>
         <module name="javax.annotation.api" export="true" />
         <module name="javax.interceptor.api" export="true" />
+        <module name="org.wildfly.transaction.client"/>
+        <module name="org.jboss.as.transactions">
+            <imports>
+                <include path="org.jboss.as.txn.integration"/>
+            </imports>
+        </module>
     </dependencies>
 </module>

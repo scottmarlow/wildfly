@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -61,6 +62,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.SystemUtils;
 import org.apache.commons.lang.text.StrSubstitutor;
 import org.apache.directory.server.annotations.CreateTransport;
+import org.apache.http.Consts;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpRequest;
@@ -68,16 +70,28 @@ import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.ProtocolException;
 import org.apache.http.StatusLine;
+import org.apache.http.auth.AuthSchemeProvider;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.RedirectStrategy;
+import org.apache.http.client.config.AuthSchemes;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.params.AuthPolicy;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.impl.auth.BasicSchemeFactory;
+import org.apache.http.impl.auth.DigestSchemeFactory;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
@@ -90,6 +104,7 @@ import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.OperationBuilder;
 import org.jboss.as.network.NetworkUtils;
 import org.jboss.as.test.integration.security.common.negotiation.JBossNegotiateSchemeFactory;
+import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.jboss.dmr.ModelNode;
 import org.jboss.logging.Logger;
 import org.jboss.security.auth.callback.UsernamePasswordHandler;
@@ -234,8 +249,8 @@ public class Utils extends CoreUtils {
     public static void applyUpdate(ModelNode update, final ModelControllerClient client) throws Exception {
         ModelNode result = client.execute(new OperationBuilder(update).build());
         if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("Client update: " + update);
-            LOGGER.info("Client update result: " + result);
+            LOGGER.trace("Client update: " + update);
+            LOGGER.trace("Client update result: " + result);
         }
         if (result.hasDefined("outcome") && "success".equals(result.get("outcome").asString())) {
             LOGGER.debug("Operation succeeded.");
@@ -268,30 +283,18 @@ public class Utils extends CoreUtils {
      * @throws Exception
      */
     public static void makeCall(String URL, String user, String pass, int expectedStatusCode) throws Exception {
-        DefaultHttpClient httpclient = new DefaultHttpClient();
-        try {
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()){
             HttpGet httpget = new HttpGet(URL);
 
-            HttpResponse response = httpclient.execute(httpget);
+            HttpResponse response = httpClient.execute(httpget);
 
             HttpEntity entity = response.getEntity();
-            if (entity != null)
-                EntityUtils.consume(entity);
+            if (entity != null) { EntityUtils.consume(entity); }
 
             // We should get the Login Page
             StatusLine statusLine = response.getStatusLine();
-            //System.out.println("Login form get: " + statusLine);
-            assertEquals(200, statusLine.getStatusCode());
 
-            //System.out.println("Initial set of cookies:");
-            /*List<Cookie> cookies = httpclient.getCookieStore().getCookies();
-            if (cookies.isEmpty()) {
-                System.out.println("None");
-            } else {
-                for (int i = 0; i < cookies.size(); i++) {
-                    System.out.println("- " + cookies.get(i).toString());
-                }
-            }*/
+            assertEquals(200, statusLine.getStatusCode());
 
             // We should now login with the user name and password
             HttpPost httpost = new HttpPost(URL + "/j_security_check");
@@ -302,10 +305,9 @@ public class Utils extends CoreUtils {
 
             httpost.setEntity(new UrlEncodedFormEntity(nvps, "UTF-8"));
 
-            response = httpclient.execute(httpost);
+            response = httpClient.execute(httpost);
             entity = response.getEntity();
-            if (entity != null)
-                EntityUtils.consume(entity);
+            if (entity != null) { EntityUtils.consume(entity); }
 
             statusLine = response.getStatusLine();
 
@@ -315,30 +317,14 @@ public class Utils extends CoreUtils {
             String location = locationHeader.getValue();
 
             HttpGet httpGet = new HttpGet(location);
-            response = httpclient.execute(httpGet);
+            response = httpClient.execute(httpGet);
 
             entity = response.getEntity();
-            if (entity != null)
-                EntityUtils.consume(entity);
-
-           /* System.out.println("Post logon cookies:");
-            cookies = httpclient.getCookieStore().getCookies();
-            if (cookies.isEmpty()) {
-                System.out.println("None");
-            } else {
-                for (int i = 0; i < cookies.size(); i++) {
-                    System.out.println("- " + cookies.get(i).toString());
-                }
-            }*/
+            if (entity != null) { EntityUtils.consume(entity); }
 
             // Either the authentication passed or failed based on the expected status code
             statusLine = response.getStatusLine();
             assertEquals(expectedStatusCode, statusLine.getStatusCode());
-        } finally {
-            // When HttpClient instance is no longer needed,
-            // shut down the connection manager to ensure
-            // immediate deallocation of all system resources
-            httpclient.getConnectionManager().shutdown();
         }
     }
 
@@ -360,15 +346,15 @@ public class Utils extends CoreUtils {
      */
     public static void saveArchiveToFolder(Archive<?> archive, String folderPath) {
         final File exportFile = new File(folderPath, archive.getName());
-        LOGGER.info("Exporting archive: " + exportFile.getAbsolutePath());
+        LOGGER.trace("Exporting archive: " + exportFile.getAbsolutePath());
         archive.as(ZipExporter.class).exportTo(exportFile, true);
     }
 
     /**
      * Returns "secondary.test.address" system property if such exists. If not found, then there is a fallback to
-     * {@link ManagementClient#getMgmtAddress()}. Returned value can be converted to canonical hostname if
-     * useCanonicalHost==true. Returned value is not formatted for URLs (i.e. square brackets are not placed around IPv6 addr -
-     * for instance "::1")
+     * {@link ManagementClient#getMgmtAddress()} or {@link #getDefaultHost(boolean)} (when mgmtClient is <code>null</code>).
+     * Returned value can be converted to canonical hostname if useCanonicalHost==true. Returned value is not formatted for URLs
+     * (i.e. square brackets are not placed around IPv6 addr - for instance "::1")
      *
      * @param mgmtClient management client instance (may be <code>null</code>)
      * @param useCanonicalHost
@@ -376,8 +362,8 @@ public class Utils extends CoreUtils {
      */
     public static String getSecondaryTestAddress(final ManagementClient mgmtClient, final boolean useCanonicalHost) {
         String address = System.getProperty("secondary.test.address");
-        if (StringUtils.isBlank(address) && mgmtClient != null) {
-            address = mgmtClient.getMgmtAddress();
+        if (StringUtils.isBlank(address)) {
+            address = mgmtClient != null ? mgmtClient.getMgmtAddress() : getDefaultHost(false);
         }
         if (useCanonicalHost) {
             address = getCannonicalHost(address);
@@ -414,7 +400,7 @@ public class Utils extends CoreUtils {
         HttpGet httpGet = new HttpGet(url.toURI());
         HttpResponse response = httpClient.execute(httpGet);
         int statusCode = response.getStatusLine().getStatusCode();
-        LOGGER.info("Request to: " + url + " responds: " + statusCode);
+        LOGGER.trace("Request to: " + url + " responds: " + statusCode);
 
         assertEquals("Unexpected status code", expectedStatusCode, statusCode);
 
@@ -441,9 +427,37 @@ public class Utils extends CoreUtils {
      */
     public static String makeCallWithBasicAuthn(URL url, String user, String pass, int expectedStatusCode) throws IOException,
             URISyntaxException {
-        LOGGER.info("Requesting URL " + url);
-        final DefaultHttpClient httpClient = new DefaultHttpClient();
-        try {
+        return makeCallWithBasicAuthn(url, user, pass, expectedStatusCode, false);
+    }
+
+    /**
+     * Returns response body for the given URL request as a String. It also checks if the returned HTTP status code is the
+     * expected one. If the server returns {@link HttpServletResponse#SC_UNAUTHORIZED} and username is provided, then a new
+     * request is created with the provided credentials (basic authentication).
+     *
+     * @param url URL to which the request should be made
+     * @param user Username (may be null)
+     * @param pass Password (may be null)
+     * @param expectedStatusCode expected status code returned from the requested server
+     * @param checkFollowupAuthState whether to check auth state for followup request - if set to true, followup
+     *                               request is sent to server and 200 OK is expected directly (no re-authentication
+     *                               challenge - 401 Unauthorized - is expected)
+     * @return HTTP response body
+     * @throws IOException
+     * @throws URISyntaxException
+     */
+    public static String makeCallWithBasicAuthn(URL url, String user, String pass, int expectedStatusCode, boolean
+            checkFollowupAuthState) throws IOException, URISyntaxException {
+        LOGGER.trace("Requesting URL " + url);
+
+        // use UTF-8 charset for credentials
+        Registry<AuthSchemeProvider> authSchemeRegistry = RegistryBuilder.<AuthSchemeProvider>create()
+                .register(AuthSchemes.BASIC, new BasicSchemeFactory(Consts.UTF_8))
+                .register(AuthSchemes.DIGEST, new DigestSchemeFactory(Consts.UTF_8))
+                .build();
+        try (CloseableHttpClient httpClient = HttpClientBuilder.create()
+                .setDefaultAuthSchemeRegistry(authSchemeRegistry)
+                .build()){
             final HttpGet httpGet = new HttpGet(url.toURI());
             HttpResponse response = httpClient.execute(httpGet);
             int statusCode = response.getStatusLine().getStatusCode();
@@ -459,17 +473,29 @@ public class Utils extends CoreUtils {
                 EntityUtils.consume(entity);
 
             final UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(user, pass);
-            httpClient.getCredentialsProvider().setCredentials(new AuthScope(url.getHost(), url.getPort()), credentials);
 
-            response = httpClient.execute(httpGet);
+            HttpClientContext hc = new HttpClientContext();
+            hc.setCredentialsProvider(new BasicCredentialsProvider());
+            hc.getCredentialsProvider().setCredentials(new AuthScope(url.getHost(), url.getPort()), credentials);
+            //enable auth
+            response = httpClient.execute(httpGet, hc);
             statusCode = response.getStatusLine().getStatusCode();
             assertEquals("Unexpected status code returned after the authentication.", expectedStatusCode, statusCode);
+
+            if (checkFollowupAuthState) {
+                // Let's disable authentication for this client as we already have all the context neccessary to be
+                // authorized (we expect that gained 'nonce' value can be re-used in our case here).
+                // By disabling authentication we simply get first server response and thus we can check whether we've
+                // got 200 OK or different response code.
+                RequestConfig reqConf = RequestConfig.custom().setAuthenticationEnabled(false).build();
+                httpGet.setConfig(reqConf);
+                response = httpClient.execute(httpGet, hc);
+                statusCode = response.getStatusLine().getStatusCode();
+                assertEquals("Unexpected status code returned after the authentication.", HttpURLConnection.HTTP_OK,
+                        statusCode);
+            }
+
             return EntityUtils.toString(response.getEntity());
-        } finally {
-            // When HttpClient instance is no longer needed,
-            // shut down the connection manager to ensure
-            // immediate deallocation of all system resources
-            httpClient.getConnectionManager().shutdown();
         }
     }
 
@@ -490,13 +516,20 @@ public class Utils extends CoreUtils {
      */
     public static String makeCallWithKerberosAuthn(final URI uri, final String user, final String pass,
             final int expectedStatusCode) throws IOException, URISyntaxException, PrivilegedActionException, LoginException {
-        LOGGER.info("Requesting URI: " + uri);
-        final DefaultHttpClient httpClient = new DefaultHttpClient();
+        LOGGER.trace("Requesting URI: " + uri);
+        Registry<AuthSchemeProvider> authSchemeRegistry = RegistryBuilder.<AuthSchemeProvider> create()
+                .register(AuthSchemes.SPNEGO, new JBossNegotiateSchemeFactory(true))
+                .build();
+
+        CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        credentialsProvider.setCredentials(new AuthScope(null, -1, null), new NullHCCredentials());
+
         final Krb5LoginConfiguration krb5Configuration = new Krb5LoginConfiguration(getLoginConfiguration());
 
-        try {
-            httpClient.getAuthSchemes().register(AuthPolicy.SPNEGO, new JBossNegotiateSchemeFactory(true));
-            httpClient.getCredentialsProvider().setCredentials(new AuthScope(null, -1, null), new NullHCCredentials());
+        try (CloseableHttpClient httpClient = HttpClientBuilder.create()
+                        .setDefaultAuthSchemeRegistry(authSchemeRegistry)
+                        .setDefaultCredentialsProvider(credentialsProvider)
+                        .build()){
 
             final HttpGet httpGet = new HttpGet(uri);
             final HttpResponse response = httpClient.execute(httpGet);
@@ -537,10 +570,6 @@ public class Utils extends CoreUtils {
             lc.logout();
             return responseBody;
         } finally {
-            // When HttpClient instance is no longer needed,
-            // shut down the connection manager to ensure
-            // immediate deallocation of all system resources
-            httpClient.getConnectionManager().shutdown();
             krb5Configuration.resetConfiguration();
         }
     }
@@ -565,16 +594,25 @@ public class Utils extends CoreUtils {
             LoginException {
         final String strippedContextUrl = StringUtils.stripEnd(contextUrl, "/");
         final String url = strippedContextUrl + page;
-        LOGGER.info("Requesting URL: " + url);
-        final DefaultHttpClient httpClient = new DefaultHttpClient();
-        httpClient.setRedirectStrategy(REDIRECT_STRATEGY);
+        LOGGER.trace("Requesting URL: " + url);
         String unauthorizedPageBody = null;
         final Krb5LoginConfiguration krb5Configuration = new Krb5LoginConfiguration(getLoginConfiguration());
 
-        try {
-            httpClient.getAuthSchemes().register(AuthPolicy.SPNEGO, new JBossNegotiateSchemeFactory(true));
-            httpClient.getCredentialsProvider().setCredentials(new AuthScope(null, -1, null), new NullHCCredentials());
+        Registry<AuthSchemeProvider> authSchemeRegistry = RegistryBuilder.<AuthSchemeProvider>create()
+                .register(AuthSchemes.SPNEGO, new JBossNegotiateSchemeFactory(true))
+                .build();
 
+        CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+        credentialsProvider.setCredentials(new AuthScope(null, -1, null), new NullHCCredentials());
+
+        final CloseableHttpClient httpClient = HttpClientBuilder.create()
+                .setDefaultAuthSchemeRegistry(authSchemeRegistry)
+                .setDefaultCredentialsProvider(credentialsProvider)
+                .setRedirectStrategy(REDIRECT_STRATEGY)
+                .setConnectionManager(new BasicHttpClientConnectionManager())
+                .build();
+
+        try {
             final HttpGet httpGet = new HttpGet(url);
             final HttpResponse response = httpClient.execute(httpGet);
             int statusCode = response.getStatusLine().getStatusCode();
@@ -626,7 +664,7 @@ public class Utils extends CoreUtils {
             // When HttpClient instance is no longer needed,
             // shut down the connection manager to ensure
             // immediate deallocation of all system resources
-            httpClient.getConnectionManager().shutdown();
+            httpClient.close();
             // reset login configuration
             krb5Configuration.resetConfiguration();
         }
@@ -648,14 +686,13 @@ public class Utils extends CoreUtils {
      * @throws LoginException
      */
     public static String makeHttpCallWoSPNEGO(final String contextUrl, final String page, final String user, final String pass,
-            final int expectedStatusCode) throws IOException, URISyntaxException, PrivilegedActionException, LoginException {
+                                              final int expectedStatusCode) throws IOException, URISyntaxException, PrivilegedActionException, LoginException {
         final String strippedContextUrl = StringUtils.stripEnd(contextUrl, "/");
         final String url = strippedContextUrl + page;
-        LOGGER.info("Requesting URL: " + url);
-        final DefaultHttpClient httpClient = new DefaultHttpClient();
-        httpClient.setRedirectStrategy(REDIRECT_STRATEGY);
+        LOGGER.trace("Requesting URL: " + url);
+
         String unauthorizedPageBody = null;
-        try {
+        try (CloseableHttpClient httpClient = HttpClientBuilder.create().setRedirectStrategy(REDIRECT_STRATEGY).build()) {
             final HttpGet httpGet = new HttpGet(url);
             HttpResponse response = httpClient.execute(httpGet);
             int statusCode = response.getStatusLine().getStatusCode();
@@ -675,7 +712,7 @@ public class Utils extends CoreUtils {
             unauthorizedPageBody = EntityUtils.toString(response.getEntity());
 
             assertNotNull(unauthorizedPageBody);
-            LOGGER.info(unauthorizedPageBody);
+            LOGGER.trace(unauthorizedPageBody);
             assertTrue(unauthorizedPageBody.contains("j_security_check"));
 
             HttpPost httpPost = new HttpPost(strippedContextUrl + "/j_security_check");
@@ -687,11 +724,6 @@ public class Utils extends CoreUtils {
             statusCode = response.getStatusLine().getStatusCode();
             assertEquals("Unexpected status code returned after the authentication.", expectedStatusCode, statusCode);
             return EntityUtils.toString(response.getEntity());
-        } finally {
-            // When HttpClient instance is no longer needed,
-            // shut down the connection manager to ensure
-            // immediate deallocation of all system resources
-            httpClient.getConnectionManager().shutdown();
         }
     }
 
@@ -843,7 +875,7 @@ public class Utils extends CoreUtils {
         createTestResource(new File(workingFolder, SecurityTestConstants.CLIENT_CRT));
         createTestResource(new File(workingFolder, SecurityTestConstants.UNTRUSTED_KEYSTORE));
         createTestResource(new File(workingFolder, SecurityTestConstants.UNTRUSTED_CRT));
-        LOGGER.info("Key material created in " + workingFolder.getAbsolutePath());
+        LOGGER.trace("Key material created in " + workingFolder.getAbsolutePath());
     }
 
     /**
@@ -855,7 +887,7 @@ public class Utils extends CoreUtils {
      */
     private static void createTestResource(File file) throws IOException {
         FileOutputStream fos = null;
-        LOGGER.info("Creating test file " + file.getAbsolutePath());
+        LOGGER.trace("Creating test file " + file.getAbsolutePath());
         try {
             fos = new FileOutputStream(file);
             IOUtils.copy(CoreUtils.class.getResourceAsStream(file.getName()), fos);
@@ -930,15 +962,13 @@ public class Utils extends CoreUtils {
      * @throws Exception
      */
     public static String makeCall(URI uri, int expectedStatusCode) throws Exception {
-        final DefaultHttpClient httpclient = new DefaultHttpClient();
-        try {
+
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()){
             final HttpGet httpget = new HttpGet(uri);
-            final HttpResponse response = httpclient.execute(httpget);
+            final HttpResponse response = httpClient.execute(httpget);
             int statusCode = response.getStatusLine().getStatusCode();
-            assertEquals("Unexpected status code returned after the authentication.", expectedStatusCode, statusCode);
+            assertEquals("Unexpected status code in HTTP response.", expectedStatusCode, statusCode);
             return EntityUtils.toString(response.getEntity());
-        } finally {
-            httpclient.getConnectionManager().shutdown();
         }
     }
 
@@ -1009,7 +1039,7 @@ public class Utils extends CoreUtils {
      * @return
      */
     public static String getDefaultHost(boolean canonical) {
-        final String hostname = System.getProperty("node0", "127.0.0.1");
+        final String hostname = TestSuiteEnvironment.getHttpAddress();
         return canonical ? getCannonicalHost(hostname) : hostname;
     }
 
@@ -1104,5 +1134,20 @@ public class Utils extends CoreUtils {
             }
         }
         fail("HTTP Header not found '" + headerName + ": " + expectedVal + "'");
+    }
+
+
+    /**
+     * Creates a temporary folder name with given name prefix.
+     *
+     * @param prefix folder name prefix
+     * @return created folder
+     */
+    public static File createTemporaryFolder(String prefix) throws IOException {
+        File file = File.createTempFile(prefix, "", null);
+        LOGGER.debugv("Creating temporary folder {0}", file);
+        file.delete();
+        file.mkdir();
+        return file;
     }
 }

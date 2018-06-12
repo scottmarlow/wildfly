@@ -21,6 +21,7 @@
  */
 package org.jboss.as.test.integration.ejb.remote.security;
 
+import static org.jboss.as.test.shared.integration.ejb.security.PermissionUtils.createPermissionsXmlAsset;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
@@ -33,15 +34,13 @@ import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.test.integration.security.common.Utils;
 import org.jboss.as.test.shared.integration.ejb.security.Util;
-import org.jboss.ejb.client.ContextSelector;
-import org.jboss.ejb.client.EJBClientConfiguration;
-import org.jboss.ejb.client.EJBClientContext;
-import org.jboss.ejb.client.PropertiesBasedEJBClientConfiguration;
-import org.jboss.ejb.client.remoting.ConfigBasedEJBClientContextSelector;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.wildfly.security.permission.ElytronPermission;
+
+import javax.security.auth.AuthPermission;
 
 /**
  * A test case to test an unsecured EJB setting the username and password before the call reaches a secured EJB.
@@ -65,17 +64,21 @@ public class RemoteIdentityTestCase {
     public static JavaArchive createDeployment() throws IOException {
         final JavaArchive jar = ShrinkWrap.create(JavaArchive.class, EJBUtil.APPLICATION_NAME + ".jar");
         jar.addClasses(SecurityInformation.class, IntermediateAccess.class, EntryBean.class, SecuredBean.class, Util.class);
+        jar.addAsManifestResource(createPermissionsXmlAsset(
+                // testSwitched(), i.e. org.jboss.as.test.shared.integration.ejb.security.Util#getCLMLoginContext(username, password), needs the following
+                new AuthPermission("modifyPrincipals"),
+                // testSwitched(), i.e. org.jboss.as.test.shared.integration.ejb.security.Util#switchIdentity(String, String, Callable<T>, boolean), i.e. SecurityDomain.getCurrent(), needs the following
+                new ElytronPermission("getSecurityDomain"),
+                // and testSwitched() -> Util.switchIdentity() -> securityDomain.authenticate(...) needs the following
+                new ElytronPermission("authenticate")
+        ), "permissions.xml");
         return jar;
     }
 
     @Test
     public void testDirect() throws Exception {
         final Properties ejbClientConfiguration = EJBUtil.createEjbClientConfiguration(Utils.getHost(mgmtClient));
-        EJBClientConfiguration cc = new PropertiesBasedEJBClientConfiguration(ejbClientConfiguration);
-        final ContextSelector<EJBClientContext> selector = new ConfigBasedEJBClientContextSelector(cc);
-        EJBClientContext.setSelector(selector);
-
-        final SecurityInformation targetBean = EJBUtil.lookupEJB(SecuredBean.class, SecurityInformation.class);
+        final SecurityInformation targetBean = EJBUtil.lookupEJB(SecuredBean.class, SecurityInformation.class, ejbClientConfiguration);
 
         assertEquals("guest", targetBean.getPrincipalName());
     }
@@ -83,11 +86,7 @@ public class RemoteIdentityTestCase {
     @Test
     public void testUnsecured() throws Exception {
         final Properties ejbClientConfiguration = EJBUtil.createEjbClientConfiguration(Utils.getHost(mgmtClient));
-        EJBClientConfiguration cc = new PropertiesBasedEJBClientConfiguration(ejbClientConfiguration);
-        final ContextSelector<EJBClientContext> selector = new ConfigBasedEJBClientContextSelector(cc);
-        EJBClientContext.setSelector(selector);
-
-        final IntermediateAccess targetBean = EJBUtil.lookupEJB(EntryBean.class, IntermediateAccess.class);
+        final IntermediateAccess targetBean = EJBUtil.lookupEJB(EntryBean.class, IntermediateAccess.class, ejbClientConfiguration);
 
         assertEquals("anonymous", targetBean.getPrincipalName());
     }
@@ -95,11 +94,7 @@ public class RemoteIdentityTestCase {
     @Test
     public void testSwitched() throws Exception {
         final Properties ejbClientConfiguration = EJBUtil.createEjbClientConfiguration(Utils.getHost(mgmtClient));
-        EJBClientConfiguration cc = new PropertiesBasedEJBClientConfiguration(ejbClientConfiguration);
-        final ContextSelector<EJBClientContext> selector = new ConfigBasedEJBClientContextSelector(cc);
-        EJBClientContext.setSelector(selector);
-
-        final IntermediateAccess targetBean = EJBUtil.lookupEJB(EntryBean.class, IntermediateAccess.class);
+        final IntermediateAccess targetBean = EJBUtil.lookupEJB(EntryBean.class, IntermediateAccess.class, ejbClientConfiguration);
 
         assertEquals("user1", targetBean.getPrincipalName("user1", "password1"));
     }
@@ -107,11 +102,7 @@ public class RemoteIdentityTestCase {
     @Test
     public void testNotSwitched() throws Exception {
         final Properties ejbClientConfiguration = EJBUtil.createEjbClientConfiguration(Utils.getHost(mgmtClient));
-        EJBClientConfiguration cc = new PropertiesBasedEJBClientConfiguration(ejbClientConfiguration);
-        final ContextSelector<EJBClientContext> selector = new ConfigBasedEJBClientContextSelector(cc);
-        EJBClientContext.setSelector(selector);
-
-        final IntermediateAccess targetBean = EJBUtil.lookupEJB(EntryBean.class, IntermediateAccess.class);
+        final IntermediateAccess targetBean = EJBUtil.lookupEJB(EntryBean.class, IntermediateAccess.class, ejbClientConfiguration);
 
         assertEquals("guest", targetBean.getPrincipalName(null, null));
     }

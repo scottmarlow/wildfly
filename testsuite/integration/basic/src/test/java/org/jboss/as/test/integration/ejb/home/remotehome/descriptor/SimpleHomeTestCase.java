@@ -46,7 +46,6 @@ public class SimpleHomeTestCase {
 
     private static final String ARCHIVE_NAME = "SimpleHomeTest.war";
 
-
     @ArquillianResource
     private InitialContext iniCtx;
 

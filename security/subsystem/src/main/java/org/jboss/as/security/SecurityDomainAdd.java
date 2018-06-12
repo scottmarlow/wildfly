@@ -57,6 +57,8 @@ import static org.jboss.as.security.Constants.SERVICE_AUTH_TOKEN;
 import static org.jboss.as.security.Constants.TRUST_MODULE;
 import static org.jboss.as.security.Constants.TYPE;
 import static org.jboss.as.security.Constants.URL;
+import static org.jboss.as.security.SecurityDomainResourceDefinition.CACHE_CONTAINER_NAME;
+import static org.jboss.as.security.SecurityDomainResourceDefinition.LEGACY_SECURITY_DOMAIN;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -65,6 +67,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentMap;
 
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag;
@@ -76,6 +79,7 @@ import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.as.security.logging.SecurityLogger;
 import org.jboss.as.security.plugins.SecurityDomainContext;
 import org.jboss.as.security.service.JaasConfigurationService;
@@ -85,6 +89,7 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.Property;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceController;
+import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceTarget;
 import org.jboss.security.ISecurityManagement;
 import org.jboss.security.JBossJSSESecurityDomain;
@@ -107,7 +112,11 @@ import org.jboss.security.config.MappingInfo;
 import org.jboss.security.identitytrust.config.IdentityTrustModuleEntry;
 import org.jboss.security.mapping.MappingType;
 import org.jboss.security.mapping.config.MappingModuleEntry;
-import org.wildfly.clustering.infinispan.spi.service.CacheContainerServiceName;
+import org.wildfly.clustering.infinispan.spi.InfinispanCacheRequirement;
+import org.wildfly.clustering.infinispan.spi.InfinispanDefaultCacheRequirement;
+import org.wildfly.clustering.infinispan.spi.InfinispanRequirement;
+import org.wildfly.clustering.infinispan.spi.service.CacheServiceConfigurator;
+import org.wildfly.clustering.infinispan.spi.service.TemplateConfigurationServiceConfigurator;
 
 /**
  * Add a security domain configuration.
@@ -117,7 +126,9 @@ import org.wildfly.clustering.infinispan.spi.service.CacheContainerServiceName;
  * @author Jason T. Greene
  */
 class SecurityDomainAdd extends AbstractAddStepHandler {
-    private static final String CACHE_CONTAINER_NAME = "security";
+
+    private static final String DEFAULT_MODULE = "org.picketbox";
+    private static final String LEGACY_CACHE_NAME = "auth-cache";
 
     static final SecurityDomainAdd INSTANCE = new SecurityDomainAdd();
 
@@ -125,12 +136,10 @@ class SecurityDomainAdd extends AbstractAddStepHandler {
      * Private to ensure a singleton.
      */
     private SecurityDomainAdd() {
+        super(SecurityDomainResourceDefinition.CACHE_TYPE);
     }
 
-    protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
-        SecurityDomainResourceDefinition.CACHE_TYPE.validateAndSet(operation, model);
-    }
-
+    @Override
     protected void performRuntime(OperationContext context, ModelNode operation, final ModelNode model) {
         PathAddress address = PathAddress.pathAddress(operation.get(OP_ADDR));
         final String securityDomain = address.getLastElement().getValue();
@@ -147,6 +156,17 @@ class SecurityDomainAdd extends AbstractAddStepHandler {
         }, OperationContext.Stage.RUNTIME);
     }
 
+    @Override
+    protected void recordCapabilitiesAndRequirements(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+        super.recordCapabilitiesAndRequirements(context, operation, resource);
+        String cacheType = getAuthenticationCacheType(resource.getModel());
+        if (SecurityDomainResourceDefinition.INFINISPAN_CACHE_TYPE.equals(cacheType)) {
+            context.registerAdditionalCapabilityRequirement(InfinispanRequirement.CONTAINER.resolve(CACHE_CONTAINER_NAME),
+                    LEGACY_SECURITY_DOMAIN.getDynamicName(context.getCurrentAddressValue()),
+                    SecurityDomainResourceDefinition.CACHE_TYPE.getName());
+        }
+    }
+
     public void launchServices(OperationContext context, String securityDomain, ModelNode model) throws OperationFailedException {
         final ApplicationPolicy applicationPolicy = createApplicationPolicy(context, securityDomain, model);
         final JSSESecurityDomain jsseSecurityDomain = createJSSESecurityDomain(context, securityDomain, model);
@@ -157,14 +177,36 @@ class SecurityDomainAdd extends AbstractAddStepHandler {
         final ServiceTarget target = context.getServiceTarget();
         ServiceBuilder<SecurityDomainContext> builder = target
                 .addService(SecurityDomainService.SERVICE_NAME.append(securityDomain), securityDomainService)
+                .addAliases(LEGACY_SECURITY_DOMAIN.getCapabilityServiceName(securityDomain))
                 .addDependency(SecurityManagementService.SERVICE_NAME, ISecurityManagement.class,
                         securityDomainService.getSecurityManagementInjector())
                 .addDependency(JaasConfigurationService.SERVICE_NAME, Configuration.class,
                         securityDomainService.getConfigurationInjector());
 
-        if ("infinispan".equals(cacheType)) {
-            builder.addDependency(CacheContainerServiceName.CACHE_CONTAINER.getServiceName(CACHE_CONTAINER_NAME),
-                    Object.class, securityDomainService.getCacheManagerInjector());
+        if (jsseSecurityDomain != null) {
+            builder.addDependency(ContextNames.JBOSS_CONTEXT_SERVICE_NAME.append("jaas"));
+        }
+
+        if (SecurityDomainResourceDefinition.INFINISPAN_CACHE_TYPE.equals(cacheType)) {
+            String defaultCacheRequirementName = InfinispanDefaultCacheRequirement.CONFIGURATION.resolve(CACHE_CONTAINER_NAME);
+            String legacyCacheRequirementName = InfinispanCacheRequirement.CONFIGURATION.resolve(CACHE_CONTAINER_NAME, LEGACY_CACHE_NAME);
+            String capabilityName = LEGACY_SECURITY_DOMAIN.getDynamicName(context.getCurrentAddress());
+            String cacheTypeAttributeName = SecurityDomainResourceDefinition.CACHE_TYPE.getName();
+            String templateCacheName = null;
+
+            if (!context.hasOptionalCapability(defaultCacheRequirementName, capabilityName, cacheTypeAttributeName) && context.hasOptionalCapability(legacyCacheRequirementName, capabilityName, cacheTypeAttributeName)) {
+                SecurityLogger.ROOT_LOGGER.defaultCacheRequirementMissing(CACHE_CONTAINER_NAME, LEGACY_CACHE_NAME);
+                templateCacheName = LEGACY_CACHE_NAME;
+            }
+
+            context.requireOptionalCapability(InfinispanCacheRequirement.CONFIGURATION.resolve(CACHE_CONTAINER_NAME, templateCacheName), capabilityName, cacheTypeAttributeName);
+
+            ServiceName configurationServiceName = InfinispanCacheRequirement.CONFIGURATION.getServiceName(context, CACHE_CONTAINER_NAME, securityDomain);
+            new TemplateConfigurationServiceConfigurator(configurationServiceName, CACHE_CONTAINER_NAME, securityDomain, templateCacheName).configure(context).build(target).install();
+            ServiceName cacheServiceName = InfinispanCacheRequirement.CACHE.getServiceName(context, CACHE_CONTAINER_NAME, securityDomain);
+            new CacheServiceConfigurator<>(cacheServiceName, CACHE_CONTAINER_NAME, securityDomain).configure(context).build(target).install();
+
+            builder.addDependency(cacheServiceName, ConcurrentMap.class, securityDomainService.getCacheInjector());
         }
 
         builder.setInitialMode(ServiceController.Mode.ACTIVE).install();
@@ -210,8 +252,10 @@ class SecurityDomainAdd extends AbstractAddStepHandler {
             applicationPolicy.setMappingInfo(mappingType, mappingInfo);
 
             ModelNode moduleName = LoginModuleResourceDefinition.MODULE.resolveModelAttribute(context, module);
-            if (moduleName.isDefined() && moduleName.asString().length() > 0) {
-                mappingInfo.setJBossModuleName(moduleName.asString());
+            if (moduleName.isDefined() && !moduleName.asString().isEmpty()) {
+                mappingInfo.addJBossModuleName(moduleName.asString());
+            } else {
+                mappingInfo.addJBossModuleName(DEFAULT_MODULE);
             }
         }
 
@@ -235,8 +279,10 @@ class SecurityDomainAdd extends AbstractAddStepHandler {
             identityTrustInfo.add(entry);
 
             ModelNode moduleName = LoginModuleResourceDefinition.MODULE.resolveModelAttribute(context, module);
-            if (moduleName.isDefined() && moduleName.asString().length() > 0) {
-                identityTrustInfo.setJBossModuleName(moduleName.asString());
+            if (moduleName.isDefined() && !moduleName.asString().isEmpty()) {
+                identityTrustInfo.addJBossModuleName(moduleName.asString());
+            } else {
+                identityTrustInfo.addJBossModuleName(DEFAULT_MODULE);
             }
         }
         applicationPolicy.setIdentityTrustInfo(identityTrustInfo);
@@ -251,14 +297,16 @@ class SecurityDomainAdd extends AbstractAddStepHandler {
         AuditInfo auditInfo = new AuditInfo(securityDomain);
         for (Property moduleProperty : node.asPropertyList()) {
             ModelNode module = moduleProperty.getValue();
-            String codeName = LoginModuleResourceDefinition.CODE.resolveModelAttribute(context, module).asString();
+            String codeName = MappingProviderModuleDefinition.CODE.resolveModelAttribute(context, module).asString();
             Map<String, Object> options = extractOptions(context, module);
             AuditProviderEntry entry = new AuditProviderEntry(codeName, options);
             auditInfo.add(entry);
 
-            ModelNode moduleName = LoginModuleResourceDefinition.MODULE.resolveModelAttribute(context, module);
-            if (moduleName.isDefined() && moduleName.asString().length() > 0) {
-                auditInfo.setJBossModuleName(moduleName.asString());
+            ModelNode moduleName = MappingProviderModuleDefinition.MODULE.resolveModelAttribute(context, module);
+            if (moduleName.isDefined() && !moduleName.asString().isEmpty()) {
+                auditInfo.addJBossModuleName(moduleName.asString());
+            } else {
+                auditInfo.addJBossModuleName(DEFAULT_MODULE);
             }
         }
         applicationPolicy.setAuditInfo(auditInfo);
@@ -282,8 +330,10 @@ class SecurityDomainAdd extends AbstractAddStepHandler {
             aclInfo.add(entry);
 
             ModelNode moduleName = LoginModuleResourceDefinition.MODULE.resolveModelAttribute(context, module);
-            if (moduleName.isDefined() && moduleName.asString().length() > 0) {
-                aclInfo.setJBossModuleName(moduleName.asString());
+            if (moduleName.isDefined() && !moduleName.asString().isEmpty()) {
+                aclInfo.addJBossModuleName(moduleName.asString());
+            } else {
+                aclInfo.addJBossModuleName(DEFAULT_MODULE);
             }
 
         }
@@ -308,8 +358,10 @@ class SecurityDomainAdd extends AbstractAddStepHandler {
             authzInfo.add(authzModuleEntry);
 
             ModelNode moduleName = LoginModuleResourceDefinition.MODULE.resolveModelAttribute(context, module);
-            if (moduleName.isDefined() && moduleName.asString().length() > 0) {
-                authzInfo.setJBossModuleName(moduleName.asString());
+            if (moduleName.isDefined() && !moduleName.asString().isEmpty()) {
+                authzInfo.addJBossModuleName(moduleName.asString());
+            } else {
+                authzInfo.addJBossModuleName(DEFAULT_MODULE);
             }
         }
 
@@ -364,8 +416,10 @@ class SecurityDomainAdd extends AbstractAddStepHandler {
             authenticationInfo.add(entry);
 
             ModelNode moduleName = LoginModuleResourceDefinition.MODULE.resolveModelAttribute(context, authModule);
-            if (moduleName.isDefined() && moduleName.asString().length() > 0) {
-                authenticationInfo.setJBossModuleName(moduleName.asString());
+            if (moduleName.isDefined() && !moduleName.asString().isEmpty()) {
+                authenticationInfo.addJBossModuleName(moduleName.asString());
+            } else {
+                authenticationInfo.addJBossModuleName(DEFAULT_MODULE);
             }
         }
         applicationPolicy.setAuthenticationInfo(authenticationInfo);
@@ -420,8 +474,10 @@ class SecurityDomainAdd extends AbstractAddStepHandler {
             AppConfigurationEntry entry = new AppConfigurationEntry(codeName, controlFlag, options);
             container.addAppConfigurationEntry(entry);
             ModelNode moduleName = LoginModuleResourceDefinition.MODULE.resolveModelAttribute(context, module);
-            if (moduleName.isDefined() && moduleName.asString().length() > 0) {
-                authInfo.setJBossModuleName(moduleName.asString());
+            if (moduleName.isDefined() && !moduleName.asString().isEmpty()) {
+                authInfo.addJBossModuleName(moduleName.asString());
+            } else {
+                authInfo.addJBossModuleName(DEFAULT_MODULE);
             }
         }
     }

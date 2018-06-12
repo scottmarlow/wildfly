@@ -25,6 +25,8 @@ package org.jboss.as.connector.subsystems.datasources;
 import java.util.Map;
 
 import org.jboss.as.connector.logging.ConnectorLogger;
+import org.jboss.as.connector.metadata.api.common.Credential;
+import org.jboss.as.connector.metadata.api.ds.DsSecurity;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
@@ -132,10 +134,10 @@ public class XMLXaDataSourceRuntimeHandler extends AbstractXMLDataSourceRuntimeH
 
         } else if (attributeName.equals(org.jboss.as.connector.subsystems.common.pool.Constants.CAPACITY_INCREMENTER_PROPERTIES.getName())) {
             XaPool pool = dataSource.getXaPool();
-            if (pool == null || ((DsXaPool) pool).getCapacity() == null || ((DsXaPool) pool).getCapacity().getIncrementer() == null)
+            if (pool == null || pool.getCapacity() == null || pool.getCapacity().getIncrementer() == null)
                 return;
 
-            final Map<String, String> propertiesMap = ((DsXaPool) pool).getCapacity().getIncrementer().getConfigPropertiesMap();
+            final Map<String, String> propertiesMap = pool.getCapacity().getIncrementer().getConfigPropertiesMap();
             if (propertiesMap == null) {
                 return;
             }
@@ -146,10 +148,10 @@ public class XMLXaDataSourceRuntimeHandler extends AbstractXMLDataSourceRuntimeH
 
         } else if (attributeName.equals(org.jboss.as.connector.subsystems.common.pool.Constants.CAPACITY_DECREMENTER_PROPERTIES.getName())) {
             XaPool pool = dataSource.getXaPool();
-            if (pool == null || ((DsXaPool) pool).getCapacity() == null || ((DsXaPool) pool).getCapacity().getDecrementer() == null)
+            if (pool == null || pool.getCapacity() == null || pool.getCapacity().getDecrementer() == null)
                 return;
 
-            final Map<String, String> propertiesMap = ((DsXaPool) pool).getCapacity().getDecrementer().getConfigPropertiesMap();
+            final Map<String, String> propertiesMap = pool.getCapacity().getDecrementer().getConfigPropertiesMap();
             if (propertiesMap == null) {
                 return;
             }
@@ -241,6 +243,40 @@ public class XMLXaDataSourceRuntimeHandler extends AbstractXMLDataSourceRuntimeH
                 return;
             }
             if(dataSource.getRecovery().getCredential() == null) {
+                return;
+            }
+            // safe assertion because all parsers create jboss Credential
+            assert dataSource.getRecovery().getCredential() instanceof Credential;
+            if (((Credential) dataSource.getRecovery().getCredential()).isElytronEnabled()) {
+                return;
+            }
+            setStringIfNotNull(context, dataSource.getRecovery().getCredential().getSecurityDomain());
+
+        } else if (attributeName.equals(Constants.RECOVERY_ELYTRON_ENABLED.getName())) {
+            if(dataSource.getRecovery() == null) {
+                return;
+            }
+            if(dataSource.getRecovery().getCredential() == null) {
+                return;
+            }
+            // safe assertion because all parsers create jboss Credential
+            assert dataSource.getRecovery().getCredential() instanceof Credential;
+            if (!((Credential) dataSource.getRecovery().getCredential()).isElytronEnabled()) {
+                return;
+            }
+            setBooleanIfNotNull(context, ((Credential) dataSource.getRecovery().getCredential()).isElytronEnabled());
+        } else if (attributeName.equals(Constants.RECOVERY_CREDENTIAL_REFERENCE.getName())) {
+            //don't give out the credential-reference
+        } else if (attributeName.equals(Constants.RECOVERY_AUTHENTICATION_CONTEXT.getName())) {
+            if(dataSource.getRecovery() == null) {
+                return;
+            }
+            if(dataSource.getRecovery().getCredential() == null) {
+                return;
+            }
+            // safe assertion because all parsers create jboss Credential
+            assert dataSource.getRecovery().getCredential() instanceof Credential;
+            if (!((Credential) dataSource.getRecovery().getCredential()).isElytronEnabled()) {
                 return;
             }
             setStringIfNotNull(context, dataSource.getRecovery().getCredential().getSecurityDomain());
@@ -371,8 +407,35 @@ public class XMLXaDataSourceRuntimeHandler extends AbstractXMLDataSourceRuntimeH
             setStringIfNotNull(context, dataSource.getSecurity().getUserName());
         } else if (attributeName.equals(Constants.PASSWORD.getName())) {
             //don't give out the password
+        } else if (attributeName.equals(Constants.CREDENTIAL_REFERENCE.getName())) {
+            //don't give out the credential-reference
         } else if (attributeName.equals(Constants.SECURITY_DOMAIN.getName())) {
             if (dataSource.getSecurity() == null) {
+                return;
+            }
+            // this is a safe assert because DsXmlParser will always create a wildfly DsSecurity metadata
+            assert dataSource.getSecurity() instanceof DsSecurity;
+            if (((DsSecurity) dataSource.getSecurity()).isElytronEnabled()) {
+                return;
+            }
+            setStringIfNotNull(context, dataSource.getSecurity().getSecurityDomain());
+        } else if (attributeName.equals(Constants.ELYTRON_ENABLED.getName())) {
+            if (dataSource.getSecurity() == null) {
+                return;
+            }
+            // this is a safe assert because DsXmlParser will always create a wildfly DsSecurity metadata
+            assert dataSource.getSecurity() instanceof DsSecurity;
+            if (!((DsSecurity) dataSource.getSecurity()).isElytronEnabled()) {
+                return;
+            }
+            setBooleanIfNotNull(context, ((DsSecurity) dataSource.getSecurity()).isElytronEnabled());
+        } else if (attributeName.equals(Constants.AUTHENTICATION_CONTEXT.getName())) {
+            if (dataSource.getSecurity() == null) {
+                return;
+            }
+            // this is a safe assert because DsXmlParser will always create a wildfly DsSecurity metadata
+            assert dataSource.getSecurity() instanceof DsSecurity;
+            if (!((DsSecurity) dataSource.getSecurity()).isElytronEnabled()) {
                 return;
             }
             setStringIfNotNull(context, dataSource.getSecurity().getSecurityDomain());

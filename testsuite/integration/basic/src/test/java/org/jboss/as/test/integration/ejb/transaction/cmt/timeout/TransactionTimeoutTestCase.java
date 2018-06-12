@@ -22,9 +22,7 @@
 package org.jboss.as.test.integration.ejb.transaction.cmt.timeout;
 
 import static org.junit.Assert.assertEquals;
-
 import javax.naming.InitialContext;
-
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.Archive;
@@ -73,7 +71,7 @@ public class TransactionTimeoutTestCase {
         timeoutValue = (long) remoteView.getRemoteMethodTimeout();
         Assert.assertEquals("Remote-method timeout failed", 7L, timeoutValue);
         timeoutValue = (long) localView.getLocalViewTimeout();
-        Assert.assertEquals("Local-view timeout failed", 8L, timeoutValue);
+        Assert.assertEquals("Local-view timeout failed", 5L, timeoutValue);
     }
 
     @Test

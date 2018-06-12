@@ -280,6 +280,9 @@ public class ParsedServiceDeploymentProcessor implements DeploymentUnitProcessor
                 }
             }
             final Constructor<?> constructor = mBeanClassHierarchy.get(0).getConstructor(types);
+            if(constructor == null){
+                throw SarLogger.ROOT_LOGGER.defaultConstructorNotFound(mBeanClassHierarchy.get(0).getIndexedClass());
+            }
             final Object mBeanInstance = ReflectionUtils.newInstance(constructor, params);
 
             return mBeanInstance;

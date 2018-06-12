@@ -21,18 +21,22 @@
  */
 package org.jboss.as.clustering.jgroups.subsystem;
 
+import java.util.function.UnaryOperator;
+
+import org.jboss.as.clustering.controller.BinaryCapabilityNameResolver;
+import org.jboss.as.clustering.controller.CapabilityReference;
 import org.jboss.as.clustering.controller.ChildResourceDefinition;
 import org.jboss.as.clustering.controller.ResourceDescriptor;
-import org.jboss.as.clustering.controller.ResourceServiceBuilderFactory;
+import org.jboss.as.clustering.controller.ResourceServiceConfiguratorFactory;
 import org.jboss.as.clustering.controller.ResourceServiceHandler;
-import org.jboss.as.clustering.controller.RestartParentResourceAddStepHandler;
-import org.jboss.as.clustering.controller.RestartParentResourceRemoveStepHandler;
+import org.jboss.as.clustering.controller.RestartParentResourceRegistration;
 import org.jboss.as.clustering.controller.SimpleResourceServiceHandler;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
+import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.transform.TransformationContext;
@@ -41,14 +45,14 @@ import org.jboss.as.controller.transform.description.DiscardAttributeChecker;
 import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
-import org.wildfly.clustering.jgroups.spi.RelayConfiguration;
+import org.wildfly.clustering.jgroups.spi.JGroupsRequirement;
 
 /**
  * Resource definition for subsystem=jgroups/stack=X/relay=RELAY/remote-site=Y
  *
  * @author Paul Ferraro
  */
-public class RemoteSiteResourceDefinition extends ChildResourceDefinition {
+public class RemoteSiteResourceDefinition extends ChildResourceDefinition<ManagementResourceRegistration> {
 
     static final PathElement WILDCARD_PATH = pathElement(PathElement.WILDCARD_VALUE);
 
@@ -56,13 +60,37 @@ public class RemoteSiteResourceDefinition extends ChildResourceDefinition {
         return PathElement.pathElement("remote-site", name);
     }
 
-    enum Attribute implements org.jboss.as.clustering.controller.Attribute {
-        CHANNEL("channel", ModelType.STRING),
+    enum Capability implements org.jboss.as.clustering.controller.Capability {
+        REMOTE_SITE("org.wildfly.clustering.jgroups.remote-site"),
         ;
+        private final RuntimeCapability<Void> definition;
+
+        Capability(String name) {
+            this.definition = RuntimeCapability.Builder.of(name, true).setDynamicNameMapper(BinaryCapabilityNameResolver.GRANDPARENT_CHILD).build();
+        }
+
+        @Override
+        public RuntimeCapability<Void> getDefinition() {
+            return this.definition;
+        }
+    }
+
+    enum Attribute implements org.jboss.as.clustering.controller.Attribute, UnaryOperator<SimpleAttributeDefinitionBuilder> {
+        CHANNEL("channel", ModelType.STRING) {
+            @Override
+            public SimpleAttributeDefinitionBuilder apply(SimpleAttributeDefinitionBuilder builder) {
+                return builder.setCapabilityReference(new CapabilityReference(Capability.REMOTE_SITE, JGroupsRequirement.CHANNEL_SOURCE));
+            }
+        },
+        ;
+
         private final AttributeDefinition definition;
 
         Attribute(String name, ModelType type) {
-            this.definition = createBuilder(name, type).setAllowNull(false).build();
+            this.definition = this.apply(new SimpleAttributeDefinitionBuilder(name, ModelType.STRING)
+                    .setRequired(true)
+                    .setFlags(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
+                    ).build();
         }
 
         @Override
@@ -78,14 +106,12 @@ public class RemoteSiteResourceDefinition extends ChildResourceDefinition {
         private final AttributeDefinition definition;
 
         DeprecatedAttribute(String name, ModelType type, JGroupsModel deprecation) {
-            this.definition = createBuilder(name, type).setAllowNull(true).setDeprecated(deprecation.getVersion()).build();
-        }
-
-        private static SimpleAttributeDefinitionBuilder createBuilder(String name, ModelType type) {
-            return new SimpleAttributeDefinitionBuilder(name, ModelType.STRING)
-                .setAllowExpression(true)
-                .setFlags(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
-            ;
+            this.definition = new SimpleAttributeDefinitionBuilder(name, ModelType.STRING)
+                    .setRequired(false)
+                    .setAllowExpression(true)
+                    .setDeprecated(deprecation.getVersion())
+                    .setFlags(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES)
+                    .build();
         }
 
         @Override
@@ -115,19 +141,19 @@ public class RemoteSiteResourceDefinition extends ChildResourceDefinition {
                 @Override
                 public void convertResourceAttribute(PathAddress address, String name, ModelNode value, TransformationContext context) {
                     ModelNode remoteSite = context.readResourceFromRoot(address).getModel();
-                    String channelName = remoteSite.get(Attribute.CHANNEL.getDefinition().getName()).asString();
-                    if (DeprecatedAttribute.STACK.getDefinition().getName().equals(name)) {
+                    String channelName = remoteSite.get(Attribute.CHANNEL.getName()).asString();
+                    if (DeprecatedAttribute.STACK.getName().equals(name)) {
                         PathAddress subsystemAddress = address.subAddress(0, address.size() - 3);
                         PathAddress channelAddress = subsystemAddress.append(ChannelResourceDefinition.pathElement(channelName));
                         ModelNode channel = context.readResourceFromRoot(channelAddress).getModel();
 
-                        if (channel.hasDefined(ChannelResourceDefinition.Attribute.STACK.getDefinition().getName())) {
-                            value.set(channel.get(ChannelResourceDefinition.Attribute.STACK.getDefinition().getName()).asString());
+                        if (channel.hasDefined(ChannelResourceDefinition.Attribute.STACK.getName())) {
+                            value.set(channel.get(ChannelResourceDefinition.Attribute.STACK.getName()).asString());
                         } else {
                             ModelNode subsystem = context.readResourceFromRoot(subsystemAddress).getModel();
-                            value.set(subsystem.get(JGroupsSubsystemResourceDefinition.Attribute.DEFAULT_STACK.getDefinition().getName()).asString());
+                            value.set(subsystem.get(JGroupsSubsystemResourceDefinition.Attribute.DEFAULT_STACK.getName()).asString());
                         }
-                    } else if (DeprecatedAttribute.CLUSTER.getDefinition().getName().equals(name)) {
+                    } else if (DeprecatedAttribute.CLUSTER.getName().equals(name)) {
                         value.set(channelName);
                     } else {
                         throw new IllegalStateException();
@@ -141,23 +167,25 @@ public class RemoteSiteResourceDefinition extends ChildResourceDefinition {
         }
     }
 
-    private final ResourceServiceBuilderFactory<RelayConfiguration> parentBuilderFactory;
+    private final ResourceServiceConfiguratorFactory parentServiceConfiguratorFactory;
 
-    RemoteSiteResourceDefinition(ResourceServiceBuilderFactory<RelayConfiguration> parentBuilderFactory) {
-        super(WILDCARD_PATH, new JGroupsResourceDescriptionResolver(WILDCARD_PATH));
-        this.parentBuilderFactory = parentBuilderFactory;
+    RemoteSiteResourceDefinition(ResourceServiceConfiguratorFactory parentServiceConfiguratorFactory) {
+        super(WILDCARD_PATH, JGroupsExtension.SUBSYSTEM_RESOLVER.createChildResolver(WILDCARD_PATH));
+        this.parentServiceConfiguratorFactory = parentServiceConfiguratorFactory;
     }
 
     @Override
-    public void register(ManagementResourceRegistration parentRegistration) {
-        ManagementResourceRegistration registration = parentRegistration.registerSubModel(this);
+    public ManagementResourceRegistration register(ManagementResourceRegistration parent) {
+        ManagementResourceRegistration registration = parent.registerSubModel(this);
 
         ResourceDescriptor descriptor = new ResourceDescriptor(this.getResourceDescriptionResolver())
                 .addAttributes(Attribute.class)
                 .addAttributes(DeprecatedAttribute.class)
+                .addCapabilities(Capability.class)
                 ;
-        ResourceServiceHandler handler = new SimpleResourceServiceHandler<>(new RemoteSiteConfigurationBuilderFactory());
-        new RestartParentResourceAddStepHandler<>(this.parentBuilderFactory, descriptor, handler).register(registration);
-        new RestartParentResourceRemoveStepHandler<>(this.parentBuilderFactory, descriptor, handler).register(registration);
+        ResourceServiceHandler handler = new SimpleResourceServiceHandler(RemoteSiteConfigurationServiceConfigurator::new);
+        new RestartParentResourceRegistration(this.parentServiceConfiguratorFactory, descriptor, handler).register(registration);
+
+        return registration;
     }
 }

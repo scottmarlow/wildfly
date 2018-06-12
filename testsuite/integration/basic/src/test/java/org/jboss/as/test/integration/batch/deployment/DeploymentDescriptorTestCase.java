@@ -139,7 +139,7 @@ public class DeploymentDescriptorTestCase extends AbstractBatchTestCase {
             ModelNode op = Operations.createAddOperation(address);
             op.get("driver-name").set("h2");
             op.get("jndi-name").set("java:jboss/datasources/batch");
-            op.get("connection-url").set("jdbc:h2:batch-test");
+            op.get("connection-url").set("jdbc:h2:mem:batch-test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE");
             operationBuilder.addStep(op);
 
             // Add a new JDBC job repository with the new data-source
@@ -178,6 +178,7 @@ public class DeploymentDescriptorTestCase extends AbstractBatchTestCase {
 
             // Remove the data-source
             execute(managementClient.getControllerClient(), Operations.createRemoveOperation(Operations.createAddress("subsystem", "datasources", "data-source", "batch-ds")));
+            ServerReload.executeReloadAndWaitForCompletion(managementClient.getControllerClient());
         }
 
         static ModelNode execute(final ModelControllerClient client, final Operation op) throws IOException {

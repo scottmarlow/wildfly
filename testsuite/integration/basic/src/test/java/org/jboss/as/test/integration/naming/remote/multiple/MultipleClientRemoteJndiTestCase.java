@@ -1,5 +1,6 @@
 package org.jboss.as.test.integration.naming.remote.multiple;
 
+import java.io.FilePermission;
 import java.net.SocketPermission;
 import java.net.URL;
 import java.util.PropertyPermission;
@@ -16,6 +17,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import org.jboss.as.test.integration.security.common.Utils;
+
 import static org.jboss.as.test.shared.integration.ejb.security.PermissionUtils.createPermissionsXmlAsset;
 import org.jboss.remoting3.security.RemotingPermission;
 import static org.junit.Assert.assertEquals;
@@ -38,7 +40,6 @@ public class MultipleClientRemoteJndiTestCase {
 
     private static final Package thisPackage = MultipleClientRemoteJndiTestCase.class.getPackage();
 
-
     @Deployment(name="one")
     public static WebArchive deploymentOne() {
         return ShrinkWrap.create(WebArchive.class, "one.war")
@@ -51,7 +52,8 @@ public class MultipleClientRemoteJndiTestCase {
                         // RunRmiServlet looks up for MyObject using connection through http-remoting Endpoint
                         new RemotingPermission("connect"),
                         new SocketPermission(Utils.getDefaultHost(true), "accept,connect,listen,resolve"),
-                        new RuntimePermission("getClassLoader")),
+                        new RuntimePermission("getClassLoader"),
+                        new FilePermission(System.getProperty("jboss.inst") + "/standalone/tmp/auth/*", "read")),
                         "permissions.xml");
     }
 

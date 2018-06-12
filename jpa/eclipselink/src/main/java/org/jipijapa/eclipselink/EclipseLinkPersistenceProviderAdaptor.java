@@ -25,6 +25,8 @@ package org.jipijapa.eclipselink;
 import java.util.Map;
 
 
+import javax.enterprise.inject.spi.BeanManager;
+
 import org.jipijapa.plugin.spi.JtaManager;
 import org.jipijapa.plugin.spi.ManagementAdaptor;
 import org.jipijapa.plugin.spi.PersistenceProviderAdaptor;
@@ -42,9 +44,16 @@ public class EclipseLinkPersistenceProviderAdaptor implements
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public void addProviderProperties(Map properties, PersistenceUnitMetadata pu) {
+
+        if (!pu.getProperties().containsKey(ECLIPSELINK_ARCHIVE_FACTORY)) {
+            properties.put(ECLIPSELINK_ARCHIVE_FACTORY, JBossArchiveFactoryImpl.class.getName());
+        }
+
         if (!pu.getProperties().containsKey(ECLIPSELINK_TARGET_SERVER)) {
             properties.put(ECLIPSELINK_TARGET_SERVER, WildFlyServerPlatform.class.getName());
-            properties.put(ECLIPSELINK_ARCHIVE_FACTORY, JBossArchiveFactoryImpl.class.getName());
+        }
+
+        if (!pu.getProperties().containsKey(ECLIPSELINK_LOGGING_LOGGER)) {
             properties.put(ECLIPSELINK_LOGGING_LOGGER, JBossLogger.class.getName());
         }
     }
@@ -90,6 +99,16 @@ public class EclipseLinkPersistenceProviderAdaptor implements
     @Override
     public void cleanup(PersistenceUnitMetadata pu) {
         // no action required
+    }
+
+    @Override
+    public Object beanManagerLifeCycle(BeanManager beanManager) {
+        return null;
+    }
+
+    @Override
+    public void markPersistenceUnitAvailable(Object wrapperBeanManagerLifeCycle) {
+
     }
 
 }

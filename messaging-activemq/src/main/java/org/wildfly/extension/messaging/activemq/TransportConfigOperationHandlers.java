@@ -23,6 +23,7 @@
 package org.wildfly.extension.messaging.activemq;
 
 import static org.apache.activemq.artemis.core.remoting.impl.invm.TransportConstants.SERVER_ID_PROP_NAME;
+import static org.apache.activemq.artemis.core.remoting.impl.netty.TransportConstants.ACTIVEMQ_SERVER_NAME;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.ACCEPTOR;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.CONNECTOR;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.FACTORY_CLASS;
@@ -85,6 +86,7 @@ public class TransportConfigOperationHandlers {
     static {
         CONNECTORS_KEYS_MAP.put(InVMTransportDefinition.SERVER_ID.getName(),
                 org.apache.activemq.artemis.core.remoting.impl.invm.TransportConstants.SERVER_ID_PROP_NAME);
+        CONNECTORS_KEYS_MAP.put("buffer-pooling", org.apache.activemq.artemis.core.remoting.impl.invm.TransportConstants.BUFFER_POOLING);
         CONNECTORS_KEYS_MAP.put(SSL_ENABLED,
                 TransportConstants.SSL_ENABLED_PROP_NAME);
         CONNECTORS_KEYS_MAP.put("http-enabled",
@@ -148,6 +150,7 @@ public class TransportConfigOperationHandlers {
                 org.apache.activemq.artemis.core.remoting.impl.invm.TransportConstants.SERVER_ID_PROP_NAME);
         ACCEPTOR_KEYS_MAP.put(BATCH_DELAY,
                 TransportConstants.BATCH_DELAY);
+        ACCEPTOR_KEYS_MAP.put("buffer-pooling", org.apache.activemq.artemis.core.remoting.impl.invm.TransportConstants.BUFFER_POOLING);
         ACCEPTOR_KEYS_MAP.put("cluster-connection",
                 TransportConstants.CLUSTER_CONNECTION);
         ACCEPTOR_KEYS_MAP.put("connection-ttl",
@@ -342,10 +345,16 @@ public class TransportConfigOperationHandlers {
 
                 final String binding = HTTPConnectorDefinition.SOCKET_BINDING.resolveModelAttribute(context, config).asString();
                 bindings.add(binding);
+                // ARTEMIS-803 Artemis knows that is must not offset the HTTP port when it is used by colocated backups
                 parameters.put(TransportConstants.HTTP_UPGRADE_ENABLED_PROP_NAME, true);
                 parameters.put(TransportConstants.HTTP_UPGRADE_ENDPOINT_PROP_NAME, HTTPConnectorDefinition.ENDPOINT.resolveModelAttribute(context, config).asString());
                 // uses the parameters to pass the socket binding name that will be read in ActiveMQServerService.start()
                 parameters.put(HTTPConnectorDefinition.SOCKET_BINDING.getName(), binding);
+                ModelNode serverNameModelNode = HTTPConnectorDefinition.SERVER_NAME.resolveModelAttribute(context, config);
+                // use the name of this server if the server-name attribute is undefined
+                String serverName = serverNameModelNode.isDefined() ? serverNameModelNode.asString() : configuration.getName();
+                parameters.put(ACTIVEMQ_SERVER_NAME, serverName);
+
                 connectors.put(connectorName, new TransportConfiguration(NettyConnectorFactory.class.getName(), parameters, connectorName));
             }
         }

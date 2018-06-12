@@ -41,8 +41,10 @@ public class LogStoreTransactionParticipantDefinition extends SimpleResourceDefi
     static final LogStoreTransactionParticipantDefinition INSTANCE = new LogStoreTransactionParticipantDefinition();
 
     private LogStoreTransactionParticipantDefinition() {
-        super(TransactionExtension.PARTICIPANT_PATH,
-                TransactionExtension.getResourceDescriptionResolver(LogStoreConstants.LOG_STORE, CommonAttributes.TRANSACTION, CommonAttributes.PARTICIPANT));
+        super(new Parameters(TransactionExtension.PARTICIPANT_PATH,
+                TransactionExtension.getResourceDescriptionResolver(LogStoreConstants.LOG_STORE, CommonAttributes.TRANSACTION, CommonAttributes.PARTICIPANT))
+                .setRuntime()
+        );
     }
 
     @Override
@@ -50,9 +52,11 @@ public class LogStoreTransactionParticipantDefinition extends SimpleResourceDefi
         super.registerOperations(resourceRegistration);
 
         final LogStoreParticipantRefreshHandler refreshHandler = LogStoreParticipantRefreshHandler.INSTANCE;
+        final LogStoreProbeHandler probeHandler = LogStoreProbeHandler.INSTANCE;
 
         resourceRegistration.registerOperationHandler(new SimpleOperationDefinition(LogStoreConstants.REFRESH, getResourceDescriptionResolver()), refreshHandler);
         resourceRegistration.registerOperationHandler(new SimpleOperationDefinition(LogStoreConstants.RECOVER, getResourceDescriptionResolver()), new LogStoreParticipantRecoveryHandler(refreshHandler));
+        resourceRegistration.registerOperationHandler(new SimpleOperationDefinition(LogStoreConstants.DELETE, getResourceDescriptionResolver()), new LogStoreParticipantDeleteHandler(probeHandler));
     }
 
     @Override

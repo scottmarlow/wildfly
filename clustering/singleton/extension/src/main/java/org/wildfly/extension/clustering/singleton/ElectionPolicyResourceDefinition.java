@@ -22,22 +22,31 @@
 
 package org.wildfly.extension.clustering.singleton;
 
+import java.util.function.UnaryOperator;
+
 import org.jboss.as.clustering.controller.CapabilityReference;
 import org.jboss.as.clustering.controller.ChildResourceDefinition;
 import org.jboss.as.clustering.controller.CommonUnaryRequirement;
+import org.jboss.as.clustering.controller.ResourceDescriptor;
+import org.jboss.as.clustering.controller.ResourceServiceConfiguratorFactory;
+import org.jboss.as.clustering.controller.ResourceServiceHandler;
+import org.jboss.as.clustering.controller.SimpleResourceRegistration;
+import org.jboss.as.clustering.controller.SimpleResourceServiceHandler;
+import org.jboss.as.clustering.controller.UnaryCapabilityNameResolver;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.CapabilityReferenceRecorder;
-import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.StringListAttributeDefinition;
 import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
+import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.wildfly.clustering.singleton.SingletonElectionPolicy;
 
 /**
  * Definition of an election policy resource.
  * @author Paul Ferraro
  */
-public abstract class ElectionPolicyResourceDefinition extends ChildResourceDefinition {
+public abstract class ElectionPolicyResourceDefinition extends ChildResourceDefinition<ManagementResourceRegistration> {
 
     static final PathElement WILDCARD_PATH = pathElement(PathElement.WILDCARD_VALUE);
 
@@ -46,36 +55,31 @@ public abstract class ElectionPolicyResourceDefinition extends ChildResourceDefi
     }
 
     enum Capability implements org.jboss.as.clustering.controller.Capability {
-        SOCKET_BINDING_PREFERENCE("org.wildfly.clustering.singleton.singleton-policy.election-policy.socket-binding-preference"),
+        ELECTION_POLICY("org.wildfly.clustering.singleton.policy.election", SingletonElectionPolicy.class),
         ;
         private final RuntimeCapability<Void> definition;
 
-        Capability(String name) {
-            this.definition = RuntimeCapability.Builder.of(name, true).build();
+        Capability(String name, Class<?> type) {
+            this.definition = RuntimeCapability.Builder.of(name, true).setServiceType(type).setDynamicNameMapper(UnaryCapabilityNameResolver.PARENT).build();
         }
 
         @Override
         public RuntimeCapability<Void> getDefinition() {
             return this.definition;
         }
-
-        @Override
-        public RuntimeCapability<Void> resolve(PathAddress address) {
-            return this.definition.fromBaseCapability(address.getParent().getLastElement().getValue());
-        }
     }
 
     enum Attribute implements org.jboss.as.clustering.controller.Attribute {
         NAME_PREFERENCES("name-preferences", "socket-binding-preferences"),
-        SOCKET_BINDING_PREFERENCES("socket-binding-preferences", "name-preferences", new CapabilityReference(Capability.SOCKET_BINDING_PREFERENCE, CommonUnaryRequirement.OUTBOUND_SOCKET_BINDING)),
+        SOCKET_BINDING_PREFERENCES("socket-binding-preferences", "name-preferences", new CapabilityReference(Capability.ELECTION_POLICY, CommonUnaryRequirement.OUTBOUND_SOCKET_BINDING)),
         ;
         private final AttributeDefinition definition;
 
-        private Attribute(String name, String alternative) {
+        Attribute(String name, String alternative) {
             this.definition = createBuilder(name, alternative).build();
         }
 
-        private Attribute(String name, String alternative, CapabilityReferenceRecorder reference) {
+        Attribute(String name, String alternative, CapabilityReferenceRecorder reference) {
             this.definition = createBuilder(name, alternative)
                     .setCapabilityReference(reference)
                     .build();
@@ -89,13 +93,32 @@ public abstract class ElectionPolicyResourceDefinition extends ChildResourceDefi
         private static StringListAttributeDefinition.Builder createBuilder(String name, String alternative) {
             return new StringListAttributeDefinition.Builder(name)
                     .setAllowExpression(true)
-                    .setAllowNull(true)
+                    .setRequired(false)
                     .setAlternatives(alternative)
                     ;
         }
     }
 
-    ElectionPolicyResourceDefinition(PathElement path, ResourceDescriptionResolver resolver) {
+    private final UnaryOperator<ResourceDescriptor> configurator;
+    private final ResourceServiceConfiguratorFactory serviceConfiguratorFactory;
+
+    ElectionPolicyResourceDefinition(PathElement path, ResourceDescriptionResolver resolver, UnaryOperator<ResourceDescriptor> configurator, ResourceServiceConfiguratorFactory serviceConfiguratorFactory) {
         super(path, resolver);
+        this.configurator = configurator;
+        this.serviceConfiguratorFactory = serviceConfiguratorFactory;
+    }
+
+    @Override
+    public ManagementResourceRegistration register(ManagementResourceRegistration parent) {
+        ManagementResourceRegistration registration = parent.registerSubModel(this);
+
+        ResourceDescriptor descriptor = this.configurator.apply(new ResourceDescriptor(this.getResourceDescriptionResolver()))
+                .addAttributes(ElectionPolicyResourceDefinition.Attribute.class)
+                .addCapabilities(ElectionPolicyResourceDefinition.Capability.class)
+                ;
+        ResourceServiceHandler handler = new SimpleResourceServiceHandler(this.serviceConfiguratorFactory);
+        new SimpleResourceRegistration(descriptor, handler).register(registration);
+
+        return registration;
     }
 }

@@ -22,7 +22,6 @@
 package org.jboss.as.jaxrs.deployment;
 
 import org.jboss.as.jaxrs.JaxrsAnnotations;
-import org.jboss.as.server.Services;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
@@ -36,7 +35,6 @@ import static org.jboss.as.ee.weld.InjectionTargetDefiningAnnotations.INJECTION_
  * Looks for jaxrs annotations in war deployments
  *
  * @author Stuart Douglas
- *
  */
 public class JaxrsAnnotationProcessor implements DeploymentUnitProcessor {
 
@@ -54,7 +52,6 @@ public class JaxrsAnnotationProcessor implements DeploymentUnitProcessor {
         for (final JaxrsAnnotations annotation : JaxrsAnnotations.values()) {
             if (!index.getAnnotations(annotation.getDotName()).isEmpty()) {
                 JaxrsDeploymentMarker.mark(deploymentUnit);
-                phaseContext.addToAttachmentList(Attachments.NEXT_PHASE_DEPS, Services.JBOSS_MODULE_INDEX_SERVICE);
                 return;
             }
         }
@@ -62,7 +59,11 @@ public class JaxrsAnnotationProcessor implements DeploymentUnitProcessor {
     }
 
     @Override
-    public void undeploy(DeploymentUnit context) {
+    public void undeploy(DeploymentUnit deploymentUnit) {
+        if (deploymentUnit.getParent() == null) {
+            deploymentUnit.getAttachmentList(INJECTION_TARGET_DEFINING_ANNOTATIONS).remove(JaxrsAnnotations.PROVIDER.getDotName());
+            deploymentUnit.getAttachmentList(INJECTION_TARGET_DEFINING_ANNOTATIONS).remove(JaxrsAnnotations.PATH.getDotName());
+        }
     }
 
 }

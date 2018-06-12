@@ -24,6 +24,7 @@ package org.jboss.as.test.integration.web.security.form;
 import static org.junit.Assert.assertEquals;
 
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,15 +39,18 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.jboss.arquillian.test.api.ArquillianResource;
-import org.jboss.as.test.integration.web.security.WebSecurityPasswordBasedBase;
+import org.jboss.as.test.integration.security.WebSecurityPasswordBasedBase;
+import org.jboss.as.test.integration.web.security.SecuredServlet;
+import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
 
 /**
  * An Abstract parent of the FORM based authentication tests. <br/>
- * <i>This class was introduced as a workaround for JBPAPP-9018 - {@link Class#getMethods()} method returns different values in
+ * <i>This class was introduced as a workaround for JBPAPP-9018 - {@link Class#getMethods()} method returns different
+ * values in
  * Oracle JDK and IBM JDK.</i>
  *
  * @author Josef Cacek
@@ -59,6 +63,20 @@ public abstract class AbstractWebSecurityFORMTestCase extends WebSecurityPasswor
 
     // Protected methods -----------------------------------------------------
 
+    protected static WebArchive prepareDeployment(final String jbossWebFileName) throws Exception {
+
+        WebArchive war = ShrinkWrap.create(WebArchive.class, "web-secure.war");
+        war.addClasses(SecuredServlet.class);
+
+        war.addAsWebResource(WebSecurityFORMTestCase.class.getPackage(), "login.jsp", "login.jsp");
+        war.addAsWebResource(WebSecurityFORMTestCase.class.getPackage(), "error.jsp", "error.jsp");
+
+        war.addAsWebInfResource(WebSecurityFORMTestCase.class.getPackage(), jbossWebFileName, "jboss-web.xml");
+        war.addAsWebInfResource(WebSecurityFORMTestCase.class.getPackage(), "web.xml", "web.xml");
+
+        return war;
+    }
+
     /**
      * Makes a HTTP request to the protected web application.
      *
@@ -66,7 +84,7 @@ public abstract class AbstractWebSecurityFORMTestCase extends WebSecurityPasswor
      * @param pass
      * @param expectedStatusCode
      * @throws Exception
-     * @see org.jboss.as.test.integration.web.security.WebSecurityPasswordBasedBase#makeCall(java.lang.String, java.lang.String,
+     * @see WebSecurityPasswordBasedBase#makeCall(java.lang.String, java.lang.String,
      * int)
      */
     @Override
@@ -79,20 +97,22 @@ public abstract class AbstractWebSecurityFORMTestCase extends WebSecurityPasswor
             HttpResponse response = httpclient.execute(httpget);
 
             HttpEntity entity = response.getEntity();
-            if (entity != null) { EntityUtils.consume(entity); }
+            if (entity != null) {
+                EntityUtils.consume(entity);
+            }
 
             // We should get the Login Page
             StatusLine statusLine = response.getStatusLine();
-            LOGGER.info("Login form get: " + statusLine);
+            LOGGER.trace("Login form get: " + statusLine);
             assertEquals(200, statusLine.getStatusCode());
 
-            LOGGER.info("Initial set of cookies:");
+            LOGGER.trace("Initial set of cookies:");
             List<Cookie> cookies = httpclient.getCookieStore().getCookies();
             if (cookies.isEmpty()) {
-                LOGGER.info("None");
+                LOGGER.trace("None");
             } else {
                 for (int i = 0; i < cookies.size(); i++) {
-                    LOGGER.info("- " + cookies.get(i).toString());
+                    LOGGER.trace("- " + cookies.get(i).toString());
                 }
             }
             req = url.toExternalForm() + "secured/j_security_check";
@@ -103,11 +123,13 @@ public abstract class AbstractWebSecurityFORMTestCase extends WebSecurityPasswor
             nvps.add(new BasicNameValuePair("j_username", user));
             nvps.add(new BasicNameValuePair("j_password", pass));
 
-            httpPost.setEntity(new UrlEncodedFormEntity(nvps, HTTP.UTF_8));
+            httpPost.setEntity(new UrlEncodedFormEntity(nvps, StandardCharsets.UTF_8));
 
             response = httpclient.execute(httpPost);
             entity = response.getEntity();
-            if (entity != null) { EntityUtils.consume(entity); }
+            if (entity != null) {
+                EntityUtils.consume(entity);
+            }
 
             statusLine = response.getStatusLine();
 
@@ -120,15 +142,17 @@ public abstract class AbstractWebSecurityFORMTestCase extends WebSecurityPasswor
             response = httpclient.execute(httpGet);
 
             entity = response.getEntity();
-            if (entity != null) { EntityUtils.consume(entity); }
+            if (entity != null) {
+                EntityUtils.consume(entity);
+            }
 
-            LOGGER.info("Post logon cookies:");
+            LOGGER.trace("Post logon cookies:");
             cookies = httpclient.getCookieStore().getCookies();
             if (cookies.isEmpty()) {
-                LOGGER.info("None");
+                LOGGER.trace("None");
             } else {
                 for (int i = 0; i < cookies.size(); i++) {
-                    LOGGER.info("- " + cookies.get(i).toString());
+                    LOGGER.trace("- " + cookies.get(i).toString());
                 }
             }
 

@@ -23,6 +23,7 @@
 package org.jboss.as.jaxrs.deployment;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Method;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -50,6 +51,7 @@ import org.jboss.metadata.web.jboss.JBossServletsMetaData;
 import org.jboss.metadata.web.jboss.JBossWebMetaData;
 import org.jboss.metadata.web.spec.FilterMetaData;
 import org.jboss.metadata.web.spec.ServletMappingMetaData;
+import org.jboss.modules.Module;
 import org.jboss.modules.ModuleIdentifier;
 import org.jboss.resteasy.plugins.server.servlet.HttpServlet30Dispatcher;
 import org.jboss.resteasy.plugins.server.servlet.ResteasyContextParameters;
@@ -92,21 +94,13 @@ public class JaxrsIntegrationProcessor implements DeploymentUnitProcessor {
             return;
 
         deploymentUnit.getDeploymentSubsystemModel(JaxrsExtension.SUBSYSTEM_NAME);
-        //remove the resteasy.scan parameter
-        //because it is not needed
         final List<ParamValueMetaData> params = webdata.getContextParams();
         boolean entityExpandEnabled = false;
         if (params != null) {
             Iterator<ParamValueMetaData> it = params.iterator();
             while (it.hasNext()) {
                 final ParamValueMetaData param = it.next();
-                if (param.getParamName().equals(RESTEASY_SCAN)) {
-                    it.remove();
-                } else if (param.getParamName().equals(RESTEASY_SCAN_RESOURCES)) {
-                    it.remove();
-                } else if (param.getParamName().equals(RESTEASY_SCAN_PROVIDERS)) {
-                    it.remove();
-                } else if(param.getParamName().equals(ResteasyContextParameters.RESTEASY_EXPAND_ENTITY_REFERENCES)) {
+                if(param.getParamName().equals(ResteasyContextParameters.RESTEASY_EXPAND_ENTITY_REFERENCES)) {
                     entityExpandEnabled = true;
                 }
             }
@@ -116,7 +110,6 @@ public class JaxrsIntegrationProcessor implements DeploymentUnitProcessor {
         if(!entityExpandEnabled) {
             setContextParameter(webdata, ResteasyContextParameters.RESTEASY_EXPAND_ENTITY_REFERENCES, "false");
         }
-
 
         final Map<ModuleIdentifier, ResteasyDeploymentData> attachmentMap = parent.getAttachment(JaxrsAttachments.ADDITIONAL_RESTEASY_DEPLOYMENT_DATA);
         final List<ResteasyDeploymentData> additionalData = new ArrayList<ResteasyDeploymentData>();
@@ -201,52 +194,57 @@ public class JaxrsIntegrationProcessor implements DeploymentUnitProcessor {
             servlet.setAsyncSupported(true);
             addServlet(webdata, servlet);
             setServletMappingPrefix(webdata, JAX_RS_SERVLET_NAME, servlet);
-            return;
+        } else {
+
+            for (Class<? extends Application> applicationClass : applicationClassSet) {
+                String servletName = null;
+
+                servletName = applicationClass.getName();
+                JBossServletMetaData servlet = new JBossServletMetaData();
+                // must load on startup for services like JSAPI to work
+                servlet.setLoadOnStartup("" + 0);
+                servlet.setName(servletName);
+                servlet.setServletClass(HttpServlet30Dispatcher.class.getName());
+                servlet.setAsyncSupported(true);
+                setServletInitParam(servlet, SERVLET_INIT_PARAM, applicationClass.getName());
+                addServlet(webdata, servlet);
+                if (!servletMappingsExist(webdata, servletName)) {
+                    try {
+                        //no mappings, add our own
+                        List<String> patterns = new ArrayList<String>();
+                        //for some reason the spec requires this to be decoded
+                        String pathValue = URLDecoder.decode(applicationClass.getAnnotation(ApplicationPath.class).value().trim(), "UTF-8");
+                        if (!pathValue.startsWith("/")) {
+                            pathValue = "/" + pathValue;
+                        }
+                        String prefix = pathValue;
+                        if (pathValue.endsWith("/")) {
+                            pathValue += "*";
+                        } else {
+                            pathValue += "/*";
+                        }
+                        patterns.add(pathValue);
+                        setServletInitParam(servlet, "resteasy.servlet.mapping.prefix", prefix);
+                        ServletMappingMetaData mapping = new ServletMappingMetaData();
+                        mapping.setServletName(servletName);
+                        mapping.setUrlPatterns(patterns);
+                        if (webdata.getServletMappings() == null) {
+                            webdata.setServletMappings(new ArrayList<ServletMappingMetaData>());
+                        }
+                        webdata.getServletMappings().add(mapping);
+                    } catch (UnsupportedEncodingException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    setServletMappingPrefix(webdata, servletName, servlet);
+                }
+
+            }
         }
 
-        for (Class<? extends Application> applicationClass : applicationClassSet) {
-            String servletName = null;
-
-            servletName = applicationClass.getName();
-            JBossServletMetaData servlet = new JBossServletMetaData();
-            // must load on startup for services like JSAPI to work
-            servlet.setLoadOnStartup("" + 0);
-            servlet.setName(servletName);
-            servlet.setServletClass(HttpServlet30Dispatcher.class.getName());
-            servlet.setAsyncSupported(true);
-            setServletInitParam(servlet, SERVLET_INIT_PARAM, applicationClass.getName());
-            addServlet(webdata, servlet);
-            if (!servletMappingsExist(webdata, servletName)) {
-                try {
-                    //no mappings, add our own
-                    List<String> patterns = new ArrayList<String>();
-                    //for some reason the spec requires this to be decoded
-                    String pathValue = URLDecoder.decode(applicationClass.getAnnotation(ApplicationPath.class).value().trim(), "UTF-8");
-                    if (!pathValue.startsWith("/")) {
-                        pathValue = "/" + pathValue;
-                    }
-                    String prefix = pathValue;
-                    if (pathValue.endsWith("/")) {
-                        pathValue += "*";
-                    } else {
-                        pathValue += "/*";
-                    }
-                    patterns.add(pathValue);
-                    setServletInitParam(servlet, "resteasy.servlet.mapping.prefix", prefix);
-                    ServletMappingMetaData mapping = new ServletMappingMetaData();
-                    mapping.setServletName(servletName);
-                    mapping.setUrlPatterns(patterns);
-                    if (webdata.getServletMappings() == null) {
-                        webdata.setServletMappings(new ArrayList<ServletMappingMetaData>());
-                    }
-                    webdata.getServletMappings().add(mapping);
-                } catch (UnsupportedEncodingException e) {
-                    throw new RuntimeException(e);
-                }
-            } else {
-                setServletMappingPrefix(webdata, servletName, servlet);
-            }
-
+        // suppress warning for EAR deployments, as we can't easily tell here the app is properly declared
+        if (deploymentUnit.getParent() == null && (webdata.getServletMappings() == null || webdata.getServletMappings().isEmpty())) {
+            JAXRS_LOGGER.noServletDeclaration(deploymentUnit.getName());
         }
     }
 
@@ -298,6 +296,20 @@ public class JaxrsIntegrationProcessor implements DeploymentUnitProcessor {
 
     @Override
     public void undeploy(DeploymentUnit context) {
+        //Clear the type cache in jackson databind
+        //see https://issues.jboss.org/browse/WFLY-7037
+        //see https://github.com/FasterXML/jackson-databind/issues/1363
+        //we use reflection to avoid a non optional dependency on jackson
+        try {
+            Module module = context.getAttachment(Attachments.MODULE);
+            Class<?> typeFactoryClass = module.getClassLoader().loadClass("com.fasterxml.jackson.databind.type.TypeFactory");
+            Method defaultInstanceMethod = typeFactoryClass.getMethod("defaultInstance");
+            Object typeFactory = defaultInstanceMethod.invoke(null);
+            Method clearCache = typeFactoryClass.getDeclaredMethod("clearCache");
+            clearCache.invoke(typeFactory);
+        } catch (Exception e) {
+            JAXRS_LOGGER.debugf("Failed to clear class utils LRU map");
+        }
     }
 
     protected void setFilterInitParam(FilterMetaData filter, String name, String value) {

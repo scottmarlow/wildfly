@@ -20,7 +20,7 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<subsystem xmlns="urn:jboss:domain:modcluster:2.0">
+<subsystem xmlns="urn:jboss:domain:modcluster:3.0">
     <!-- Note: attributes below the blank line have values compatible with legacy versions -->
     <mod-cluster-config advertise="${modcluster.advertise:true}"
                         advertise-security-key="${modcluster.advertise-security-key:mysecurekey!}"
@@ -44,7 +44,6 @@
                         stop-context-timeout="${modcluster.stop-context-timeout:10}"
                         ttl="${modcluster.ttl:1}"
                         worker-timeout="${modcluster.worker-timeout:2}"
-
                         session-draining-strategy="DEFAULT"
                         status-interval="10"
             >

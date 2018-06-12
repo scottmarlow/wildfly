@@ -28,9 +28,7 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
-import org.jboss.arquillian.container.test.api.Deployer;
-import org.jboss.arquillian.test.api.ArquillianResource;
-import org.jboss.as.arquillian.container.ManagementClient;
+import org.jboss.as.test.integration.deployment.deploymentoverlay.AbstractOverlayTestBase;
 import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -41,13 +39,7 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
  * @author baranowb
  *
  */
-public class JarOverlayTestBase {
-
-    @ArquillianResource
-    protected ManagementClient managementClient;
-
-    @ArquillianResource
-    protected Deployer deployer;
+public class JarOverlayTestBase extends AbstractOverlayTestBase {
 
     public static Archive<?> createOverlayedArchive(final boolean resourcePresent, final String deploymentOverlayedArchive){
         final JavaArchive jar = ShrinkWrap.create(JavaArchive.class, deploymentOverlayedArchive);
@@ -61,10 +53,10 @@ public class JarOverlayTestBase {
     }
 
     protected static InitialContext getInitialContext() throws NamingException {
-        final Hashtable env = new Hashtable();
+        final Hashtable<String, String> env = new Hashtable<>();
         env.put(Context.URL_PKG_PREFIXES, "org.jboss.ejb.client.naming");
         env.put(Context.INITIAL_CONTEXT_FACTORY, org.jboss.naming.remote.client.InitialContextFactory.class.getName());
-        env.put(Context.PROVIDER_URL, "remote://" + TestSuiteEnvironment.getServerAddress() + ":" + 4447);
+        env.put(Context.PROVIDER_URL, "remote+http://" + TestSuiteEnvironment.getServerAddress() + ":" + 8080);
         return new InitialContext(env);
     }
 

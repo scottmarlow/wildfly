@@ -8,16 +8,19 @@
     <parent>
         <groupId>org.wildfly</groupId>
         <artifactId>wildfly-jpa-parent</artifactId>
-        <version>11.0.0.Alpha1-SNAPSHOT</version>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>14.0.0.Beta1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <properties>
         <version.org.hibernate4_2>4.2.13.Final</version.org.hibernate4_2>
         <version.org.hibernate4_2.commons.annotations>4.0.1.Final</version.org.hibernate4_2.commons.annotations>
-    </properties>    
+    </properties>
 
-    <groupId>org.wildfly</groupId>
     <artifactId>jipijapa-hibernate4-1</artifactId>
     <name>jipijapa Hibernate 4.1.x + 4.2.x (JPA 2.0) integration</name>
 
@@ -25,7 +28,7 @@
         <!-- Internal -->
 
         <dependency>
-            <groupId>org.wildfly</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>jipijapa-spi</artifactId>
             <scope>provided</scope>
         </dependency>
@@ -98,20 +101,13 @@
         </dependency>
 
         <dependency>
-            <groupId>org.hibernate</groupId>
-            <artifactId>hibernate-infinispan</artifactId>
-            <version>${version.org.hibernate4_2}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.jboss</groupId>
             <artifactId>jboss-vfs</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.jboss.spec.javax.annotation</groupId>
-            <artifactId>jboss-annotations-api_1.2_spec</artifactId>
+            <artifactId>jboss-annotations-api_1.3_spec</artifactId>
         </dependency>
 
         <dependency>

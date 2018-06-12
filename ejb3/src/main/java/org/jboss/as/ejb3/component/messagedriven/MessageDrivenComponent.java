@@ -74,6 +74,7 @@ public class MessageDrivenComponent extends EJBComponent implements PooledCompon
     private final ServiceName deliveryControllerName;
     private Endpoint endpoint;
     private String activationName;
+    private volatile boolean suspended = false;
 
     /**
      * Server activity that stops delivery before suspend starts.
@@ -96,12 +97,14 @@ public class MessageDrivenComponent extends EJBComponent implements PooledCompon
         }
 
         public void suspended(ServerActivityCallback listener) {
+            suspended = true;
             listener.done();
         }
 
         @Override
         public void resume() {
             synchronized (MessageDrivenComponent.this) {
+                suspended = false;
                 if (deliveryActive) {
                     activate();
                 }
@@ -115,7 +118,7 @@ public class MessageDrivenComponent extends EJBComponent implements PooledCompon
      * @param ejbComponentCreateService the component configuration
      * @param deliveryActive true if the component must start delivering messages as soon as it is started
      */
-    protected MessageDrivenComponent(final MessageDrivenComponentCreateService ejbComponentCreateService, final Class<?> messageListenerInterface, final ActivationSpec activationSpec, final boolean deliveryActive, final ServiceName deliveryControllerName) {
+    protected MessageDrivenComponent(final MessageDrivenComponentCreateService ejbComponentCreateService, final Class<?> messageListenerInterface, final ActivationSpec activationSpec, final boolean deliveryActive, final ServiceName deliveryControllerName, final String activeResourceAdapterName) {
         super(ejbComponentCreateService);
 
         StatelessObjectFactory<MessageDrivenComponentInstance> factory = new StatelessObjectFactory<MessageDrivenComponentInstance>() {
@@ -142,6 +145,7 @@ public class MessageDrivenComponent extends EJBComponent implements PooledCompon
         this.classLoader = ejbComponentCreateService.getModuleClassLoader();
         this.suspendController = ejbComponentCreateService.getSuspendControllerInjectedValue().getValue();
         this.activationSpec = activationSpec;
+        this.activationName = activeResourceAdapterName + messageListenerInterface.getName();
         final ClassLoader componentClassLoader = doPrivileged(new GetClassLoaderAction(ejbComponentCreateService.getComponentClass()));
         final MessageEndpointService<?> service = new MessageEndpointService<Object>() {
             @Override
@@ -219,26 +223,33 @@ public class MessageDrivenComponent extends EJBComponent implements PooledCompon
         this.endpoint = endpoint;
     }
 
+
     @Override
-    public void start() {
-        if (endpoint == null) {
-            throw EjbLogger.ROOT_LOGGER.endpointUnAvailable(this.getComponentName());
-        }
+    public void start(){
 
         super.start();
 
         synchronized (this) {
             this.started = true;
-            if (this.deliveryActive) {
+            if (this.deliveryActive && !suspended) {
                 this.activate();
             }
         }
+    }
+
+    @Override
+    public void init() {
+        if (endpoint == null) {
+            throw EjbLogger.ROOT_LOGGER.endpointUnAvailable(this.getComponentName());
+        }
+
+        super.init();
+
+        suspendController.registerActivity(serverActivity);
 
         if (this.pool != null) {
             this.pool.start();
         }
-        suspendController.registerActivity(serverActivity);
-
     }
 
     @Override
@@ -264,8 +275,8 @@ public class MessageDrivenComponent extends EJBComponent implements PooledCompon
             WildFlySecurityManager.setCurrentContextClassLoaderPrivileged(classLoader);
 
             this.endpoint.activate(endpointFactory, activationSpec);
-        } catch (ResourceException e) {
-            throw new RuntimeException(e);
+        } catch (Exception e) {
+            throw EjbLogger.ROOT_LOGGER.failedToActivateMdb(getComponentName(), e);
         } finally {
             WildFlySecurityManager.setCurrentContextClassLoaderPrivileged(oldTccl);
         }

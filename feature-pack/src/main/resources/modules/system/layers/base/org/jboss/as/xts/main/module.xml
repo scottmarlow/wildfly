@@ -22,7 +22,7 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<module xmlns="urn:jboss:module:1.3" name="org.jboss.as.xts">
+<module xmlns="urn:jboss:module:1.5" name="org.jboss.as.xts">
     <properties>
         <property name="jboss.api" value="private"/>
     </properties>
@@ -42,10 +42,11 @@
         <module name="org.jboss.as.ee"/>
         <module name="org.jboss.msc"/>
         <module name="org.jboss.as.controller"/>
-        <module name="org.wildfly.security.elytron"/>
+        <module name="org.wildfly.security.elytron-private"/>
         <module name="org.jboss.as.server"/>
         <module name="org.jboss.as.deployment-repository"/>
         <module name="org.jboss.as.transactions"/>
+        <module name="org.jboss.as.network"/>
         <!-- need this for the endpoint service -->
         <module name="org.jboss.as.webservices.server.integration"/>
         <!-- need this for the endpoint security context -->
@@ -70,7 +71,6 @@
         <module name="org.jboss.as.naming"/>
         <module name="org.jboss.as.web-common"/>
         <module name="org.jboss.narayana.compensations" />
-        <module name="org.omg.api"/>
 
         <!-- TODO WFLY-5966 validate the need for these and remove if not needed.
              Prior to WFLY-5922 they were exported by javax.ejb.api. -->

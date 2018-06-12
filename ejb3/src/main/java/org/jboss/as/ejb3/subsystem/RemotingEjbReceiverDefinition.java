@@ -38,12 +38,14 @@ import org.jboss.dmr.ModelType;
 /**
  * {@link org.jboss.as.controller.ResourceDefinition} for remoting ejb receiver in remoting profile.
  *
+ * This is deprecated, but is still required for domain most support for older servers.
+ *
  * @author <a href="mailto:tadamski@redhat.com">Tomasz Adamski</a>
  */
 public class RemotingEjbReceiverDefinition extends SimpleResourceDefinition {
 
     public static final SimpleAttributeDefinition OUTBOUND_CONNECTION_REF = new SimpleAttributeDefinitionBuilder(
-            EJB3SubsystemModel.OUTBOUND_CONNECTION_REF, ModelType.STRING, true).setAllowNull(false).setAllowExpression(true)
+            EJB3SubsystemModel.OUTBOUND_CONNECTION_REF, ModelType.STRING, true).setRequired(true).setAllowExpression(true)
             .build();
 
     public static final SimpleAttributeDefinition CONNECT_TIMEOUT = new SimpleAttributeDefinitionBuilder(

@@ -38,6 +38,7 @@ import org.jboss.as.controller.access.constraint.SensitivityClassification;
 import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraintDefinition;
 import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.core.security.ServerSecurityManager;
 import org.jboss.as.naming.ServiceBasedNamingStore;
 import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.as.naming.service.BinderService;
@@ -64,6 +65,7 @@ import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceTarget;
 import org.jboss.security.ISecurityManagement;
 import org.jboss.security.SecurityContextAssociation;
+import org.jboss.security.SubjectFactory;
 import org.jboss.security.auth.callback.JBossCallbackHandler;
 import org.jboss.security.auth.login.XMLLoginConfigImpl;
 import org.jboss.security.authentication.JBossCachedAuthenticationManager;
@@ -79,27 +81,42 @@ import org.wildfly.security.manager.WildFlySecurityManager;
  */
 public class SecuritySubsystemRootResourceDefinition extends SimpleResourceDefinition {
 
-    static final RuntimeCapability<?> SECURITY_SUBSYSTEM = RuntimeCapability.Builder.of("org.wildfly.security").build();
+    private static final RuntimeCapability<Void> SECURITY_SUBSYSTEM = RuntimeCapability.Builder.of("org.wildfly.legacy-security").build();
+    private static final RuntimeCapability<Void> SERVER_SECURITY_MANAGER = RuntimeCapability.Builder.of("org.wildfly.legacy-security.server-security-manager")
+            .setServiceType(ServerSecurityManager.class)
+            .build();
+    private static final RuntimeCapability<Void> SUBJECT_FACTORY_CAP = RuntimeCapability.Builder.of("org.wildfly.legacy-security.subject-factory")
+            .setServiceType(SubjectFactory.class)
+            .build();
 
-    static final SensitiveTargetAccessConstraintDefinition MISC_SECURITY_SENSITIVITY = new SensitiveTargetAccessConstraintDefinition(
+    private static final SensitiveTargetAccessConstraintDefinition MISC_SECURITY_SENSITIVITY = new SensitiveTargetAccessConstraintDefinition(
             new SensitivityClassification(SecurityExtension.SUBSYSTEM_NAME, "misc-security", false, true, true));
 
     static final SecuritySubsystemRootResourceDefinition INSTANCE = new SecuritySubsystemRootResourceDefinition();
+
     static final SimpleAttributeDefinition DEEP_COPY_SUBJECT_MODE = new SimpleAttributeDefinitionBuilder(Constants.DEEP_COPY_SUBJECT_MODE, ModelType.BOOLEAN, true)
                     .setAccessConstraints(MISC_SECURITY_SENSITIVITY)
                     .setDefaultValue(new ModelNode(false))
                     .setAllowExpression(true)
                     .build();
+    static final SimpleAttributeDefinition INITIALIZE_JACC = new SimpleAttributeDefinitionBuilder(Constants.INITIALIZE_JACC, ModelType.BOOLEAN, true)
+            .setDefaultValue(new ModelNode(true))
+            .setAllowExpression(true)
+            .build();
 
     private SecuritySubsystemRootResourceDefinition() {
-        super(SecurityExtension.PATH_SUBSYSTEM,
-                SecurityExtension.getResourceDescriptionResolver(SecurityExtension.SUBSYSTEM_NAME), NewSecuritySubsystemAdd.INSTANCE, new ReloadRequiredRemoveStepHandler(SECURITY_SUBSYSTEM));
+        super(new Parameters(SecurityExtension.PATH_SUBSYSTEM,
+                SecurityExtension.getResourceDescriptionResolver(SecurityExtension.SUBSYSTEM_NAME))
+                .setAddHandler(SecuritySubsystemAdd.INSTANCE)
+                .setRemoveHandler(ReloadRequiredRemoveStepHandler.INSTANCE)
+                .setCapabilities(SECURITY_SUBSYSTEM, SERVER_SECURITY_MANAGER, SUBJECT_FACTORY_CAP));
         setDeprecated(SecurityExtension.DEPRECATED_SINCE);
     }
 
     @Override
     public void registerAttributes(final ManagementResourceRegistration resourceRegistration) {
          resourceRegistration.registerReadWriteAttribute(DEEP_COPY_SUBJECT_MODE, null, new ReloadRequiredWriteAttributeHandler(DEEP_COPY_SUBJECT_MODE));
+        resourceRegistration.registerReadWriteAttribute(INITIALIZE_JACC, null, new ReloadRequiredWriteAttributeHandler(INITIALIZE_JACC));
     }
 
     @Override
@@ -107,7 +124,7 @@ public class SecuritySubsystemRootResourceDefinition extends SimpleResourceDefin
         resourceRegistration.registerCapability(SECURITY_SUBSYSTEM);
     }
 
-    static class NewSecuritySubsystemAdd extends AbstractBoottimeAddStepHandler {
+    private static class SecuritySubsystemAdd extends AbstractBoottimeAddStepHandler {
         private static final String AUTHENTICATION_MANAGER = ModuleName.PICKETBOX.getName() + ":" + ModuleName.PICKETBOX.getSlot()
                 + ":" + JBossCachedAuthenticationManager.class.getName();
 
@@ -129,15 +146,12 @@ public class SecuritySubsystemRootResourceDefinition extends SimpleResourceDefin
         private static final String SUBJECT_FACTORY = ModuleName.PICKETBOX.getName() + ":" + ModuleName.PICKETBOX.getSlot() + ":"
                 + JBossSecuritySubjectFactory.class.getName();
 
-        public static final OperationStepHandler INSTANCE = new NewSecuritySubsystemAdd();
-
-        NewSecuritySubsystemAdd() {
-            super(SECURITY_SUBSYSTEM);
-        }
+        public static final OperationStepHandler INSTANCE = new SecuritySubsystemAdd();
 
         @Override
         protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
             DEEP_COPY_SUBJECT_MODE.validateAndSet(operation, model);
+            INITIALIZE_JACC.validateAndSet(operation, model);
         }
 
         @Override
@@ -149,8 +163,8 @@ public class SecuritySubsystemRootResourceDefinition extends SimpleResourceDefin
                 WildFlySecurityManager.setPropertyPrivileged(SecurityContextAssociation.SECURITYCONTEXT_THREADLOCAL, "true");
             }
             final ServiceTarget target = context.getServiceTarget();
-
-            final SecurityBootstrapService bootstrapService = new SecurityBootstrapService();
+            ModelNode initializeJaccNode = SecuritySubsystemRootResourceDefinition.INITIALIZE_JACC.resolveModelAttribute(context,model);
+            final SecurityBootstrapService bootstrapService = new SecurityBootstrapService(initializeJaccNode.asBoolean());
             target.addService(SecurityBootstrapService.SERVICE_NAME, bootstrapService)
                 .addDependency(Services.JBOSS_SERVICE_MODULE_LOADER, ServiceModuleLoader.class, bootstrapService.getServiceModuleLoaderInjectedValue())
                 .setInitialMode(ServiceController.Mode.ACTIVE).install();
@@ -176,7 +190,8 @@ public class SecuritySubsystemRootResourceDefinition extends SimpleResourceDefin
 
             // add subject factory service
             final SubjectFactoryService subjectFactoryService = new SubjectFactoryService(SUBJECT_FACTORY);
-            target.addService(SubjectFactoryService.SERVICE_NAME, subjectFactoryService)
+            target.addService(SUBJECT_FACTORY_CAP.getCapabilityServiceName(), subjectFactoryService)
+                .addAliases(SubjectFactoryService.SERVICE_NAME)
                 .addDependency(SecurityManagementService.SERVICE_NAME, ISecurityManagement.class,
                         subjectFactoryService.getSecurityManagementInjector())
                 .setInitialMode(ServiceController.Mode.ACTIVE).install();
@@ -201,7 +216,8 @@ public class SecuritySubsystemRootResourceDefinition extends SimpleResourceDefin
             //add Simple Security Manager Service
             final SimpleSecurityManagerService simpleSecurityManagerService = new SimpleSecurityManagerService();
 
-            target.addService(SimpleSecurityManagerService.SERVICE_NAME, simpleSecurityManagerService)
+            target.addService(SERVER_SECURITY_MANAGER.getCapabilityServiceName(), simpleSecurityManagerService)
+                .addAliases(SimpleSecurityManagerService.SERVICE_NAME)
                 .addDependency(SecurityManagementService.SERVICE_NAME)
                 .install();
 

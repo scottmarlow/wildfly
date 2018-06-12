@@ -22,7 +22,7 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<module xmlns="urn:jboss:module:1.3" name="org.jboss.metadata.ejb">
+<module xmlns="urn:jboss:module:1.5" name="org.jboss.metadata.ejb">
     <properties>
         <property name="jboss.api" value="private"/>
     </properties>
@@ -50,6 +50,5 @@
         <module name="javax.transaction.api" optional="true"/>
         <module name="javax.xml.rpc.api" optional="true"/>
         <module name="javax.rmi.api" optional="true"/>
-        <module name="org.omg.api" optional="true"/>
     </dependencies>
 </module>

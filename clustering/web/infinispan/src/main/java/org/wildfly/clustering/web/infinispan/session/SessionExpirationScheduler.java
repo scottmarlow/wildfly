@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 import org.jboss.threads.JBossThreadFactory;
 import org.wildfly.clustering.ee.Batch;
 import org.wildfly.clustering.ee.Batcher;
-import org.wildfly.clustering.ee.infinispan.Remover;
+import org.wildfly.clustering.ee.Remover;
 import org.wildfly.clustering.ee.infinispan.TransactionBatch;
 import org.wildfly.clustering.infinispan.spi.distribution.Locality;
 import org.wildfly.clustering.web.infinispan.logging.InfinispanWebLogger;
@@ -106,29 +106,38 @@ public class SessionExpirationScheduler implements Scheduler {
 
     @Override
     public void cancel(Locality locality) {
-        this.expirationFutures.keySet().stream().filter(sessionId -> !locality.isLocal(sessionId)).forEach(sessionId -> this.cancel(sessionId));
+        for (String sessionId : this.expirationFutures.keySet()) {
+            if (Thread.currentThread().isInterrupted()) break;
+            if (!locality.isLocal(sessionId)) {
+                this.cancel(sessionId);
+            }
+        }
     }
 
     @Override
     public void close() {
         this.executor.shutdown();
-        this.expirationFutures.values().forEach(future -> future.cancel(false));
-        this.expirationFutures.values().stream().filter(future -> !future.isDone()).forEach(future -> {
-            try {
-                future.get();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } catch (ExecutionException e) {
-                // Ignore
+        for (Future<?> future : this.expirationFutures.values()) {
+            future.cancel(true);
+        }
+        for (Future<?> future : this.expirationFutures.values()) {
+            if (!future.isDone()) {
+                try {
+                    future.get();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } catch (ExecutionException e) {
+                    // Ignore
+                }
             }
-        });
+        }
         this.expirationFutures.clear();
     }
 
     private class ExpirationTask implements Runnable {
         private final String id;
 
-        public ExpirationTask(String id) {
+        ExpirationTask(String id) {
             this.id = id;
         }
 

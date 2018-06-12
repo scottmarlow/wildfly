@@ -21,11 +21,13 @@
  */
 package org.jboss.as.test.clustering;
 
-import javax.naming.NamingException;
-
+import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.server.security.ServerPermission;
 import org.jboss.as.test.clustering.ejb.EJBDirectory;
+import org.jboss.as.test.integration.management.util.CLITestUtil;
+import org.jboss.as.test.shared.ServerReload;
 import org.jboss.as.test.shared.integration.ejb.security.PermissionUtils;
+import org.jboss.dmr.ModelNode;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.container.ClassContainer;
@@ -35,44 +37,38 @@ import org.jboss.shrinkwrap.api.container.ManifestContainer;
  * Utility class for clustering tests.
  *
  * @author Radoslav Husar
- * @version September 2012
  */
 public class ClusterTestUtil {
-
-    public static void waitForReplication(int millis) {
-        if ("SYNC".equals(ClusteringTestConstants.TEST_CACHE_MODE)) {
-            // In case the replication is sync, we do not need to wait for the replication to happen.
-            return;
-        }
-        // TODO: Instead of dummy waiting, we could attach a listener and notify the test framework the replication has happened. millis value can be used as timeout in that case.
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException iex) {
-        }
-    }
 
     /**
      * <em>Note that should you need to manually add an extra set of permissions, the following permission is required for this utility to work within
      * security manager:</em>
      *
      * <pre>{@code
-     * war.addAsManifestResource(PermissionUtils.createPermissionsXmlAsset(
-     *     new ServerPermission("getCurrentServiceContainer")
-     * ), "permissions.xml");
+     * war.addAsManifestResource(PermissionUtils.createPermissionsXmlAsset(new ServerPermission("getCurrentServiceContainer")), "permissions.xml");
      * }</pre>
      */
     public static <A extends Archive<A> & ClassContainer<A> & ManifestContainer<A>> A addTopologyListenerDependencies(A archive) {
         archive.addClasses(TopologyChangeListener.class, TopologyChangeListenerBean.class, TopologyChangeListenerServlet.class);
-        archive.setManifest(new StringAsset("Manifest-Version: 1.0\nDependencies: org.jboss.msc, org.jboss.as.clustering.common, org.jboss.as.server, org.infinispan\n"));
-        archive.addAsManifestResource(PermissionUtils.createPermissionsXmlAsset(
-                new ServerPermission("getCurrentServiceContainer")
-        ), "permissions.xml");
+        archive.setManifest(new StringAsset("Manifest-Version: 1.0\nDependencies: org.jboss.as.clustering.common, org.jboss.as.controller, org.jboss.as.server, org.infinispan, org.wildfly.clustering.infinispan.spi\n"));
+        archive.addAsManifestResource(PermissionUtils.createPermissionsXmlAsset(new ServerPermission("getCurrentServiceContainer")), "permissions.xml");
         return archive;
     }
 
-    public static void establishTopology(EJBDirectory directory, String container, String cache, String... nodes) throws NamingException, InterruptedException {
+    public static void establishTopology(EJBDirectory directory, String container, String cache, String... nodes) throws Exception {
         TopologyChangeListener listener = directory.lookupStateless(TopologyChangeListenerBean.class, TopologyChangeListener.class);
         listener.establishTopology(container, cache, TopologyChangeListener.DEFAULT_TIMEOUT, nodes);
+    }
+
+    // Model management convenience methods
+
+    public static void executeOnNodesAndReload(String cli, ManagementClient... clients) throws Exception {
+        ModelNode request = CLITestUtil.getCommandContext().buildRequest(cli);
+
+        for (ManagementClient client : clients) {
+            client.getControllerClient().execute(request);
+            ServerReload.executeReloadAndWaitForCompletion(client.getControllerClient(), ServerReload.TIMEOUT, false, client.getMgmtAddress(), client.getMgmtPort());
+        }
     }
 
     private ClusterTestUtil() {

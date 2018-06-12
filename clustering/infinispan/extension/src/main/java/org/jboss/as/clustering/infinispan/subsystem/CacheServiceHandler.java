@@ -22,38 +22,45 @@
 
 package org.jboss.as.clustering.infinispan.subsystem;
 
+import static org.jboss.as.clustering.infinispan.subsystem.CacheResourceDefinition.CLUSTERING_CAPABILITIES;
+import static org.jboss.as.clustering.infinispan.subsystem.CacheResourceDefinition.Attribute.MODULE;
+import static org.jboss.as.clustering.infinispan.subsystem.CacheResourceDefinition.Capability.CACHE;
+import static org.jboss.as.clustering.infinispan.subsystem.CacheResourceDefinition.Capability.CONFIGURATION;
+
+import java.util.EnumSet;
 import java.util.ServiceLoader;
 
-import org.infinispan.Cache;
-import org.infinispan.configuration.cache.Configuration;
+import org.jboss.as.clustering.controller.CapabilityServiceConfigurator;
+import org.jboss.as.clustering.controller.ModuleServiceConfigurator;
+import org.jboss.as.clustering.controller.ResourceServiceConfiguratorFactory;
 import org.jboss.as.clustering.controller.ResourceServiceHandler;
-import org.jboss.as.clustering.controller.ResourceServiceBuilderFactory;
-import org.jboss.as.clustering.dmr.ModelNodes;
-import org.jboss.as.clustering.naming.BinderServiceBuilder;
-import org.jboss.as.clustering.naming.JndiNameFactory;
+import org.jboss.as.clustering.infinispan.subsystem.CacheResourceDefinition.Capability;
+import org.jboss.as.clustering.naming.BinderServiceConfigurator;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
-import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceController;
+import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceTarget;
-import org.wildfly.clustering.infinispan.spi.service.CacheBuilder;
-import org.wildfly.clustering.infinispan.spi.service.CacheServiceName;
-import org.wildfly.clustering.service.Builder;
-import org.wildfly.clustering.service.SubGroupServiceNameFactory;
-import org.wildfly.clustering.spi.CacheGroupBuilderProvider;
+import org.wildfly.clustering.infinispan.spi.service.CacheServiceConfigurator;
+import org.wildfly.clustering.service.IdentityServiceConfigurator;
+import org.wildfly.clustering.service.ServiceNameProvider;
+import org.wildfly.clustering.spi.CacheServiceConfiguratorProvider;
+import org.wildfly.clustering.spi.CapabilityServiceNameRegistry;
+import org.wildfly.clustering.spi.ClusteringCacheRequirement;
+import org.wildfly.clustering.spi.ServiceNameRegistry;
 
 /**
  * @author Paul Ferraro
  */
 public class CacheServiceHandler implements ResourceServiceHandler {
 
-    private final ResourceServiceBuilderFactory<Configuration> builderFactory;
-    private final Class<? extends CacheGroupBuilderProvider> providerClass;
+    private final ResourceServiceConfiguratorFactory configuratorFactory;
+    private final Class<? extends CacheServiceConfiguratorProvider> providerClass;
 
-    CacheServiceHandler(ResourceServiceBuilderFactory<Configuration> builderFactory, Class<? extends CacheGroupBuilderProvider> providerClass) {
-        this.builderFactory = builderFactory;
+    CacheServiceHandler(ResourceServiceConfiguratorFactory configuratorFactory, Class<? extends CacheServiceConfiguratorProvider> providerClass) {
+        this.configuratorFactory = configuratorFactory;
         this.providerClass = providerClass;
     }
 
@@ -67,21 +74,26 @@ public class CacheServiceHandler implements ResourceServiceHandler {
 
         ServiceTarget target = context.getServiceTarget();
 
-        this.builderFactory.createBuilder(cacheAddress).configure(context, model).build(target).setInitialMode(ServiceController.Mode.PASSIVE).install();
-
-        new CacheBuilder<>(containerName, cacheName).build(target).install();
-        new XAResourceRecoveryBuilder(containerName, cacheName).build(target).install();
-
-        BinderServiceBuilder<?> bindingBuilder = new BinderServiceBuilder<>(InfinispanBindingFactory.createCacheBinding(containerName, cacheName), CacheServiceName.CACHE.getServiceName(containerName, cacheName), Cache.class);
-        String jndiName = ModelNodes.asString(CacheResourceDefinition.Attribute.JNDI_NAME.getDefinition().resolveModelAttribute(context, model));
-        if (jndiName != null) {
-            bindingBuilder.alias(ContextNames.bindInfoFor(JndiNameFactory.parse(jndiName).getAbsoluteName()));
+        ServiceName moduleServiceName = CacheComponent.MODULE.getServiceName(cacheAddress);
+        if (model.hasDefined(MODULE.getName())) {
+            new ModuleServiceConfigurator(moduleServiceName, MODULE).configure(context, model).build(target).setInitialMode(ServiceController.Mode.ON_DEMAND).install();
+        } else {
+            new IdentityServiceConfigurator<>(moduleServiceName, CacheContainerComponent.MODULE.getServiceName(containerAddress)).build(target).install();
         }
-        bindingBuilder.build(target).install();
 
-        for (CacheGroupBuilderProvider provider : ServiceLoader.load(this.providerClass, this.providerClass.getClassLoader())) {
-            for (Builder<?> builder : provider.getBuilders(containerName, cacheName)) {
-                builder.build(target).install();
+        this.configuratorFactory.createServiceConfigurator(cacheAddress).configure(context, model).build(target).install();
+
+        new CacheServiceConfigurator<>(CACHE.getServiceName(cacheAddress), containerName, cacheName).configure(context).build(target).install();
+        new XAResourceRecoveryServiceConfigurator(cacheAddress).build(target).install();
+
+        new BinderServiceConfigurator(InfinispanBindingFactory.createCacheConfigurationBinding(containerName, cacheName), CONFIGURATION.getServiceName(cacheAddress)).build(target).install();
+        new BinderServiceConfigurator(InfinispanBindingFactory.createCacheBinding(containerName, cacheName), CACHE.getServiceName(cacheAddress)).build(target).install();
+
+        ServiceNameRegistry<ClusteringCacheRequirement> registry = new CapabilityServiceNameRegistry<>(CLUSTERING_CAPABILITIES, cacheAddress);
+
+        for (CacheServiceConfiguratorProvider provider : ServiceLoader.load(this.providerClass, this.providerClass.getClassLoader())) {
+            for (CapabilityServiceConfigurator configurator : provider.getServiceConfigurators(registry, containerName, cacheName)) {
+                configurator.configure(context).build(target).install();
             }
         }
     }
@@ -94,18 +106,22 @@ public class CacheServiceHandler implements ResourceServiceHandler {
         String containerName = containerAddress.getLastElement().getValue();
         String cacheName = cacheAddress.getLastElement().getValue();
 
-        for (CacheGroupBuilderProvider provider : ServiceLoader.load(this.providerClass, this.providerClass.getClassLoader())) {
-            for (Builder<?> builder : provider.getBuilders(containerName, cacheName)) {
-                context.removeService(builder.getServiceName());
+        ServiceNameRegistry<ClusteringCacheRequirement> registry = new CapabilityServiceNameRegistry<>(CLUSTERING_CAPABILITIES, cacheAddress);
+
+        for (CacheServiceConfiguratorProvider provider : ServiceLoader.load(this.providerClass, this.providerClass.getClassLoader())) {
+            for (ServiceNameProvider configurator : provider.getServiceConfigurators(registry, containerName, cacheName)) {
+                context.removeService(configurator.getServiceName());
             }
         }
 
         context.removeService(InfinispanBindingFactory.createCacheBinding(containerName, cacheName).getBinderServiceName());
+        context.removeService(InfinispanBindingFactory.createCacheConfigurationBinding(containerName, cacheName).getBinderServiceName());
 
-        for (SubGroupServiceNameFactory factory : CacheServiceName.values()) {
-            context.removeService(factory.getServiceName(containerName, cacheName));
+        context.removeService(new XAResourceRecoveryServiceConfigurator(cacheAddress).getServiceName());
+        context.removeService(CacheComponent.MODULE.getServiceName(cacheAddress));
+
+        for (Capability capability : EnumSet.allOf(Capability.class)) {
+            context.removeService(capability.getServiceName(cacheAddress));
         }
-
-        context.removeService(this.builderFactory.createBuilder(cacheAddress).getServiceName());
     }
 }

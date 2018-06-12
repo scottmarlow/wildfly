@@ -44,6 +44,7 @@ import org.jboss.as.ee.component.interceptors.InterceptorClassDescription;
 import org.jboss.as.ee.component.interceptors.InterceptorOrder;
 import org.jboss.as.ee.component.serialization.WriteReplaceInterface;
 import org.jboss.as.ee.metadata.MetadataCompleteMarker;
+import org.jboss.as.ejb3.component.EJBComponentDescription;
 import org.jboss.as.ejb3.logging.EjbLogger;
 import org.jboss.as.ejb3.component.EJBViewDescription;
 import org.jboss.as.ejb3.component.MethodIntf;
@@ -51,7 +52,6 @@ import org.jboss.as.ejb3.component.interceptors.ComponentTypeIdentityInterceptor
 import org.jboss.as.ejb3.component.session.SessionBeanComponentDescription;
 import org.jboss.as.ejb3.component.session.StatelessRemoteViewInstanceFactory;
 import org.jboss.as.ejb3.component.session.StatelessWriteReplaceInterceptor;
-import org.jboss.as.ejb3.concurrency.ContainerManagedConcurrencyInterceptorFactory;
 import org.jboss.as.ejb3.deployment.EjbJarDescription;
 import org.jboss.as.ejb3.security.SecurityContextInterceptorFactory;
 import org.jboss.as.ejb3.tx.EjbBMTInterceptor;
@@ -121,11 +121,14 @@ public class SingletonComponentDescription extends SessionBeanComponentDescripti
                         if (deploymentUnit.getParent() != null) {
                             contextID = deploymentUnit.getParent().getName() + "!" + contextID;
                         }
+                        EJBComponentDescription ejbComponentDescription = (EJBComponentDescription) description;
+                        final boolean securityRequired = isExplicitSecurityDomainConfigured();
+                        ejbComponentDescription.setSecurityRequired(securityRequired);
                         if (isSecurityDomainKnown()) {
-                            final HashMap<Integer, InterceptorFactory> elytronInterceptorFactories = getElytronInterceptorFactories(contextID);
+                            final HashMap<Integer, InterceptorFactory> elytronInterceptorFactories = getElytronInterceptorFactories(contextID, ejbComponentDescription.isEnableJacc(), false);
                             elytronInterceptorFactories.forEach((priority, elytronInterceptorFactory) -> configuration.addPostConstructInterceptor(elytronInterceptorFactory, priority));
                         } else {
-                            configuration.addPostConstructInterceptor(new SecurityContextInterceptorFactory(isExplicitSecurityDomainConfigured(), false, contextID), InterceptorOrder.View.SECURITY_CONTEXT);
+                            configuration.addPostConstructInterceptor(new SecurityContextInterceptorFactory(securityRequired, false, contextID), InterceptorOrder.View.SECURITY_CONTEXT);
                         }
                     }
                 });
@@ -148,9 +151,7 @@ public class SingletonComponentDescription extends SessionBeanComponentDescripti
                     final EEApplicationClasses applicationClasses = context.getDeploymentUnit().getAttachment(Attachments.EE_APPLICATION_CLASSES_DESCRIPTION);
                     InterceptorClassDescription interceptorConfig = ComponentDescription.mergeInterceptorConfig(configuration.getComponentClass(), applicationClasses.getClassByName(description.getComponentClassName()), description, MetadataCompleteMarker.isMetadataComplete(context.getDeploymentUnit()));
 
-                    if(interceptorConfig.getPostConstruct() != null) {
-                        configuration.addPostConstructInterceptor(new LifecycleCMTTxInterceptor.Factory(interceptorConfig.getPostConstruct(), true), InterceptorOrder.ComponentPostConstruct.TRANSACTION_INTERCEPTOR);
-                    }
+                    configuration.addPostConstructInterceptor(new LifecycleCMTTxInterceptor.Factory(interceptorConfig.getPostConstruct(), true), InterceptorOrder.ComponentPostConstruct.TRANSACTION_INTERCEPTOR);
                     configuration.addPreDestroyInterceptor(new LifecycleCMTTxInterceptor.Factory(interceptorConfig.getPreDestroy() ,true), InterceptorOrder.ComponentPreDestroy.TRANSACTION_INTERCEPTOR);
 
                     configuration.addTimeoutViewInterceptor(TimerCMTTxInterceptor.FACTORY, InterceptorOrder.View.CMT_TRANSACTION_INTERCEPTOR);
@@ -192,11 +193,6 @@ public class SingletonComponentDescription extends SessionBeanComponentDescripti
     public void initOnStartup() {
         this.initOnStartup = true;
 
-    }
-
-    @Override
-    public boolean allowsConcurrentAccess() {
-        return true;
     }
 
     @Override

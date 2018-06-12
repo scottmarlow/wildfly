@@ -82,7 +82,13 @@ public class ClientCompatibilityUnitTestCase {
             op.get(ModelDescriptionConstants.OP_ADDR).set(address());
             op.get(ModelDescriptionConstants.OP).set(ModelDescriptionConstants.ADD);
             op.get(ModelDescriptionConstants.SOCKET_BINDING).set("management-native");
-            op.get(ModelDescriptionConstants.SECURITY_REALM).set("ManagementRealm");
+
+            if (System.getProperty("elytron") == null) { // legacy security
+                op.get(ModelDescriptionConstants.SECURITY_REALM).set("ManagementRealm");
+            } else { // elytron
+                op.get(ModelDescriptionConstants.SASL_AUTHENTICATION_FACTORY).set("management-sasl-authentication");
+            }
+
             ManagementOperations.executeOperation(managementClient.getControllerClient(), op);
         }
 
@@ -206,6 +212,36 @@ public class ClientCompatibilityUnitTestCase {
     }
 
     @Test
+    public void testCore210Final() throws Exception {
+        testWF("2.1.0.Final", 9999);
+    }
+
+    @Test
+    public void testCore210FinalHttp() throws Exception {
+        testWF("2.1.0.Final", 9990);
+    }
+
+    @Test
+    public void testCore221Final() throws Exception {
+        testWF("2.2.1.Final", 9999);
+    }
+
+    @Test
+    public void testCore221FinalHttp() throws Exception {
+        testWF("2.2.1.Final", 9990);
+    }
+
+    @Test
+    public void testCore3010Final() throws Exception {
+        testWF("3.0.10.Final", 9999);
+    }
+
+    @Test
+    public void testCore3010FinalHttp() throws Exception {
+        testWF("3.0.10.Final", 9990);
+    }
+
+    @Test
     public void testCurrent() throws Exception {
         test(ModelControllerClient.Factory.create(CONTROLLER_ADDRESS, 9999));
     }
@@ -269,7 +305,6 @@ public class ClientCompatibilityUnitTestCase {
 
         final ChildFirstClassLoaderBuilder classLoaderBuilder = new ChildFirstClassLoaderBuilder(false);
         classLoaderBuilder.addRecursiveMavenResourceURL(artifact + ":" + version, excludes);
-        classLoaderBuilder.addParentFirstClassPattern("org.jboss.as.controller.client.ModelControllerClientConfiguration");
         classLoaderBuilder.addParentFirstClassPattern("org.jboss.as.controller.client.ModelControllerClient");
         classLoaderBuilder.addParentFirstClassPattern("org.jboss.as.controller.client.OperationMessageHandler");
         classLoaderBuilder.addParentFirstClassPattern("org.jboss.as.controller.client.Operation");

@@ -25,7 +25,12 @@ package org.wildfly.extension.messaging.activemq;
 import java.io.IOException;
 import java.util.Properties;
 
+import org.jboss.as.clustering.jgroups.subsystem.JGroupsSubsystemInitialization;
+import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.subsystem.test.AbstractSubsystemBaseTest;
+import org.jboss.as.subsystem.test.AdditionalInitialization;
+import org.jboss.as.subsystem.test.KernelServices;
+import org.jboss.dmr.ModelNode;
 import org.junit.Test;
 
 /**
@@ -35,6 +40,18 @@ public class MessagingActiveMQSubsystem_1_0_TestCase extends AbstractSubsystemBa
 
     public MessagingActiveMQSubsystem_1_0_TestCase() {
         super(MessagingExtension.SUBSYSTEM_NAME, new MessagingExtension());
+    }
+
+    @Override
+    protected AdditionalInitialization createAdditionalInitialization() {
+        return new JGroupsSubsystemInitialization();
+    }
+
+    @Override
+    protected void compare(ModelNode model1, ModelNode model2) {
+        model1.get(ModelDescriptionConstants.SUBSYSTEM).remove("jgroups");
+        model2.get(ModelDescriptionConstants.SUBSYSTEM).remove("jgroups");
+        super.compare(model1, model2);
     }
 
     @Override
@@ -48,10 +65,8 @@ public class MessagingActiveMQSubsystem_1_0_TestCase extends AbstractSubsystemBa
     }
 
     @Override
-    protected String[] getSubsystemTemplatePaths() throws IOException {
-        return new String[] {
-                "/subsystem-templates/messaging-activemq.xml"
-        };
+    protected KernelServices standardSubsystemTest(String configId, boolean compareXml) throws Exception {
+        return super.standardSubsystemTest(configId, false);
     }
 
     @Override
@@ -68,6 +83,6 @@ public class MessagingActiveMQSubsystem_1_0_TestCase extends AbstractSubsystemBa
 
     @Test
     public void testHAPolicyConfiguration() throws Exception {
-        standardSubsystemTest("subsystem_1_0_ha-policy.xml");
+        standardSubsystemTest("subsystem_1_0_ha-policy.xml", false);
     }
 }

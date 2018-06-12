@@ -42,8 +42,11 @@ import static org.jboss.as.connector.subsystems.common.pool.Constants.VALIDATE_O
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.ALLOCATION_RETRY;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.ALLOCATION_RETRY_WAIT_MILLIS;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.APPLICATION;
+import static org.jboss.as.connector.subsystems.resourceadapters.Constants.AUTHENTICATION_CONTEXT;
+import static org.jboss.as.connector.subsystems.resourceadapters.Constants.AUTHENTICATION_CONTEXT_AND_APPLICATION;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.CLASS_NAME;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.CONNECTABLE;
+import static org.jboss.as.connector.subsystems.resourceadapters.Constants.ELYTRON_ENABLED;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.ENABLED;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.ENLISTMENT;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.INTERLEAVING;
@@ -53,6 +56,8 @@ import static org.jboss.as.connector.subsystems.resourceadapters.Constants.NO_RE
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.PAD_XID;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.RECOVERLUGIN_CLASSNAME;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.RECOVERLUGIN_PROPERTIES;
+import static org.jboss.as.connector.subsystems.resourceadapters.Constants.RECOVERY_AUTHENTICATION_CONTEXT;
+import static org.jboss.as.connector.subsystems.resourceadapters.Constants.RECOVERY_ELYTRON_ENABLED;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.RECOVERY_PASSWORD;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.RECOVERY_SECURITY_DOMAIN;
 import static org.jboss.as.connector.subsystems.resourceadapters.Constants.RECOVERY_USERNAME;
@@ -70,6 +75,7 @@ import static org.jboss.as.connector.subsystems.resourceadapters.Constants.XA_RE
 
 import java.util.Map;
 
+import org.jboss.as.connector.metadata.api.resourceadapter.WorkManagerSecurity;
 import org.jboss.as.connector.services.mdr.AS7MetadataRepository;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleAttributeDefinition;
@@ -86,7 +92,6 @@ import org.jboss.jca.common.api.metadata.common.XaPool;
 import org.jboss.jca.common.api.metadata.resourceadapter.Activation;
 import org.jboss.jca.common.api.metadata.resourceadapter.AdminObject;
 import org.jboss.jca.common.api.metadata.resourceadapter.ConnectionDefinition;
-import org.jboss.jca.common.api.metadata.resourceadapter.WorkManagerSecurity;
 import org.jboss.jca.core.spi.statistics.StatisticsPlugin;
 
 /**
@@ -209,11 +214,17 @@ public class IronJacamarResourceCreator {
         }
         final Security security = connDef.getSecurity();
         if (security != null) {
-            setAttribute(model, SECURITY_DOMAIN_AND_APPLICATION, security.getSecurityDomainAndApplication());
-
             setAttribute(model, APPLICATION, security.isApplication());
 
-            setAttribute(model, SECURITY_DOMAIN, security.getSecurityDomain());
+            if (security instanceof org.jboss.as.connector.metadata.api.common.Security &&
+                    ((org.jboss.as.connector.metadata.api.common.Security) security).isElytronEnabled()) {
+                setAttribute(model, ELYTRON_ENABLED, true);
+                setAttribute(model, AUTHENTICATION_CONTEXT, security.getSecurityDomain());
+                setAttribute(model, AUTHENTICATION_CONTEXT_AND_APPLICATION, security.getSecurityDomainAndApplication());
+            } else {
+                setAttribute(model, SECURITY_DOMAIN, security.getSecurityDomain());
+                setAttribute(model, SECURITY_DOMAIN_AND_APPLICATION, security.getSecurityDomainAndApplication());
+            }
         }
         final TimeOut timeOut = connDef.getTimeOut();
         if (timeOut != null) {
@@ -249,10 +260,16 @@ public class IronJacamarResourceCreator {
                     }
                 }
             }
-            final Credential recoveryCredential = recovery.getCredential();
+            final Credential recoveryCredential =  recovery.getCredential();
             if (recoveryCredential != null) {
                 setAttribute(model, RECOVERY_PASSWORD, recoveryCredential.getPassword());
-                setAttribute(model, RECOVERY_SECURITY_DOMAIN, recoveryCredential.getSecurityDomain());
+                if (recoveryCredential instanceof org.jboss.as.connector.metadata.api.common.Credential &&
+                        ((org.jboss.as.connector.metadata.api.common.Credential) recoveryCredential).isElytronEnabled()) {
+                    setAttribute(model, RECOVERY_ELYTRON_ENABLED, true);
+                    setAttribute(model, RECOVERY_AUTHENTICATION_CONTEXT, recoveryCredential.getSecurityDomain());
+                } else {
+                    setAttribute(model, RECOVERY_SECURITY_DOMAIN, recoveryCredential.getSecurityDomain());
+                }
                 setAttribute(model, RECOVERY_USERNAME, recoveryCredential.getUserName());
             }
         }
@@ -290,7 +307,7 @@ public class IronJacamarResourceCreator {
         if (ironJacamarMetadata.getTransactionSupport() != null)
             model.get(Constants.TRANSACTION_SUPPORT.getName()).set(ironJacamarMetadata.getTransactionSupport().name());
         if (ironJacamarMetadata.getWorkManager() != null && ironJacamarMetadata.getWorkManager().getSecurity() != null) {
-            WorkManagerSecurity security = ironJacamarMetadata.getWorkManager().getSecurity();
+            org.jboss.jca.common.api.metadata.resourceadapter.WorkManagerSecurity security = ironJacamarMetadata.getWorkManager().getSecurity();
             model.get(Constants.WM_SECURITY.getName()).set(true);
             if (security.getDefaultGroups() != null) {
                 for (String group : security.getDefaultGroups()) {
@@ -300,7 +317,12 @@ public class IronJacamarResourceCreator {
             if (security.getDefaultPrincipal() != null)
                 model.get(Constants.WM_SECURITY_DEFAULT_PRINCIPAL.getName()).set(security.getDefaultPrincipal());
             model.get(Constants.WM_SECURITY_MAPPING_REQUIRED.getName()).set(security.isMappingRequired());
-            model.get(Constants.WM_SECURITY_DOMAIN.getName()).set(security.getDomain());
+            if (security instanceof  WorkManagerSecurity && ((WorkManagerSecurity) security).isElytronEnabled()) {
+                model.get(Constants.WM_ELYTRON_SECURITY_DOMAIN.getName()).set(security.getDomain());
+            }
+            else {
+                model.get(Constants.WM_SECURITY_DOMAIN.getName()).set(security.getDomain());
+            }
             if (security.getGroupMappings() != null) {
                 for (Map.Entry<String, String> entry : security.getGroupMappings().entrySet()) {
                     final Resource mapping = new IronJacamarResource.IronJacamarRuntimeResource();

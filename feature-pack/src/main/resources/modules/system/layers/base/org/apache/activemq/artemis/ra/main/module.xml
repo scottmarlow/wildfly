@@ -22,14 +22,13 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<module xmlns="urn:jboss:module:1.3" name="org.apache.activemq.artemis.ra">
+<module xmlns="urn:jboss:module:1.5" name="org.apache.activemq.artemis.ra">
     <properties>
         <property name="jboss.api" value="private"/>
     </properties>
 
     <resources>
         <artifact name="${org.apache.activemq:artemis-ra}"/>
-        <artifact name="${org.apache.activemq:artemis-service-extensions}"/>
     </resources>
 
     <dependencies>
@@ -43,7 +42,7 @@
         <module name="org.jboss.jts"/>
         <module name="org.jboss.logging"/>
         <!-- allow to create a RA that connects to a remote Artemis server -->
-        <module name="org.jboss.remote-naming" optional="true"/>
+        <module name="org.wildfly.naming-client" optional="true"/>
         <module name="org.jgroups"/>
         <module name="org.wildfly.extension.messaging-activemq" services="import"/>
     </dependencies>

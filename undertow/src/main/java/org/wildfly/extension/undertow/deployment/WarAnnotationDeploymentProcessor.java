@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source.
- * Copyright 2013, Red Hat, Inc., and individual contributors
+ * Copyright 2017, Red Hat, Inc., and individual contributors
  * as indicated by the @author tags. See the copyright.txt file in the
  * distribution for a full listing of individual contributors.
  *
@@ -82,7 +82,6 @@ import org.jboss.metadata.web.spec.ServletMetaData;
 import org.jboss.metadata.web.spec.ServletSecurityMetaData;
 import org.jboss.metadata.web.spec.ServletsMetaData;
 import org.jboss.metadata.web.spec.TransportGuaranteeType;
-import org.jboss.metadata.web.spec.Web30MetaData;
 import org.jboss.metadata.web.spec.WebMetaData;
 import org.jboss.modules.ModuleIdentifier;
 import org.wildfly.extension.undertow.logging.UndertowLogger;
@@ -151,7 +150,7 @@ public class WarAnnotationDeploymentProcessor implements DeploymentUnitProcessor
      */
     protected WebMetaData processAnnotations(Index index)
     throws DeploymentUnitProcessingException {
-        Web30MetaData metaData = new Web30MetaData();
+        WebMetaData metaData = new WebMetaData();
         // @WebServlet
         final List<AnnotationInstance> webServletAnnotations = index.getAnnotations(webServlet);
         if (webServletAnnotations != null && webServletAnnotations.size() > 0) {

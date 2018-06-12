@@ -25,7 +25,7 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.wildfly.clustering.ee.infinispan.Mutator;
+import org.wildfly.clustering.ee.Mutator;
 import org.wildfly.clustering.ejb.Bean;
 import org.wildfly.clustering.ejb.PassivationListener;
 import org.wildfly.clustering.ejb.RemoveListener;
@@ -93,7 +93,6 @@ public class InfinispanBean<I, T> implements Bean<I, T> {
         if (this.valid.compareAndSet(true, false)) {
             InfinispanEjbLogger.ROOT_LOGGER.tracef("Removing bean %s", this.id);
             this.remover.remove(this.id, listener);
-            this.close();
         }
     }
 

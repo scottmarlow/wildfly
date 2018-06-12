@@ -44,18 +44,20 @@ import org.jboss.dmr.ModelType;
 public class MappingModuleDefinition extends SimpleResourceDefinition {
 
     protected static final SimpleAttributeDefinition CODE = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.CODE, ModelType.STRING)
-            .setAllowNull(false)
+            .setRequired(true)
             .build();
 
     protected static final SimpleAttributeDefinition TYPE = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.TYPE, ModelType.STRING)
-            .setAllowNull(false)
+            .setRequired(true)
             .setAllowExpression(true)
             .build();
+
+    protected static final SimpleAttributeDefinition MODULE = LoginModuleResourceDefinition.MODULE;
 
     protected static final PropertiesAttributeDefinition MODULE_OPTIONS = new PropertiesAttributeDefinition.Builder(Constants.MODULE_OPTIONS, true)
             .setAllowExpression(true)
             .build();
-    private static final AttributeDefinition[] ATTRIBUTES = {CODE, TYPE, LoginModuleResourceDefinition.MODULE, MODULE_OPTIONS};
+    private static final AttributeDefinition[] ATTRIBUTES = {CODE, TYPE, MODULE, MODULE_OPTIONS};
 
 
     MappingModuleDefinition(String key) {

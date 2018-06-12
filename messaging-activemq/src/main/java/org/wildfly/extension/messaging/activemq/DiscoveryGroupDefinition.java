@@ -24,8 +24,7 @@ package org.wildfly.extension.messaging.activemq;
 
 import static org.jboss.as.controller.SimpleAttributeDefinitionBuilder.create;
 import static org.jboss.as.controller.client.helpers.MeasurementUnit.MILLISECONDS;
-import static org.wildfly.extension.messaging.activemq.CommonAttributes.JGROUPS_CHANNEL;
-import static org.wildfly.extension.messaging.activemq.CommonAttributes.JGROUPS_STACK;
+import static org.wildfly.extension.messaging.activemq.CommonAttributes.JGROUPS_CLUSTER;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.SOCKET_BINDING;
 
 import java.util.Arrays;
@@ -36,11 +35,14 @@ import org.apache.activemq.artemis.api.core.client.ActiveMQClient;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PersistentResourceDefinition;
+import org.jboss.as.controller.ReloadRequiredWriteAttributeHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
+import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
+import org.wildfly.clustering.spi.ClusteringRequirement;
 
 
 /**
@@ -50,12 +52,16 @@ import org.jboss.dmr.ModelType;
 */
 public class DiscoveryGroupDefinition extends PersistentResourceDefinition {
 
-   public static final PathElement PATH = PathElement.pathElement(CommonAttributes.DISCOVERY_GROUP);
+    public static final PathElement PATH = PathElement.pathElement(CommonAttributes.DISCOVERY_GROUP);
+
+    public static final RuntimeCapability<Void> CAPABILITY = RuntimeCapability.Builder.of("org.wildfly.messaging.activemq.discovery-group", true)
+            .setDynamicNameMapper(address -> new String[] { address.getParent().getLastElement().getValue(), address.getLastElement().getValue() })
+            .build();
 
     public static final SimpleAttributeDefinition REFRESH_TIMEOUT = create("refresh-timeout", ModelType.LONG)
             .setDefaultValue(new ModelNode(ActiveMQDefaultConfiguration.getDefaultBroadcastRefreshTimeout()))
             .setMeasurementUnit(MILLISECONDS)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setRestartAllServices()
             .build();
@@ -63,18 +69,24 @@ public class DiscoveryGroupDefinition extends PersistentResourceDefinition {
     public static final SimpleAttributeDefinition INITIAL_WAIT_TIMEOUT = create("initial-wait-timeout", ModelType.LONG)
             .setDefaultValue(new ModelNode(ActiveMQClient.DEFAULT_DISCOVERY_INITIAL_WAIT_TIMEOUT))
             .setMeasurementUnit(MILLISECONDS)
-            .setAllowNull(true)
+            .setRequired(false)
             .setAllowExpression(true)
             .setRestartAllServices()
             .build();
 
-    public static final AttributeDefinition[] ATTRIBUTES = { JGROUPS_STACK, JGROUPS_CHANNEL, SOCKET_BINDING,
+    @Deprecated public static final SimpleAttributeDefinition JGROUPS_CHANNEL_FACTORY = create(CommonAttributes.JGROUPS_CHANNEL_FACTORY)
+            .setCapabilityReference("org.wildfly.clustering.jgroups.channel-factory")
+            .build();
+
+    public static final SimpleAttributeDefinition JGROUPS_CHANNEL = create(CommonAttributes.JGROUPS_CHANNEL)
+            .setCapabilityReference(ClusteringRequirement.COMMAND_DISPATCHER_FACTORY.getName())
+            .build();
+
+    public static final AttributeDefinition[] ATTRIBUTES = { JGROUPS_CHANNEL_FACTORY, JGROUPS_CHANNEL, JGROUPS_CLUSTER, SOCKET_BINDING,
             REFRESH_TIMEOUT, INITIAL_WAIT_TIMEOUT
     };
 
     private final boolean registerRuntimeOnly;
-
-    static final DiscoveryGroupDefinition INSTANCE = new DiscoveryGroupDefinition(false);
 
     public DiscoveryGroupDefinition(final boolean registerRuntimeOnly) {
         super(PATH,
@@ -91,10 +103,16 @@ public class DiscoveryGroupDefinition extends PersistentResourceDefinition {
 
     @Override
     public void registerAttributes(ManagementResourceRegistration registry) {
+        ReloadRequiredWriteAttributeHandler reloadRequiredWriteAttributeHandler = new ReloadRequiredWriteAttributeHandler(ATTRIBUTES);
         for (AttributeDefinition attr : ATTRIBUTES) {
             if (registerRuntimeOnly || !attr.getFlags().contains(AttributeAccess.Flag.STORAGE_RUNTIME)) {
-                registry.registerReadWriteAttribute(attr, null, DiscoveryGroupWriteAttributeHandler.INSTANCE);
+                registry.registerReadWriteAttribute(attr, null, reloadRequiredWriteAttributeHandler);
             }
         }
+    }
+
+    @Override
+    public void registerCapabilities(ManagementResourceRegistration registration) {
+        registration.registerCapability(CAPABILITY);
     }
 }

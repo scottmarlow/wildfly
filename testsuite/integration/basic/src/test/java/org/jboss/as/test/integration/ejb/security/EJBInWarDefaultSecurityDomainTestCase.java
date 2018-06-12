@@ -22,23 +22,23 @@
 
 package org.jboss.as.test.integration.ejb.security;
 
+import java.util.concurrent.Callable;
+
 import javax.ejb.EJBAccessException;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.security.auth.login.LoginContext;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.arquillian.api.ServerSetup;
 import org.jboss.as.test.categories.CommonCriteria;
 import org.jboss.as.test.integration.security.common.AbstractSecurityDomainSetup;
 import org.jboss.as.test.shared.integration.ejb.security.Util;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -50,18 +50,8 @@ import org.junit.runner.RunWith;
 @Category(CommonCriteria.class)
 @ServerSetup({EjbSecurityDomainSetup.class})
 public class EJBInWarDefaultSecurityDomainTestCase {
-    private static Context ctx;
-
-    @AfterClass
-    public static void afterClass() throws NamingException {
-        if (ctx != null)
-            ctx.close();
-    }
-
-    @BeforeClass
-    public static void beforeClass() throws NamingException {
-        ctx = new InitialContext();
-    }
+    @ArquillianResource
+    private Context ctx;
 
     @Deployment
     public static WebArchive createDeployment() {
@@ -78,9 +68,7 @@ public class EJBInWarDefaultSecurityDomainTestCase {
         return war;
     }
 
-    private static <T> T lookup(final Class<?> beanClass, final Class<T> viewClass) throws NamingException {
-        if (ctx == null)
-            ctx = new InitialContext(); // to circumvent an Arquillian issue
+    private <T> T lookup(final Class<?> beanClass, final Class<T> viewClass) throws NamingException {
         return viewClass.cast(ctx.lookup("java:module/" + beanClass.getSimpleName() + "!" + viewClass.getName()));
     }
 
@@ -121,9 +109,7 @@ public class EJBInWarDefaultSecurityDomainTestCase {
 
 
         // login as user1 and test
-        LoginContext lc = Util.getCLMLoginContext("user1", "password1");
-        lc.login();
-        try {
+        Callable<Void> callable = () -> {
             // expected to pass since user1 belongs to Role1
             specificRoleAccessBean.allowOnlyRoleOneToAccess();
 
@@ -134,14 +120,12 @@ public class EJBInWarDefaultSecurityDomainTestCase {
             } catch (EJBAccessException ejbae) {
                 // expected
             }
-        } finally {
-            lc.logout();
-        }
+            return null;
+        };
+        Util.switchIdentity("user1", "password1", callable);
 
         // login as user2 and test
-        lc = Util.getCLMLoginContext("user2", "password2");
-        lc.login();
-        try {
+        callable = () -> {
             // expected to pass since user2 belongs to Role2
             specificRoleAccessBean.allowOnlyRoleTwoToAccess();
 
@@ -152,9 +136,9 @@ public class EJBInWarDefaultSecurityDomainTestCase {
             } catch (EJBAccessException ejbae) {
                 // expected
             }
-        } finally {
-            lc.logout();
-        }
+            return null;
+        };
+        Util.switchIdentity("user2", "password2", callable);
 
 
     }

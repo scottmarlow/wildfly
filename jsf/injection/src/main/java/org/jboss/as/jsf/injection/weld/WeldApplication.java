@@ -16,19 +16,20 @@
  */
 package org.jboss.as.jsf.injection.weld;
 
-import org.jboss.weld.el.WeldELContextListener;
+import org.jboss.weld.module.web.el.WeldELContextListener;
 
 import javax.el.ELResolver;
 import javax.el.ExpressionFactory;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.faces.application.Application;
+import javax.faces.application.ApplicationWrapper;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
 /**
  * @author pmuir
  */
-public class WeldApplication extends ForwardingApplication {
+public class WeldApplication extends ApplicationWrapper {
 
     private static class AdjustableELResolver extends ForwardingELResolver {
 
@@ -73,7 +74,7 @@ public class WeldApplication extends ForwardingApplication {
     }
 
     @Override
-    protected Application delegate() {
+    public Application getWrapped() {
         init();
         return application;
     }

@@ -1,5 +1,6 @@
 package org.jboss.as.test.integration.ejb.timerservice.mgmt;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Hashtable;
 import java.util.Set;
@@ -120,7 +121,7 @@ public abstract class AbstractTimerManagementTestCase {
             getTimerDetails();
         } catch (OperationFailedException ofe) {
             final ModelNode failureDescription = ofe.getFailureDescription();
-            Assert.assertTrue(failureDescription.toString(), failureDescription.toString().contains("not found"));
+            Assert.assertTrue(failureDescription.toString(), failureDescription.toString().contains("WFLYCTL0216"));
         }
     }
 
@@ -139,62 +140,47 @@ public abstract class AbstractTimerManagementTestCase {
         this.bean.createTimer();
         Assert.assertEquals("Wrong initial timer ticks!", 0, this.bean.getTimerTicks());
         triggerTimer();
-        Assert.assertEquals("Wrong after trigger timer ticks!", 1, this.bean.getTimerTicks());
         this.suspendTimer();
+        int ticksCount = this.bean.getTimerTicks();
+        Assert.assertTrue("Timer should fire at least once!", ticksCount >= 1);
         this.waitOverTimer();
-        Assert.assertEquals("Timer should fire once!", 1, this.bean.getTimerTicks());
+        Assert.assertEquals("The tick count should not increase while the timer was suspended!",
+                ticksCount, this.bean.getTimerTicks());
         this.activateTimer();
         this.bean.waitOnTimeout();
-        //depending on the timing it is possible for this to have fired a second time
-        Assert.assertTrue("Timer should fire at least twice!", this.bean.getTimerTicks() >= 2);
+        Assert.assertTrue("Number of ticks should increase after timer activation!",
+                this.bean.getTimerTicks() > ticksCount);
     }
 
     protected void suspendTimer() throws Exception {
         final PathAddress address = getTimerAddress();
         final ModelNode operation = Util.createOperation("suspend", address);
-        final ModelNode outcome = this.managementClient.getControllerClient().execute(operation);
-        if (!Operations.isSuccessfulOutcome(outcome)) {
-            throw new OperationFailedException(operation);
-        }
+        executeForResult(operation, true);
     }
 
     protected void activateTimer() throws Exception {
         final PathAddress address = getTimerAddress();
         final ModelNode operation = Util.createOperation("activate", address);
-        final ModelNode outcome = this.managementClient.getControllerClient().execute(operation);
-        if (!Operations.isSuccessfulOutcome(outcome)) {
-            throw new OperationFailedException(operation);
-        }
+        executeForResult(operation, true);
     }
 
     protected void triggerTimer() throws Exception {
         final PathAddress address = getTimerAddress();
         final ModelNode operation = Util.createOperation("trigger", address);
-        final ModelNode outcome = this.managementClient.getControllerClient().execute(operation);
-        if (!Operations.isSuccessfulOutcome(outcome)) {
-            throw new OperationFailedException(operation);
-        }
+        executeForResult(operation, true);
     }
 
     protected void cancelTimer() throws Exception {
         final PathAddress address = getTimerAddress();
         final ModelNode operation = Util.createOperation("cancel", address);
-        final ModelNode outcome = this.managementClient.getControllerClient().execute(operation);
-        if (!Operations.isSuccessfulOutcome(outcome)) {
-            throw new OperationFailedException(operation);
-        }
+        executeForResult(operation, true);
     }
 
     protected ModelNode getTimerDetails() throws Exception {
         final PathAddress address = getTimerAddress();
         final ModelNode operation = Util.createOperation("read-resource", address);
         operation.get(ModelDescriptionConstants.INCLUDE_RUNTIME).set(Boolean.toString(true));
-        final ModelNode result = this.managementClient.getControllerClient().execute(operation);
-        if (!Operations.isSuccessfulOutcome(result)) {
-            throw new OperationFailedException(result);
-        }
-
-        return result.get(ModelDescriptionConstants.RESULT);
+        return executeForResult(operation, false);
     }
 
     protected PathAddress getTimerAddress() throws Exception {
@@ -207,7 +193,7 @@ public abstract class AbstractTimerManagementTestCase {
                 PathElement.pathElement("stateless-session-bean", getBeanClassName()),
                 PathElement.pathElement("service", "timer-service"));
         final ModelNode operation = Util.createOperation("read-resource", address);
-        operation.get(ModelDescriptionConstants.INCLUDE_RUNTIME).set(Boolean.toString(true));
+        operation.get(ModelDescriptionConstants.INCLUDE_RUNTIME).set(true);
         final ModelNode result = managementClient.getControllerClient().execute(operation);
 
         Assert.assertEquals(result.toString(), ModelDescriptionConstants.SUCCESS, result.get(ModelDescriptionConstants.OUTCOME)
@@ -274,5 +260,17 @@ public abstract class AbstractTimerManagementTestCase {
 
     protected String getCalendarTimerDetail(){
         return this.bean.getComparableTimerDetail();
+    }
+
+    private ModelNode executeForResult(ModelNode operation, boolean useOpForFailureMsg) throws OperationFailedException, IOException {
+        final ModelNode response = this.managementClient.getControllerClient().execute(operation);
+        if (!Operations.isSuccessfulOutcome(response)) {
+            if (useOpForFailureMsg) {
+                throw new OperationFailedException("Failed executing " + operation.toString());
+            } else {
+                throw new OperationFailedException(response.asString());
+            }
+        }
+        return response.get(ModelDescriptionConstants.RESULT);
     }
 }

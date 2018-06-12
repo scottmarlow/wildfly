@@ -53,7 +53,6 @@ import org.junit.runner.RunWith;
 @RunWith(Arquillian.class)
 public class TransactionIIOPInvocationTestCase {
 
-
     @Deployment(name = "server", testable = false)
     @TargetsContainer("iiop-server")
     public static Archive<?> deployment() {

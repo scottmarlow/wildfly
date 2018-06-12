@@ -23,8 +23,12 @@ package org.jboss.as.test.manualmode.layered;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -64,8 +68,8 @@ public class LayeredDistributionTestCase {
 
     private static final Logger log = Logger.getLogger(LayeredDistributionTestCase.class);
     private static final String CONTAINER = "jbossas-layered";
-    private static final String AS_PATH = ".." + File.separator + CONTAINER;
-    private final File layersDir = new File(AS_PATH + File.separator + "modules" + File.separator + "system" + File.separator + "layers");
+    private static final Path AS_PATH = Paths.get("target", CONTAINER);
+    private final Path layersDir = Paths.get(AS_PATH.toString(), "modules", "system", "layers");
     private static final String TEST_LAYER = "test";
     private static final String PRODUCT_NAME = "Test-Product";
     private static final String PRODUCT_VERSION = "1.0.0-Test";
@@ -99,11 +103,11 @@ public class LayeredDistributionTestCase {
         buildTestModule(TEST_LAYER);
 
 
-        log.info("===starting server===");
+        log.trace("===starting server===");
         controller.start(CONTAINER);
-        log.info("===appserver started===");
+        log.trace("===appserver started===");
         //deployer.deploy(DEPLOYMENT);
-        //log.info("===deployment deployed===");
+        //log.trace("===deployment deployed===");
     }
 
     @Test
@@ -111,10 +115,10 @@ public class LayeredDistributionTestCase {
     public void after() throws Exception {
         try {
             //deployer.undeploy(DEPLOYMENT);
-            //log.info("===deployment undeployed===");
+            //log.trace("===deployment undeployed===");
         } finally {
             controller.stop(CONTAINER);
-            log.info("===appserver stopped===");
+            log.trace("===appserver stopped===");
         }
     }
 
@@ -151,67 +155,67 @@ public class LayeredDistributionTestCase {
 
     private void buildLayer(String layer) throws Exception {
 
-        File asDir = new File(AS_PATH);
-        log.info("AS dir:" + asDir);
-        Assert.assertTrue(asDir.exists());
+        log.trace("AS dir:" + AS_PATH);
+        Assert.assertTrue(Files.exists(AS_PATH));
 
-        Assert.assertTrue(layersDir.exists());
+        Assert.assertTrue(Files.exists(layersDir));
 
-        File layerDir = new File(layersDir, layer);
-        if (layerDir.exists()) {
-            FileUtils.deleteDirectory(layerDir);
+        Path layerDir = layersDir.resolve(layer);
+        File layerDirFile = layerDir.toFile();
+        if(layerDirFile.exists()) {
+            FileUtils.deleteDirectory(layerDirFile);
         }
 
         // set layers.conf
-        File layersConf = new File(AS_PATH, "modules" + File.separator + "layers.conf");
-        FileUtils.writeStringToFile(layersConf, "layers=test" + System.getProperty("line.separator"));
-
+        Path layersConf = AS_PATH.resolve("modules").resolve("layers.conf");
+        Files.write(layersConf, Collections.singleton("layers=test"));
     }
 
     private void buildProductModule(String layer) throws Exception {
-        File layerDir = new File(layersDir, layer);
-        File moduleDir = new File(layerDir, "org" + File.separator + "jboss" + File.separator + "as" + File.separator
-                + "product" + File.separator + "test");
-        Assert.assertTrue(moduleDir.mkdirs());
-        File moduleXmlFile = new File(moduleDir, "module.xml");
-        FileUtils.copyInputStreamToFile(LayeredDistributionTestCase.class.getResourceAsStream("/layered/product-module.xml"),
+        Path layerDir = layersDir.resolve(layer);
+        Path moduleDir = Paths.get(layerDir.toString(), "org" ,"jboss" ,"as" , "product" , "test");
+        Files.createDirectories(moduleDir);
+
+        Path moduleXmlFile = moduleDir.resolve("module.xml");
+        Files.copy(LayeredDistributionTestCase.class.getResourceAsStream("/layered/product-module.xml"),
                 moduleXmlFile);
 
-        File manifestDir = new File(moduleDir, "classes" + File.separator + "META-INF");
-        Assert.assertTrue(manifestDir.mkdirs());
+        Path manifestDir = moduleDir.resolve("classes").resolve("META-INF");
+        Files.createDirectories(manifestDir);
 
-        File moduleManifestFile = new File(manifestDir, "MANIFEST.MF");
+        Path moduleManifestFile = manifestDir.resolve("MANIFEST.MF");
         Manifest m = new Manifest();
         m.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
         m.getMainAttributes().putValue("JBoss-Product-Release-Name", PRODUCT_NAME);
         m.getMainAttributes().putValue("JBoss-Product-Release-Version", PRODUCT_VERSION);
-        OutputStream manifestStream = new BufferedOutputStream(new FileOutputStream(moduleManifestFile));
+        OutputStream manifestStream = new BufferedOutputStream(Files.newOutputStream(moduleManifestFile));
         m.write(manifestStream);
         manifestStream.flush();
         manifestStream.close();
 
         // set product.conf
-        File binDir = new File(AS_PATH, "bin");
-        Assert.assertTrue(binDir.exists());
-        File productConf = new File(binDir, "product.conf");
-        if (productConf.exists()) { productConf.delete(); }
-        FileUtils.writeStringToFile(productConf, "slot=test" + System.getProperty("line.separator"));
+        Path binDir = AS_PATH.resolve("bin");
+        if (Files.notExists(binDir)){
+            Files.createDirectory(binDir);
+        }
+        Path productConf = binDir.resolve("product.conf");
+        Files.deleteIfExists(productConf);
+        Files.write(productConf, Collections.singleton("slot=test"), StandardCharsets.UTF_8);
 
     }
 
     private void buildTestModule(String layer) throws Exception {
 
-        File layerDir = new File(layersDir, layer);
-        File moduleDir = new File(layerDir, "org" + File.separator + "jboss" + File.separator + "ldtc" + File.separator
-                + File.separator + "main");
-        Assert.assertTrue(moduleDir.mkdirs());
-        File moduleXmlFile = new File(moduleDir, "module.xml");
-        FileUtils.copyInputStreamToFile(LayeredDistributionTestCase.class.getResourceAsStream("/layered/test-module.xml"),
+        Path layerDir = layersDir.resolve(layer);
+        Path moduleDir = Paths.get(layerDir.toString(), "org" , "jboss" , "ldtc" , "main");
+        Files.createDirectories(moduleDir);
+        Path moduleXmlFile = moduleDir.resolve("module.xml");
+        Files.copy(LayeredDistributionTestCase.class.getResourceAsStream("/layered/test-module.xml"),
                 moduleXmlFile);
 
         JavaArchive jar = ShrinkWrap.create(JavaArchive.class, "test-module.jar");
         jar.addClass(LayeredTestModule.class);
-        File jarFile = new File(moduleDir, "test-module.jar");
-        jar.as(ZipExporter.class).exportTo(jarFile);
+        Path jarFile = moduleDir.resolve("test-module.jar");
+        jar.as(ZipExporter.class).exportTo(jarFile.toFile());
     }
 }

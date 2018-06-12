@@ -22,7 +22,6 @@
 package org.jboss.as.test.integration.ejb.remote.security;
 
 import java.net.UnknownHostException;
-import java.util.Hashtable;
 import java.util.Properties;
 
 import javax.naming.Context;
@@ -48,12 +47,14 @@ class EJBUtil {
      *
      * @param beanImplClass
      * @param remoteInterface
+     * @param ejbProperties
      * @return
      * @throws NamingException
      */
     @SuppressWarnings("unchecked")
-    public static <T> T lookupEJB(Class<? extends T> beanImplClass, Class<T> remoteInterface) throws NamingException {
-        final Hashtable<String, String> jndiProperties = new Hashtable<String, String>();
+    public static <T> T lookupEJB(Class<? extends T> beanImplClass, Class<T> remoteInterface, Properties ejbProperties) throws Exception {
+        final Properties jndiProperties = new Properties();
+        jndiProperties.putAll(ejbProperties);
         jndiProperties.put(Context.URL_PKG_PREFIXES, "org.jboss.ejb.client.naming");
         //        jndiProperties.put("jboss.naming.client.ejb.context", "true");
         final Context context = new InitialContext(jndiProperties);
@@ -85,7 +86,7 @@ class EJBUtil {
     public static Properties createEjbClientConfiguration(String hostName) throws UnknownHostException {
         final Properties pr = new Properties();
         pr.put("remote.connectionprovider.create.options.org.xnio.Options.SSL_ENABLED", "false");
-        pr.put("remote.connection.default.connect.options.org.xnio.Options.SASL_DISALLOWED_MECHANISMS", "JBOSS_LOCAL_USER");
+        pr.put("remote.connection.default.connect.options.org.xnio.Options.SASL_DISALLOWED_MECHANISMS", "JBOSS-LOCAL-USER");
         pr.put("remote.connections", "default");
         pr.put("remote.connection.default.host", hostName);
         pr.put("remote.connection.default.port", "8080");

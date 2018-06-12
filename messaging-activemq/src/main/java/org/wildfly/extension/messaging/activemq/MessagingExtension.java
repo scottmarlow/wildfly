@@ -35,6 +35,7 @@ import static org.wildfly.extension.messaging.activemq.CommonAttributes.CONNECTO
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.GROUPING_HANDLER;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.HA_POLICY;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.HTTP_ACCEPTOR;
+import static org.wildfly.extension.messaging.activemq.CommonAttributes.HTTP_CONNECTOR;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.JMS_QUEUE;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.JMS_TOPIC;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.JOURNAL_DIRECTORY;
@@ -44,6 +45,7 @@ import static org.wildfly.extension.messaging.activemq.CommonAttributes.LIVE_ONL
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.MASTER;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.PAGING_DIRECTORY;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.QUEUE;
+import static org.wildfly.extension.messaging.activemq.CommonAttributes.REPLICATION_COLOCATED;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.REPLICATION_MASTER;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.REPLICATION_SLAVE;
 import static org.wildfly.extension.messaging.activemq.CommonAttributes.ROLE;
@@ -59,6 +61,7 @@ import org.jboss.as.controller.ExtensionContext;
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleResourceDefinition;
+import org.jboss.as.controller.SimpleResourceDefinition.Parameters;
 import org.jboss.as.controller.SubsystemRegistration;
 import org.jboss.as.controller.access.constraint.ApplicationTypeConfig;
 import org.jboss.as.controller.access.constraint.SensitivityClassification;
@@ -79,7 +82,14 @@ import org.wildfly.extension.messaging.activemq.jms.bridge.JMSBridgeDefinition;
  * Domain extension that integrates Apache ActiveMQ 6.
  *
  * <dl>
- *   <dt><strong>Current</strong> - WildFly 10</dt>
+ *   <dt><strong>Current</strong> - WildFly 11</dt>
+ *   <dd>
+ *     <ul>
+ *       <li>XML namespace: urn:jboss:domain:messaging-activemq:2.0
+ *       <li>Management model: 2.0.0
+ *     </ul>
+ *   </dd>
+ *   <dt>WildFly 10</dt>
  *   <dd>
  *     <ul>
  *       <li>XML namespace: urn:jboss:domain:messaging-activemq:1.0
@@ -103,6 +113,7 @@ public class MessagingExtension implements Extension {
     public static final PathElement REPLICATION_SLAVE_PATH = pathElement(HA_POLICY, REPLICATION_SLAVE);
     public static final PathElement SHARED_STORE_MASTER_PATH = pathElement(HA_POLICY, SHARED_STORE_MASTER);
     public static final PathElement SHARED_STORE_SLAVE_PATH = pathElement(HA_POLICY, SHARED_STORE_SLAVE);
+    public static final PathElement REPLICATION_COLOCATED_PATH = pathElement(HA_POLICY, REPLICATION_COLOCATED);
     public static final PathElement CONFIGURATION_MASTER_PATH = pathElement(CONFIGURATION, MASTER);
     public static final PathElement CONFIGURATION_SLAVE_PATH = pathElement(CONFIGURATION, SLAVE);
     static final PathElement BINDINGS_DIRECTORY_PATH = pathElement(PATH, BINDINGS_DIRECTORY);
@@ -113,6 +124,7 @@ public class MessagingExtension implements Extension {
     static final PathElement QUEUE_PATH = pathElement(QUEUE);
     static final PathElement RUNTIME_QUEUE_PATH = pathElement(RUNTIME_QUEUE);
     static final PathElement GROUPING_HANDLER_PATH = pathElement(GROUPING_HANDLER);
+    static final PathElement HTTP_CONNECTOR_PATH = pathElement(HTTP_CONNECTOR);
     static final PathElement HTTP_ACCEPTOR_PATH = pathElement(HTTP_ACCEPTOR);
     static final PathElement BROADCAST_GROUP_PATH = pathElement(BROADCAST_GROUP);
     static final PathElement CLUSTER_CONNECTION_PATH = pathElement(CLUSTER_CONNECTION);
@@ -137,7 +149,11 @@ public class MessagingExtension implements Extension {
 
     static final String RESOURCE_NAME = MessagingExtension.class.getPackage().getName() + ".LocalDescriptions";
 
-    private static final ModelVersion CURRENT_MODEL_VERSION = ModelVersion.create(1, 0, 0);
+    protected static final ModelVersion VERSION_3_0_0 = ModelVersion.create(3, 0, 0);
+    protected static final ModelVersion VERSION_2_0_0 = ModelVersion.create(2, 0, 0);
+    protected static final ModelVersion VERSION_1_0_0 = ModelVersion.create(1, 0, 0);
+    private static final ModelVersion CURRENT_MODEL_VERSION = VERSION_3_0_0;
+    private static final MessagingSubsystemParser_3_0 CURRENT_PARSER = new MessagingSubsystemParser_3_0();
 
     public static ResourceDescriptionResolver getResourceDescriptionResolver(final String... keyPrefix) {
         return getResourceDescriptionResolver(true, keyPrefix);
@@ -154,9 +170,10 @@ public class MessagingExtension implements Extension {
         return new StandardResourceDescriptionResolver(prefix.toString(), RESOURCE_NAME, MessagingExtension.class.getClassLoader(), true, useUnprefixedChildTypes);
     }
 
+    @Override
     public void initialize(ExtensionContext context) {
         final SubsystemRegistration subsystemRegistration = context.registerSubsystem(SUBSYSTEM_NAME, CURRENT_MODEL_VERSION);
-        subsystemRegistration.registerXMLElementWriter(MessagingSubsystemParser_1_0.INSTANCE);
+        subsystemRegistration.registerXMLElementWriter(CURRENT_PARSER);
 
         boolean registerRuntimeOnly = context.isRuntimeOnlyRegistrationValid();
 
@@ -180,15 +197,20 @@ public class MessagingExtension implements Extension {
         subsystem.registerSubModel(JMSBridgeDefinition.INSTANCE);
 
         if (registerRuntimeOnly) {
-            final ManagementResourceRegistration deployment = subsystemRegistration.registerDeploymentModel(new SimpleResourceDefinition(SUBSYSTEM_PATH, getResourceDescriptionResolver("deployed")));
-            final ManagementResourceRegistration deployedServer = deployment.registerSubModel(new SimpleResourceDefinition(SERVER_PATH, getResourceDescriptionResolver(SERVER)));
-            deployedServer.registerSubModel(JMSQueueDefinition.DEPLOYMENT_INSTANCE);
-            deployedServer.registerSubModel(JMSTopicDefinition.DEPLOYMENT_INSTANCE);
+            final ManagementResourceRegistration deployment = subsystemRegistration.registerDeploymentModel(new SimpleResourceDefinition(
+                    new Parameters(SUBSYSTEM_PATH, getResourceDescriptionResolver("deployed")).setFeature(false)));
+            final ManagementResourceRegistration deployedServer = deployment.registerSubModel(new SimpleResourceDefinition(
+                    new Parameters(SERVER_PATH, getResourceDescriptionResolver(SERVER)).setFeature(false)));
+            deployedServer.registerSubModel(new JMSQueueDefinition(true, registerRuntimeOnly));
+            deployedServer.registerSubModel(new JMSTopicDefinition(true, registerRuntimeOnly));
             deployedServer.registerSubModel(PooledConnectionFactoryDefinition.DEPLOYMENT_INSTANCE);
         }
     }
 
+    @Override
     public void initializeParsers(ExtensionParsingContext context) {
-        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, MessagingSubsystemParser_1_0.NAMESPACE, MessagingSubsystemParser_1_0.INSTANCE);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, MessagingSubsystemParser_1_0.NAMESPACE, MessagingSubsystemParser_1_0::new);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, MessagingSubsystemParser_2_0.NAMESPACE, MessagingSubsystemParser_2_0::new);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, MessagingSubsystemParser_3_0.NAMESPACE, CURRENT_PARSER);
     }
 }

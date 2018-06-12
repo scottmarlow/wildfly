@@ -26,8 +26,14 @@ import static java.lang.Thread.currentThread;
 import static java.security.AccessController.doPrivileged;
 import static org.jboss.as.connector.logging.ConnectorLogger.DEPLOYMENT_CONNECTOR_LOGGER;
 
+import javax.naming.Reference;
+import javax.resource.spi.ResourceAdapter;
+import javax.security.auth.Subject;
+import javax.transaction.TransactionManager;
 import java.io.File;
 import java.io.PrintWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.PrivilegedAction;
 import java.util.List;
@@ -36,19 +42,18 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 
-import javax.naming.Reference;
-import javax.resource.spi.ResourceAdapter;
-import javax.security.auth.Subject;
-import javax.transaction.TransactionManager;
-
 import org.jboss.as.connector.logging.ConnectorLogger;
+import org.jboss.as.connector.metadata.api.resourceadapter.WorkManagerSecurity;
 import org.jboss.as.connector.metadata.deployment.ResourceAdapterDeployment;
+import org.jboss.as.connector.security.CallbackImpl;
+import org.jboss.as.connector.security.ElytronSubjectFactory;
 import org.jboss.as.connector.services.mdr.AS7MetadataRepository;
 import org.jboss.as.connector.services.resourceadapters.AdminObjectReferenceFactoryService;
 import org.jboss.as.connector.services.resourceadapters.AdminObjectService;
 import org.jboss.as.connector.services.resourceadapters.ConnectionFactoryReferenceFactoryService;
 import org.jboss.as.connector.services.resourceadapters.ConnectionFactoryService;
 import org.jboss.as.connector.services.resourceadapters.deployment.registry.ResourceAdapterDeploymentRegistry;
+import org.jboss.as.connector.services.workmanager.NamedWorkManager;
 import org.jboss.as.connector.subsystems.jca.JcaSubsystemConfiguration;
 import org.jboss.as.connector.util.ConnectorServices;
 import org.jboss.as.connector.util.Injection;
@@ -59,6 +64,7 @@ import org.jboss.as.naming.ServiceBasedNamingStore;
 import org.jboss.as.naming.WritableServiceBasedNamingStore;
 import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.as.naming.service.BinderService;
+import org.jboss.jca.common.api.metadata.common.SecurityMetadata;
 import org.jboss.jca.common.api.metadata.resourceadapter.Activation;
 import org.jboss.jca.common.api.metadata.spec.ConfigProperty;
 import org.jboss.jca.common.api.metadata.spec.Connector;
@@ -70,6 +76,7 @@ import org.jboss.jca.core.connectionmanager.ConnectionManager;
 import org.jboss.jca.core.security.picketbox.PicketBoxSubjectFactory;
 import org.jboss.jca.core.spi.mdr.AlreadyExistsException;
 import org.jboss.jca.core.spi.rar.ResourceAdapterRepository;
+import org.jboss.jca.core.spi.security.Callback;
 import org.jboss.jca.core.spi.transaction.TransactionIntegration;
 import org.jboss.jca.core.spi.transaction.recovery.XAResourceRecovery;
 import org.jboss.jca.core.spi.transaction.recovery.XAResourceRecoveryRegistry;
@@ -610,8 +617,19 @@ public abstract class AbstractResourceAdapterDeploymentService {
         }
 
         @Override
-        protected org.jboss.jca.core.spi.security.SubjectFactory getSubjectFactory(String securityDomain) throws DeployException {
-            if (securityDomain == null || securityDomain.trim().equals("")) {
+        protected org.jboss.jca.core.spi.security.SubjectFactory getSubjectFactory(
+                SecurityMetadata securityMetadata, final String jndiName) throws DeployException {
+            if (securityMetadata == null)
+                return null;
+            final String securityDomain = securityMetadata.resolveSecurityDomain();
+            if (securityMetadata instanceof org.jboss.as.connector.metadata.api.common.SecurityMetadata &&
+                    ((org.jboss.as.connector.metadata.api.common.SecurityMetadata)securityMetadata).isElytronEnabled()) {
+                try {
+                    return new ElytronSubjectFactory(null, new URI(jndiName));
+                } catch (URISyntaxException e) {
+                    throw ConnectorLogger.ROOT_LOGGER.cannotDeploy(e);
+                }
+            } else if (securityDomain == null || securityDomain.trim().equals("")) {
                 return null;
             } else {
                 return new PicketBoxSubjectFactory(subjectFactory.getValue()){
@@ -631,6 +649,36 @@ public abstract class AbstractResourceAdapterDeploymentService {
                         }
                     }
                 };
+            }
+        }
+
+        @Override
+        protected Callback createCallback(org.jboss.jca.common.api.metadata.resourceadapter.WorkManagerSecurity workManagerSecurity) {
+            if (workManagerSecurity != null) {
+                if (workManagerSecurity instanceof WorkManagerSecurity){
+                    WorkManagerSecurity wms = (WorkManagerSecurity) workManagerSecurity;
+                    String[] defaultGroups = wms.getDefaultGroups() != null ?
+                            wms.getDefaultGroups().toArray(new String[workManagerSecurity.getDefaultGroups().size()]) : null;
+
+                    return new CallbackImpl(wms.isMappingRequired(), wms.getDomain(), wms.isElytronEnabled(),
+                            wms.getDefaultPrincipal(), defaultGroups, wms.getUserMappings(), wms.getGroupMappings());
+                } else {
+                    return super.createCallback(workManagerSecurity);
+
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected void setCallbackSecurity(org.jboss.jca.core.api.workmanager.WorkManager workManager, Callback cb) {
+            if (cb instanceof  CallbackImpl) {
+                if (((CallbackImpl) cb).isElytronEnabled() != ((NamedWorkManager) workManager).isElytronEnabled())
+                    throw ConnectorLogger.ROOT_LOGGER.invalidElytronWorkManagerSetting();
+                workManager.setCallbackSecurity(cb);
+
+            } else {
+                super.setCallbackSecurity(workManager, cb);
             }
         }
 

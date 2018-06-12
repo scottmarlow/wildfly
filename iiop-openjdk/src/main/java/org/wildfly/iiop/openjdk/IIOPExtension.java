@@ -48,32 +48,12 @@ public class IIOPExtension implements Extension {
     public static final String SUBSYSTEM_NAME = "iiop-openjdk";
 
     protected static final PathElement PATH_SUBSYSTEM = PathElement.pathElement(SUBSYSTEM, SUBSYSTEM_NAME);
-    protected static final PathElement PATH_ORB = PathElement.pathElement(Constants.CONFIGURATION,
-            Constants.ORB);
-    protected static final PathElement PATH_TCP = PathElement.pathElement(Constants.SETTING,
-            Constants.ORB_TCP);
-    protected static final PathElement PATH_INITIALIZERS = PathElement.pathElement(Constants.SETTING,
-            Constants.ORB_INIT);
-    protected static final PathElement PATH_NAMING = PathElement.pathElement(Constants.CONFIGURATION,
-            Constants.NAMING);
-    protected static final PathElement PATH_SECURITY = PathElement.pathElement(Constants.CONFIGURATION,
-            Constants.SECURITY);
-    protected static final PathElement PATH_IOR_SETTINGS = PathElement.pathElement(Constants.CONFIGURATION,
-            Constants.IOR_SETTINGS);
-    protected static final PathElement PATH_IOR_TRANSPORT = PathElement.pathElement(Constants.SETTING,
-            Constants.IOR_TRANSPORT_CONFIG);
-    protected static final PathElement PATH_IOR_AS = PathElement.pathElement(Constants.SETTING,
-            Constants.IOR_AS_CONTEXT);
-    protected static final PathElement PATH_IOR_SAS = PathElement.pathElement(Constants.SETTING,
-            Constants.IOR_SAS_CONTEXT);
-    protected static final PathElement PATH_PROPERTIES = PathElement.pathElement(Constants.CONFIGURATION,
-            Constants.PROPERTIES);
-    protected static final PathElement PATH_PROPERTY = PathElement.pathElement(Constants.PROPERTY);
 
     private static final String RESOURCE_NAME = IIOPExtension.class.getPackage().getName() + ".LocalDescriptions";
 
+    static final ModelVersion CURRENT_MODEL_VERSION = ModelVersion.create(2,0,0);
     static final ModelVersion VERSION_1 = ModelVersion.create(1);
-    private static final ModelVersion CURRENT_MODEL_VERSION = ModelVersion.create(3);
+
 
     static ResourceDescriptionResolver getResourceDescriptionResolver(final String... keyPrefix) {
         StringBuilder prefix = new StringBuilder(IIOPExtension.SUBSYSTEM_NAME);
@@ -89,16 +69,14 @@ public class IIOPExtension implements Extension {
         final SubsystemRegistration subsystem = context.registerSubsystem(SUBSYSTEM_NAME, CURRENT_MODEL_VERSION);
         final ManagementResourceRegistration subsystemRegistration = subsystem.registerSubsystemModel(IIOPRootDefinition.INSTANCE);
         subsystemRegistration.registerOperationHandler(GenericSubsystemDescribeHandler.DEFINITION, GenericSubsystemDescribeHandler.INSTANCE);
-        subsystem.registerXMLElementWriter(IIOPSubsystemParser_3.INSTANCE);
+        subsystem.registerXMLElementWriter(new IIOPSubsystemParser_2_0());
 
-        if (context.isRegisterTransformers()) {
-            IIOPRootDefinition.registerTransformers(subsystem);
-        }
     }
 
     @Override
     public void initializeParsers(ExtensionParsingContext context) {
-        context.setSubsystemXmlMapping(SUBSYSTEM_NAME,Namespace.IIOP_OPENJDK_1_0.getUriString(), IIOPSubsystemParser_1.INSTANCE);
-        context.setSubsystemXmlMapping(SUBSYSTEM_NAME,Namespace.IIOP_OPENJDK_3_0.getUriString(), IIOPSubsystemParser_3.INSTANCE);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME,Namespace.IIOP_OPENJDK_1_0.getUriString(), IIOPSubsystemParser_1::new);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME,Namespace.IIOP_OPENJDK_2_0.getUriString(), IIOPSubsystemParser_2_0::new);
     }
+
 }

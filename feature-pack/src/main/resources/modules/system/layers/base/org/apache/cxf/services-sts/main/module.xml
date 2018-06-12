@@ -22,7 +22,7 @@
   ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
   -->
 
-<module xmlns="urn:jboss:module:1.3" name="org.apache.cxf.services-sts">
+<module xmlns="urn:jboss:module:1.5" name="org.apache.cxf.services-sts">
 
     <resources>
         <artifact name="${org.apache.cxf.services.sts:cxf-services-sts-core}"/>
@@ -59,7 +59,7 @@
         <module name="javax.xml.soap.api" />
         <module name="javax.xml.stream.api" />
         <module name="javax.xml.ws.api" />
-        <module name="org.apache.commons.lang" />
+        <module name="org.apache.commons.lang3" />
         <module name="org.apache.httpcomponents"/>
         <module name="org.apache.neethi" />
         <module name="org.apache.velocity" />

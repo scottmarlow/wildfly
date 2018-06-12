@@ -22,34 +22,50 @@
 
 package org.jboss.as.test.integration.ejb.remote.client.api.tx;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
+
 import javax.transaction.TransactionManager;
 import javax.transaction.TransactionSynchronizationRegistry;
 
+import com.arjuna.ats.internal.jbossatx.jta.jca.XATerminator;
 import com.arjuna.ats.internal.jta.transaction.arjunacore.TransactionManagerImple;
 import com.arjuna.ats.internal.jta.transaction.arjunacore.TransactionSynchronizationRegistryImple;
+import com.arjuna.ats.jta.common.JTAEnvironmentBean;
 import com.arjuna.ats.jta.common.jtaPropertyManager;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.as.arquillian.api.ServerSetup;
+import org.jboss.as.arquillian.container.ManagementClient;
+import org.jboss.as.test.shared.TimeoutUtil;
+import org.jboss.dmr.ModelNode;
 import org.jboss.ejb.client.EJBClient;
-import org.jboss.ejb.client.EJBClientTransactionContext;
 import org.jboss.ejb.client.StatelessEJBLocator;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.jboss.tm.XAResourceRecovery;
+import org.jboss.tm.XAResourceRecoveryRegistry;
+
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.wildfly.transaction.client.ContextTransactionManager;
+import org.wildfly.transaction.client.ContextTransactionSynchronizationRegistry;
+import org.wildfly.transaction.client.LocalTransactionContext;
+import org.wildfly.transaction.client.provider.jboss.JBossLocalTransactionProvider;
 
 /**
  * @author Jaikiran Pai
+ * @author Flavia Rainone
  */
 @RunWith(Arquillian.class)
 @RunAsClient
+@ServerSetup(GracefulTxnShutdownSetup.class)
 public class EJBClientXidTransactionTestCase {
 
     private static final Logger logger = Logger.getLogger(EJBClientXidTransactionTestCase.class);
@@ -61,6 +77,9 @@ public class EJBClientXidTransactionTestCase {
     private static TransactionManager txManager;
 
     private static TransactionSynchronizationRegistry txSyncRegistry;
+
+    @ArquillianResource
+    private ManagementClient managementClient;
 
     /**
      * Creates an EJB deployment
@@ -88,30 +107,29 @@ public class EJBClientXidTransactionTestCase {
      */
     @BeforeClass
     public static void beforeTestClass() throws Exception {
-        // setup the tx manager and tx sync registry
-        instantiateTxManagement();
-    }
-
-    /**
-     * Create and setup the EJB client context backed by the remoting receiver
-     *
-     * @throws Exception
-     */
-    @Before
-    public void beforeTest() throws Exception {
-        // create a client side tx context
-        final EJBClientTransactionContext txContext = EJBClientTransactionContext.create(txManager, txSyncRegistry);
-        // associate the tx context
-        EJBClientTransactionContext.setGlobalContext(txContext);
-    }
-
-    private static void instantiateTxManagement() {
         // These system properties are required or else we end up picking up JTS transaction manager,
         // which is not what we want
-        jtaPropertyManager.getJTAEnvironmentBean().setTransactionManagerClassName(TransactionManagerImple.class.getName());
-        jtaPropertyManager.getJTAEnvironmentBean().setTransactionSynchronizationRegistryClassName(TransactionSynchronizationRegistryImple.class.getName());
-        txManager = jtaPropertyManager.getJTAEnvironmentBean().getTransactionManager();
-        txSyncRegistry = jtaPropertyManager.getJTAEnvironmentBean().getTransactionSynchronizationRegistry();
+        final JTAEnvironmentBean jtaEnvironmentBean = jtaPropertyManager.getJTAEnvironmentBean();
+        jtaEnvironmentBean.setTransactionManagerClassName(TransactionManagerImple.class.getName());
+        jtaEnvironmentBean.setTransactionSynchronizationRegistryClassName(TransactionSynchronizationRegistryImple.class.getName());
+        final TransactionManager narayanaTm = jtaEnvironmentBean.getTransactionManager();
+        final TransactionSynchronizationRegistry narayanaTsr = jtaEnvironmentBean.getTransactionSynchronizationRegistry();
+        final XATerminator xat = new XATerminator();
+        final JBossLocalTransactionProvider.Builder builder = JBossLocalTransactionProvider.builder();
+        builder.setXATerminator(xat).setExtendedJBossXATerminator(xat);
+        builder.setTransactionManager(narayanaTm);
+        builder.setTransactionSynchronizationRegistry(narayanaTsr);
+        builder.setXAResourceRecoveryRegistry(new XAResourceRecoveryRegistry() {
+            @Override public void addXAResourceRecovery(
+                  XAResourceRecovery xaResourceRecovery) {}
+
+            @Override public void removeXAResourceRecovery(
+                  XAResourceRecovery xaResourceRecovery) {}
+        });
+        LocalTransactionContext.getContextManager().setGlobalDefault(new LocalTransactionContext(builder.build()));
+        txManager = ContextTransactionManager.getInstance();
+        txSyncRegistry = ContextTransactionSynchronizationRegistry.getInstance();
+        // setup the tx manager and tx sync registry
     }
 
     /**
@@ -256,5 +274,128 @@ public class EJBClientXidTransactionTestCase {
         Assert.assertNotNull("Batch after system exception was null", batchAfterSysException);
         Assert.assertEquals("Unexpected steps in batch, after system exception", successFullyCompletedSteps, batchAfterSysException.getStepNames());
 
+    }
+
+
+    /**
+     * Calls for a preexistent transaction are allowed and calls for a non-preexistent transaction are not allowed
+     * on server suspension.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testServerSuspension() throws Exception {
+        final StatelessEJBLocator<org.jboss.as.test.integration.ejb.remote.client.api.tx.CMTRemote> cmtRemoteBeanLocator = new StatelessEJBLocator<org.jboss.as.test.integration.ejb.remote.client.api.tx.CMTRemote>(
+                org.jboss.as.test.integration.ejb.remote.client.api.tx.CMTRemote.class, APP_NAME, MODULE_NAME, org.jboss.as.test.integration.ejb.remote.client.api.tx.CMTBean.class.getSimpleName(), "");
+        final org.jboss.as.test.integration.ejb.remote.client.api.tx.CMTRemote cmtRemoteBean = EJBClient.createProxy(cmtRemoteBeanLocator);
+
+        // begin a transaction, and make sure that the server now works normally
+        txManager.begin();
+        try {
+            // invoke the bean
+            cmtRemoteBean.mandatoryTxOp();
+        } finally {
+            // end the tx
+            txManager.commit();
+        }
+
+        // begin the transaction
+        txManager.begin();
+        try {
+            // invoke the bean
+            cmtRemoteBean.mandatoryTxOp();
+
+            ModelNode op = new ModelNode();
+            op.get(OP).set("suspend");
+            managementClient.getControllerClient().execute(op);
+
+            txManager.commit();
+        } catch (Exception e) {
+            try {
+                txManager.rollback();
+            } catch (Exception exc) {}
+            throw e;
+        } finally {
+            // resume server
+            ModelNode op = new ModelNode();
+            op.get(OP).set("resume");
+            managementClient.getControllerClient().execute(op);
+        }
+
+        try {
+            // begin a transaction
+            txManager.begin();
+
+            long fin = System.currentTimeMillis() + TimeoutUtil.adjust(5000);
+            while (true) {
+                try {
+                    // can invoke bean
+                    cmtRemoteBean.mandatoryTxOp();
+                    break;
+                } catch (Exception e) {
+                    if (System.currentTimeMillis() > fin) {
+                        throw e;
+                    }
+                }
+                Thread.sleep(300);
+            }
+
+            // suspend server
+            ModelNode op = new ModelNode();
+            op.get(OP).set("suspend");
+            managementClient.getControllerClient().execute(op);
+
+            // can continue invoking bean with current transaction
+            cmtRemoteBean.mandatoryTxOp();
+        } catch (Exception e) {
+            e.printStackTrace();
+            // resume server
+            ModelNode op = new ModelNode();
+            op.get(OP).set("resume");
+            managementClient.getControllerClient().execute(op);
+            throw e;
+        } finally {
+            // rollback current transaction
+            txManager.commit();
+        }
+
+        // still cannot begin a new transaction
+        txManager.begin();
+        try {
+            cmtRemoteBean.mandatoryTxOp();
+            Assert.fail("Exception expected, server is shutdown");
+        } catch (Exception expected) {
+            // expected
+        } finally {
+            txManager.rollback();
+        }
+
+        // resume server
+        ModelNode op = new ModelNode();
+        op.get(OP).set("resume");
+        managementClient.getControllerClient().execute(op);
+
+        try {
+            // begin a transaction, and make sure that the server now works normally
+            txManager.begin();
+            long fin = System.currentTimeMillis() + TimeoutUtil.adjust(5000);
+            while (true) {
+                try {
+                    // can invoke bean
+                    cmtRemoteBean.mandatoryTxOp();
+                    break;
+                } catch (Exception e) {
+                    if (System.currentTimeMillis() > fin) {
+                        throw e;
+                    }
+                }
+                Thread.sleep(300);
+            }
+            // end the tx
+            txManager.commit();
+        } catch (Exception e) {
+            txManager.rollback();
+            throw e;
+        }
     }
 }

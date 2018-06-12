@@ -21,12 +21,17 @@
  */
 package org.jboss.as.test.integration.web.security.external;
 
+import static org.junit.Assert.assertEquals;
+
+import java.net.URL;
+
 import io.undertow.servlet.ServletExtension;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
@@ -35,19 +40,14 @@ import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.arquillian.api.ServerSetup;
 import org.jboss.as.test.categories.CommonCriteria;
 import org.jboss.as.test.integration.web.security.SecuredServlet;
-import org.jboss.as.test.integration.web.security.WebSecurityPasswordBasedBase;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 
-import java.net.URL;
-
-import static org.junit.Assert.assertEquals;
-
 /**
- * Unit Test the BASIC authentication
+ * Unit Test to test external custom login module.
  *
  * @author Anil Saldhana
  */
@@ -55,7 +55,7 @@ import static org.junit.Assert.assertEquals;
 @RunAsClient
 @ServerSetup(ExternalAuthSecurityDomainSetup.class)
 @Category(CommonCriteria.class)
-public class WebSecurityExternalAuthTestCase  {
+public class WebSecurityExternalAuthTestCase {
 
     @Deployment
     public static WebArchive deployment() throws Exception {
@@ -69,7 +69,6 @@ public class WebSecurityExternalAuthTestCase  {
         war.addAsServiceProvider(ServletExtension.class, UserHandlerExtension.class);
 
 
-        WebSecurityPasswordBasedBase.printWar(war);
         return war;
     }
 
@@ -77,40 +76,34 @@ public class WebSecurityExternalAuthTestCase  {
     private URL url;
 
     protected void makeCall(String user, int expectedStatusCode) throws Exception {
-        DefaultHttpClient httpclient = new DefaultHttpClient();
-        try {
-
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
 
             HttpGet httpget = new HttpGet(url.toExternalForm() + "secured/");
             httpget.addHeader("User", user);
 
-            //System.out.println("executing request" + httpget.getRequestLine());
-            HttpResponse response = httpclient.execute(httpget);
+            HttpResponse response = httpClient.execute(httpget);
             HttpEntity entity = response.getEntity();
 
-            //System.out.println("----------------------------------------");
             StatusLine statusLine = response.getStatusLine();
-            //System.out.println(statusLine);
-            if (entity != null) {
-                System.out.println("Response content length: " + entity.getContentLength());
-            }
+
             assertEquals(expectedStatusCode, statusLine.getStatusCode());
             EntityUtils.consume(entity);
-        } finally {
-            // When HttpClient instance is no longer needed,
-            // shut down the connection manager to ensure
-            // immediate deallocation of all system resources
-            httpclient.getConnectionManager().shutdown();
         }
     }
+
+    /**
+     * Test with user 'anil' who has right role to be authenticated by our external login module.
+     *
+     * @throws Exception
+     */
     @Test
-    public void testSucess() throws Exception {
-        makeCall("anil",  200);
+    public void testSucessfulAuth() throws Exception {
+        makeCall("anil", 200);
     }
 
     /**
      * <p>
-     * Test with user "marcus" who has the right password but does not have the right role
+     * Test with user "marcus" who does not have the right role to be authenticated by our external login module.
      * </p>
      * <p>
      * Should be a HTTP/403
@@ -119,7 +112,7 @@ public class WebSecurityExternalAuthTestCase  {
      * @throws Exception
      */
     @Test
-    public void testFailed() throws Exception {
+    public void testUnsuccessfulAuth() throws Exception {
         makeCall("marcus", 403);
     }
 }

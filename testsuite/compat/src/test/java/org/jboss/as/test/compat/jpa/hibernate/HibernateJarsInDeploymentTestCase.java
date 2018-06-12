@@ -60,12 +60,14 @@ public class HibernateJarsInDeploymentTestCase {
         File jipi = new File(testdir,"jipijapa-hibernate5.jar");
         File dom4j = new File(testdir, "dom4j.jar");
         File antlr = new File(testdir, "antlr.jar");
+        File classmate = new File(testdir, "classmate.jar");
         ear.addAsLibraries(
                 hibernatecore,
                 hibernateannotations,
                 hibernateentitymanager,
                 dom4j,
                 antlr,
+                classmate,
                 jipi
         );
     }
@@ -79,7 +81,7 @@ public class HibernateJarsInDeploymentTestCase {
         lib.addClasses(SFSB1.class, HibernateJarsInDeploymentTestCase.class);
         lib.addAsManifestResource(HibernateJarsInDeploymentTestCase.class.getPackage(), "persistence.xml", "persistence.xml");
         ear.addAsManifestResource(HibernateJarsInDeploymentTestCase.class.getPackage(), "permissions.xml", "permissions.xml");
-        ear.addAsManifestResource(new StringAsset("Dependencies: org.jboss.jandex\n"), "MANIFEST.MF");
+        ear.addAsManifestResource(new StringAsset("Dependencies: org.javassist export, org.jboss.jandex\n"), "MANIFEST.MF");
         ear.addAsModule(lib);
 
         lib = ShrinkWrap.create(JavaArchive.class,"lib.jar");

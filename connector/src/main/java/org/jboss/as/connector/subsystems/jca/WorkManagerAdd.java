@@ -21,9 +21,14 @@
  */
 package org.jboss.as.connector.subsystems.jca;
 
-import org.jboss.as.connector.services.workmanager.statistics.WorkManagerStatisticsService;
+import static org.jboss.as.connector.subsystems.jca.Constants.WORKMANAGER_LONG_RUNNING;
+import static org.jboss.as.connector.subsystems.jca.Constants.WORKMANAGER_SHORT_RUNNING;
+
+import java.util.concurrent.Executor;
+
 import org.jboss.as.connector.services.workmanager.NamedWorkManager;
 import org.jboss.as.connector.services.workmanager.WorkManagerService;
+import org.jboss.as.connector.services.workmanager.statistics.WorkManagerStatisticsService;
 import org.jboss.as.connector.subsystems.resourceadapters.IronJacamarResource;
 import org.jboss.as.connector.util.ConnectorServices;
 import org.jboss.as.controller.AbstractAddStepHandler;
@@ -32,18 +37,13 @@ import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.threads.ThreadsServices;
+import org.jboss.as.txn.integration.JBossContextXATerminator;
 import org.jboss.as.txn.service.TxnServices;
 import org.jboss.dmr.ModelNode;
 import org.jboss.jca.core.api.workmanager.WorkManager;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceTarget;
-import org.jboss.tm.JBossXATerminator;
-
-import java.util.concurrent.Executor;
-
-import static org.jboss.as.connector.subsystems.jca.Constants.WORKMANAGER_LONG_RUNNING;
-import static org.jboss.as.connector.subsystems.jca.Constants.WORKMANAGER_SHORT_RUNNING;
 
 /**
  * @author <a href="jesper.pedersen@jboss.org">Jesper Pedersen</a>
@@ -65,12 +65,12 @@ public class WorkManagerAdd extends AbstractAddStepHandler {
     protected void performRuntime(final OperationContext context, final ModelNode operation, final Resource resource) throws OperationFailedException {
 
         String name = JcaWorkManagerDefinition.WmParameters.NAME.getAttribute().resolveModelAttribute(context, resource.getModel()).asString();
-
+        boolean elytronEnabled = JcaWorkManagerDefinition.WmParameters.ELYTRON_ENABLED.getAttribute().resolveModelAttribute(context, resource.getModel()).asBoolean();
 
         ServiceTarget serviceTarget = context.getServiceTarget();
 
 
-        WorkManager wm = new NamedWorkManager(name);
+        NamedWorkManager wm = new NamedWorkManager(name, elytronEnabled);
         WorkManagerService wmService = new WorkManagerService(wm);
         ServiceBuilder builder = serviceTarget
                 .addService(ConnectorServices.WORKMANAGER_SERVICE.append(name), wmService);
@@ -79,7 +79,7 @@ public class WorkManagerAdd extends AbstractAddStepHandler {
         builder.addDependency(ServiceBuilder.DependencyType.OPTIONAL, ThreadsServices.EXECUTOR.append(WORKMANAGER_LONG_RUNNING).append(name), Executor.class, wmService.getExecutorLongInjector());
         builder.addDependency(ThreadsServices.EXECUTOR.append(WORKMANAGER_SHORT_RUNNING).append(name), Executor.class, wmService.getExecutorShortInjector());
 
-        builder.addDependency(TxnServices.JBOSS_TXN_XA_TERMINATOR, JBossXATerminator.class, wmService.getXaTerminatorInjector())
+        builder.addDependency(TxnServices.JBOSS_TXN_CONTEXT_XA_TERMINATOR, JBossContextXATerminator.class, wmService.getXaTerminatorInjector())
                 .setInitialMode(ServiceController.Mode.ON_DEMAND)
                 .install();
 

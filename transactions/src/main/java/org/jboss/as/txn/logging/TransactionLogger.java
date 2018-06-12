@@ -22,13 +22,17 @@
 
 package org.jboss.as.txn.logging;
 
+import static org.jboss.logging.Logger.Level.DEBUG;
 import static org.jboss.logging.Logger.Level.ERROR;
 import static org.jboss.logging.Logger.Level.WARN;
 
 import java.io.IOException;
 
+import javax.resource.spi.work.Work;
+import javax.resource.spi.work.WorkCompletedException;
 import javax.transaction.Synchronization;
 import javax.transaction.Transaction;
+import javax.transaction.xa.Xid;
 import javax.xml.stream.Location;
 import javax.xml.stream.XMLStreamException;
 
@@ -139,28 +143,27 @@ public interface TransactionLogger extends BasicLogger {
     @Message(id = 10, value = "MBean Server service not installed, this functionality is not available if the JMX subsystem has not been installed.")
     RuntimeException jmxSubsystemNotInstalled();
 
-    @Message(id = 11, value = "'journal-store-enable-async-io' must be true.")
-    String transformJournalStoreEnableAsyncIoMustBeTrue();
+//    @Message(id = 11, value = "'journal-store-enable-async-io' must be true.")
+//    String transformJournalStoreEnableAsyncIoMustBeTrue();
 
     @Message(id = 12, value = "Attributes %s and %s are alternatives; both cannot be set with conflicting values.")
     OperationFailedException inconsistentStatisticsSettings(String attrOne, String attrTwo);
 
     /**
      * If the user has set node identifier to the default value
-     *
-     * @return the message.
      */
     @LogMessage(level = WARN)
-    @Message(id = 13, value = "Node identifier property is set to the default value. Please make sure it is unique.")
-    void nodeIdentifierIsSetToDefault();
+    @Message(id = 13, value = "The %s attribute on the %s is set to the default value. This is a danger for environments running "
+            + "multiple servers. Please make sure the attribute value is unique.")
+    void nodeIdentifierIsSetToDefault(String attributeName, String subsystemAddress);
 
-    /**
-     * A message indicating that jndi-name is missing and it's a required attribute
-     *
-     * @return the message.
-     */
-    @Message(id = 14, value = "Jndi name is required")
-    OperationFailedException jndiNameRequired();
+//    /**
+//     * A message indicating that jndi-name is missing and it's a required attribute
+//     *
+//     * @return the message.
+//     */
+//    @Message(id = 14, value = "Jndi name is required")
+//    OperationFailedException jndiNameRequired();
 
     /**
      * A message indicating that jndi-name has an invalid format
@@ -192,8 +195,8 @@ public interface TransactionLogger extends BasicLogger {
     @Message(id = 21, value = "EE Concurrent's TransactionSetupProviderService not started.")
     IllegalStateException transactionSetupProviderServiceNotStarted();
 
-    @Message(id = 22, value = "EE Concurrent's TransactionSetupProviderService not installed.")
-    IllegalStateException transactionSetupProviderServiceNotInstalled();
+//    @Message(id = 22, value = "EE Concurrent's TransactionSetupProviderService not installed.")
+//    IllegalStateException transactionSetupProviderServiceNotInstalled();
 
     @Message(id = 23, value = "%s must be undefined if %s is 'true'.")
     OperationFailedException mustBeUndefinedIfTrue(String attrOne, String attrTwo);
@@ -230,4 +233,21 @@ public interface TransactionLogger extends BasicLogger {
 
     @Message(id = 33, value = "Only one of %s and %s can be 'true'.")
     OperationFailedException onlyOneCanBeTrue(String attrOne, String attrTwo);
+
+    @LogMessage(level = DEBUG)
+    @Message(id = 34, value = "relative_to property of the object-store is set to the default value with jboss.server.data.dir")
+    void objectStoreRelativeToIsSetToDefault();
+
+    @Message(id = 35, value = "Cannot find or import inflow transaction for xid %s and work %s")
+    WorkCompletedException cannotFindOrImportInflowTransaction(Xid xid, Work work, @Cause Exception e);
+
+    @Message(id = 36, value = "Imported jca inflow transaction with xid %s of work %s is inactive")
+    WorkCompletedException importedInflowTransactionIsInactive(Xid xid, Work work, @Cause Exception e);
+
+    @Message(id = 37, value = "Unexpected error on resuming transaction %s for work %s")
+    WorkCompletedException cannotResumeInflowTransactionUnexpectedError(Transaction txn, Work work, @Cause Exception e);
+
+    @Message(id = 38, value = "Unexpected error on suspending transaction for work %s")
+    RuntimeException cannotSuspendInflowTransactionUnexpectedError(Work txn, @Cause Exception e);
+
 }

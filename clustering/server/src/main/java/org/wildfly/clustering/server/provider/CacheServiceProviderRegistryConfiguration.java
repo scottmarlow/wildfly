@@ -24,20 +24,20 @@ package org.wildfly.clustering.server.provider;
 import java.util.Set;
 
 import org.infinispan.Cache;
+import org.infinispan.remoting.transport.Address;
 import org.wildfly.clustering.dispatcher.CommandDispatcherFactory;
 import org.wildfly.clustering.ee.Batch;
 import org.wildfly.clustering.ee.Batcher;
-import org.wildfly.clustering.group.Group;
-import org.wildfly.clustering.group.Node;
+import org.wildfly.clustering.server.group.Group;
 
 /**
- * Configuration for a {@link CacheServiceProviderRegistryBuilder}.
+ * Configuration for a {@link CacheServiceProviderRegistryServiceConfigurator}.
  * @author Paul Ferraro
  */
 public interface CacheServiceProviderRegistryConfiguration<T> {
     Object getId();
-    Group getGroup();
-    Cache<T, Set<Node>> getCache();
+    Group<Address> getGroup();
+    Cache<T, Set<Address>> getCache();
     CommandDispatcherFactory getCommandDispatcherFactory();
     Batcher<? extends Batch> getBatcher();
 }

@@ -105,13 +105,9 @@ public class StatelessSessionComponent extends SessionBeanComponent implements P
         return timeoutMethod;
     }
 
-    public Affinity getWeakAffinity() {
-        return this.weakAffinity;
-    }
-
     @Override
-    public void start() {
-        super.start();
+    public void init() {
+        super.init();
         if(this.pool!=null){
             this.pool.start();
         }

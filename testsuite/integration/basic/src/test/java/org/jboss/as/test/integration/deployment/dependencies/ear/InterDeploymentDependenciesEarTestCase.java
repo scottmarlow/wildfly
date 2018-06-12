@@ -21,17 +21,29 @@
  */
 package org.jboss.as.test.integration.deployment.dependencies.ear;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
 import java.util.Hashtable;
 
+import javax.ejb.NoSuchEJBException;
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
-import org.jboss.arquillian.container.test.api.Deployer;
+import org.jboss.arquillian.container.spi.client.container.DeploymentException;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.as.arquillian.container.ArchiveDeployer;
+import org.jboss.as.arquillian.container.ManagementClient;
+import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.operations.common.Util;
+import org.jboss.as.test.integration.management.ManagementOperations;
+import org.jboss.as.test.integration.management.util.MgmtOperationException;
+import org.jboss.dmr.ModelNode;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -39,11 +51,11 @@ import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 /**
  * Test for inter-deployment dependencies in EAR files. It also contains a module dependency simple test - EJB module depends on
@@ -63,109 +75,119 @@ public class InterDeploymentDependenciesEarTestCase {
     private static final String MODULE_WEB = "staller";
 
     @ArquillianResource
-    public Deployer deployer;
+    public ManagementClient managementClient;
+
+    // We don't inject this via @ArquillianResource because ARQ can't fully control
+    // DEPA_APP1 and DEP_APP2 and things go haywire if we try. But we use ArchiveDeployer
+    // because it's a convenient API for handling deploy/undeploy of Shrinkwrap archives
+    private ArchiveDeployer deployer;
 
     // Public methods --------------------------------------------------------
 
-    /**
-     * Creates app1.ear deployment.
-     *
-     * @return
-     */
-    @Deployment(name = DEP_APP1, managed = false)
-    public static Archive<?> createApp1Deployment() {
-        final EnterpriseArchive archive = ShrinkWrap
+    // Dummy deployment so arq will be able to inject a ManagementClient
+    @Deployment
+    public static Archive<?> getDeployment() {
+        return ShrinkWrap.create(JavaArchive.class, "dummy.jar");
+    }
+
+    private static EnterpriseArchive DEPENDEE = ShrinkWrap
                 .create(EnterpriseArchive.class, DEP_APP1 + ".ear")
                 .addAsModule(createWar())
                 .addAsModule(createBeanJar())
                 .addAsLibrary(createLogLibrary())
                 .addAsManifestResource(InterDeploymentDependenciesEarTestCase.class.getPackage(), "application.xml",
                         "application.xml");
-        return archive;
-    }
 
-    /**
-     * Creates app2.ear deployment.
-     *
-     * @return
-     */
-    @Deployment(name = DEP_APP2, managed = false)
-    public static Archive<?> createApp2Deployment() {
-        final EnterpriseArchive archive = ShrinkWrap
+    private static EnterpriseArchive DEPENDENT = ShrinkWrap
                 .create(EnterpriseArchive.class, DEP_APP2 + ".ear")
                 .addAsLibrary(createLogLibrary())
                 .addAsModule(createBeanJar())
                 .addAsManifestResource(InterDeploymentDependenciesEarTestCase.class.getPackage(), "jboss-all.xml",
                         "jboss-all.xml").addAsModule(createBeanJar());
-        return archive;
+
+    @Before
+    public void setup() {
+        deployer = new ArchiveDeployer(managementClient);
+    }
+
+    @After
+    public void cleanUp() {
+        try {
+            deployer.undeploy(DEPENDENT.getName());
+        } catch (Exception e) {
+            // Ignore
+        }
+
+        try {
+            deployer.undeploy(DEPENDEE.getName());
+        } catch (Exception e) {
+            // Ignore
+        }
     }
 
     /**
      * Tests enterprise application dependencies.
-     *
-     * @throws NamingException
      */
     @Test
-    public void test() throws NamingException {
+    public void test() throws NamingException, IOException, DeploymentException {
         try {
-            deployer.deploy(DEP_APP2);
-            fail("Application deployment must fail if the dependencies are not satifsied.");
+            deployer.deploy(DEPENDENT);
+            fail("Application deployment must fail if the dependencies are not satisfied.");
         } catch (Exception e) {
             LOGGER.debug("Expected fail", e);
-        } finally {
-            deployer.undeploy(DEP_APP2);
         }
-        deployer.deploy(DEP_APP1);
-        deployer.deploy(DEP_APP2);
+
+        deployer.deploy(DEPENDEE);
+        deployer.deploy(DEPENDENT);
 
         final LogAccess helloApp1 = lookupEJB(DEP_APP1);
         final LogAccess helloApp2 = lookupEJB(DEP_APP2);
         assertEquals(SleeperContextListener.class.getSimpleName() + LogAccessBean.class.getSimpleName(), helloApp1.getLog());
         assertEquals(LogAccessBean.class.getSimpleName(), helloApp2.getLog());
-        deployer.undeploy(DEP_APP1);
+
+        forceDependeeUndeploy();
         try {
             helloApp2.getLog();
             fail("Calling EJB from dependent application should fail");
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException | NoSuchEJBException e) {
             //OK
         }
-        deployer.undeploy(DEP_APP2);
+        // cleanUp will undeploy DEP_APP2
     }
 
     @Test
-    public void testWithRestart() throws NamingException {
+    public void testWithRestart() throws NamingException, IOException, DeploymentException, MgmtOperationException {
         try {
-            deployer.deploy(DEP_APP2);
-            fail("Application deployment must fail if the dependencies are not satifsied.");
+            deployer.deploy(DEPENDENT);
+            fail("Application deployment must fail if the dependencies are not satisfied.");
         } catch (Exception e) {
             LOGGER.debug("Expected fail", e);
-        } finally {
-            deployer.undeploy(DEP_APP2);
         }
-        deployer.deploy(DEP_APP1);
-        deployer.deploy(DEP_APP2);
+
+        deployer.deploy(DEPENDEE);
+        deployer.deploy(DEPENDENT);
 
         LogAccess helloApp1 = lookupEJB(DEP_APP1);
         LogAccess helloApp2 = lookupEJB(DEP_APP2);
         assertEquals(SleeperContextListener.class.getSimpleName() + LogAccessBean.class.getSimpleName(), helloApp1.getLog());
         assertEquals(LogAccessBean.class.getSimpleName(), helloApp2.getLog());
 
-        deployer.undeploy(DEP_APP1);
-        deployer.deploy(DEP_APP1);
+        ModelNode redeploy = Util.createEmptyOperation("redeploy", PathAddress.pathAddress("deployment", DEPENDEE.getName()));
+        ManagementOperations.executeOperation(managementClient.getControllerClient(), redeploy);
 
         helloApp1 = lookupEJB(DEP_APP1);
         helloApp2 = lookupEJB(DEP_APP2);
         assertEquals(SleeperContextListener.class.getSimpleName() + LogAccessBean.class.getSimpleName(), helloApp1.getLog());
         assertEquals(LogAccessBean.class.getSimpleName(), helloApp2.getLog());
 
-        deployer.undeploy(DEP_APP1);
+        forceDependeeUndeploy();
         try {
             helloApp2.getLog();
             fail("Calling EJB from dependent application should fail");
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException | NoSuchEJBException e) {
             //OK
         }
-        deployer.undeploy(DEP_APP2);
+        // cleanUp will undeploy DEP_APP2
     }
 
     // Private methods -------------------------------------------------------
@@ -174,21 +196,31 @@ public class InterDeploymentDependenciesEarTestCase {
      * Lookups LogAccess bean for given application name.
      *
      * @param appName application name
-     * @return
-     * @throws NamingException
+     * @return the LogAccess bean
+     * @throws NamingException if lookup fails
      */
     private LogAccess lookupEJB(String appName) throws NamingException {
-        final Hashtable<String, String> jndiProperties = new Hashtable<String, String>();
+        final Hashtable<String, String> jndiProperties = new Hashtable<>();
         jndiProperties.put(Context.URL_PKG_PREFIXES, "org.jboss.ejb.client.naming");
         final Context context = new InitialContext(jndiProperties);
         return (LogAccess) context.lookup("ejb:" + appName + "/" + MODULE_EJB + "/" + LogAccessBean.class.getSimpleName() + "!"
                 + LogAccess.class.getName());
     }
 
+    private void forceDependeeUndeploy() throws IOException {
+        ModelNode forcedUndeploy = Util.createEmptyOperation("undeploy", PathAddress.pathAddress("deployment", DEPENDEE.getName()));
+        forcedUndeploy.get("operation-headers", "rollback-on-runtime-failure").set(false);
+        ModelNode response = managementClient.getControllerClient().execute(forcedUndeploy);
+        // This will succeed until WFCORE-1762 is fixed; once it is check that the failure didn't
+        // result in rollback
+        if ("failed".equals(response.get("outcome").asString())) {
+            Assert.assertFalse(response.toString(), response.get("rolled-back").asBoolean(true));
+        }
+
+    }
+
     /**
      * Creates a shared lib with logger.
-     *
-     * @return
      */
     private static JavaArchive createLogLibrary() {
         return ShrinkWrap.create(JavaArchive.class, "log.jar").addClass(Log.class);
@@ -196,24 +228,18 @@ public class InterDeploymentDependenciesEarTestCase {
 
     /**
      * Creates testing web-app (module for app1.ear)
-     *
-     * @return
      */
     private static Archive<?> createWar() {
-        final WebArchive archive = ShrinkWrap.create(WebArchive.class, MODULE_WEB + ".war")
+        return ShrinkWrap.create(WebArchive.class, MODULE_WEB + ".war")
                 .setWebXML(InterDeploymentDependenciesEarTestCase.class.getPackage(), "web.xml")
                 .addClass(SleeperContextListener.class);
-        return archive;
     }
 
     /**
      * Creates a testing EJB module (for app1 and app2)
-     *
-     * @return
      */
     private static Archive<?> createBeanJar() {
-        final JavaArchive archive = ShrinkWrap.create(JavaArchive.class, MODULE_EJB + ".jar")
+        return ShrinkWrap.create(JavaArchive.class, MODULE_EJB + ".jar")
                 .addClasses(LogAccess.class, LogAccessBean.class).addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml");
-        return archive;
     }
 }

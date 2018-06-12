@@ -42,6 +42,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.PropertyPermission;
+
 import javax.security.auth.kerberos.ServicePermission;
 import javax.security.auth.login.LoginException;
 import javax.servlet.http.HttpServletResponse;
@@ -83,8 +84,8 @@ import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.network.NetworkUtils;
 import org.jboss.as.test.integration.security.common.AbstractSecurityDomainsServerSetupTask;
 import org.jboss.as.test.integration.security.common.AbstractSystemPropertiesServerSetupTask;
+import org.jboss.as.test.integration.security.common.CoreUtils;
 import org.jboss.as.test.integration.security.common.KDCServerAnnotationProcessor;
-import org.jboss.as.test.integration.security.common.SecurityTraceLoggingServerSetupTask;
 import org.jboss.as.test.integration.security.common.Utils;
 import org.jboss.as.test.integration.security.common.config.SecurityDomain;
 import org.jboss.as.test.integration.security.common.config.SecurityModule;
@@ -100,7 +101,7 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -122,7 +123,8 @@ import org.junit.runner.RunWith;
  * @author Josef Cacek
  */
 @RunWith(Arquillian.class)
-@ServerSetup({SecurityTraceLoggingServerSetupTask.class, Krb5ConfServerSetupTask.class, //
+@ServerSetup({//SecurityTraceLoggingServerSetupTask.class, // Uncomment if TRACE logging is necessary. Don't leave it on all the time; CI resources aren't free.
+        Krb5ConfServerSetupTask.class, //
         SPNEGOLoginModuleTestCase.KerberosSystemPropertiesSetupTask.class, //
         SPNEGOLoginModuleTestCase.KDCServerSetupTask.class, //
         GSSTestServer.class, //
@@ -155,9 +157,9 @@ public class SPNEGOLoginModuleTestCase {
 
     // Public methods --------------------------------------------------------
 
-    @BeforeClass
-    public static void beforeClass() {
-        KerberosTestUtils.assumeKerberosAuthenticationSupported(null);
+    @Before
+    public void before() {
+        KerberosTestUtils.assumeKerberosAuthenticationSupported();
     }
 
     /**
@@ -178,6 +180,7 @@ public class SPNEGOLoginModuleTestCase {
                 new PropertyPermission(GSSTestConstants.PROPERTY_PASSWORD, "read"),
                 // Permissions for GSSTestClient to connect to GSSTestServer
                 new SocketPermission(TestSuiteEnvironment.getServerAddress(), "resolve,connect"),
+                new SocketPermission(CoreUtils.getCannonicalHost(TestSuiteEnvironment.getServerAddress()), "resolve,connect"),
                 // Permissions for GSSTestClient to initiate gss context
                 new ServicePermission(GSSTestConstants.PRINCIPAL, "initiate"),
                 new ServicePermission("krbtgt/JBOSS.ORG@JBOSS.ORG", "initiate")),
@@ -211,7 +214,7 @@ public class SPNEGOLoginModuleTestCase {
     public void testAuthn(@ArquillianResource URL webAppURL) throws Exception {
         final URI servletUri = getServletURI(webAppURL, SimpleSecuredServlet.SERVLET_PATH);
 
-        LOGGER.info("Testing successful authentication " + servletUri);
+        LOGGER.trace("Testing successful authentication " + servletUri);
         final String responseBody = Utils.makeCallWithKerberosAuthn(servletUri, "jduke", "theduke", HttpServletResponse.SC_OK);
         assertEquals("Unexpected response body", SimpleSecuredServlet.RESPONSE_BODY, responseBody);
     }
@@ -226,7 +229,7 @@ public class SPNEGOLoginModuleTestCase {
     public void testUnsuccessfulAuthn(@ArquillianResource URL webAppURL) throws Exception {
         final URI servletUri = getServletURI(webAppURL, SimpleSecuredServlet.SERVLET_PATH);
 
-        LOGGER.info("Testing failed authentication " + servletUri);
+        LOGGER.trace("Testing failed authentication " + servletUri);
         try {
             Utils.makeCallWithKerberosAuthn(servletUri, "jduke", "the%", HttpServletResponse.SC_OK);
             fail();
@@ -251,7 +254,7 @@ public class SPNEGOLoginModuleTestCase {
     public void testUnsuccessfulAuthz(@ArquillianResource URL webAppURL) throws Exception {
         final URI servletUri = getServletURI(webAppURL, SimpleSecuredServlet.SERVLET_PATH);
 
-        LOGGER.info("Testing correct authentication, but failed authorization " + servletUri);
+        LOGGER.trace("Testing correct authentication, but failed authorization " + servletUri);
         Utils.makeCallWithKerberosAuthn(servletUri, "hnelson", "secret", HttpServletResponse.SC_FORBIDDEN);
     }
 
@@ -265,7 +268,7 @@ public class SPNEGOLoginModuleTestCase {
     public void testUnsecured(@ArquillianResource URL webAppURL) throws Exception {
         final URI servletUri = getServletURI(webAppURL, SimpleServlet.SERVLET_PATH);
 
-        LOGGER.info("Testing access to unprotected resource " + servletUri);
+        LOGGER.trace("Testing access to unprotected resource " + servletUri);
         final String responseBody = Utils.makeCallWithKerberosAuthn(servletUri, null, null, HttpServletResponse.SC_OK);
         assertEquals("Unexpected response body.", SimpleServlet.RESPONSE_BODY, responseBody);
     }
@@ -278,9 +281,10 @@ public class SPNEGOLoginModuleTestCase {
     @Test
     @OperateOnDeployment("WEB")
     public void testIdentityPropagation(@ArquillianResource URL webAppURL) throws Exception {
+        KerberosTestUtils.assumeKerberosAuthenticationSupported();
         final URI servletUri = getServletURI(webAppURL, PropagateIdentityServlet.SERVLET_PATH);
 
-        LOGGER.info("Testing identity propagation " + servletUri);
+        LOGGER.trace("Testing identity propagation " + servletUri);
         final String responseBody = Utils.makeCallWithKerberosAuthn(servletUri, "jduke", "theduke", HttpServletResponse.SC_OK);
         assertEquals("Unexpected response body.", "jduke@JBOSS.ORG", responseBody);
     }
@@ -293,20 +297,21 @@ public class SPNEGOLoginModuleTestCase {
     @Test
     @OperateOnDeployment("WEB-FORM")
     public void testFormFallback(@ArquillianResource URL webAppURL) throws Exception {
+        KerberosTestUtils.assumeKerberosAuthenticationSupported();
         final URI servletUri = getServletURI(webAppURL, SimpleSecuredServlet.SERVLET_PATH);
 
-        LOGGER.info("Testing fallback to FORM authentication. " + servletUri);
+        LOGGER.trace("Testing fallback to FORM authentication. " + servletUri);
 
-        LOGGER.info("Testing successful SPNEGO authentication");
+        LOGGER.trace("Testing successful SPNEGO authentication");
         String responseBody = Utils.makeCallWithKerberosAuthn(servletUri, "jduke", "theduke", HttpServletResponse.SC_OK);
         assertEquals("Unexpected response body", SimpleSecuredServlet.RESPONSE_BODY, responseBody);
 
-        LOGGER.info("Testing successful FORM authentication");
+        LOGGER.trace("Testing successful FORM authentication");
         responseBody = Utils.makeHttpCallWoSPNEGO(webAppURL.toExternalForm(), SimpleSecuredServlet.SERVLET_PATH,
                 "jduke@JBOSS.ORG", "fallback", HttpServletResponse.SC_OK);
         assertEquals("Unexpected response body", SimpleSecuredServlet.RESPONSE_BODY, responseBody);
 
-        LOGGER.info("Testing FORM fallback");
+        LOGGER.trace("Testing FORM fallback");
         responseBody = Utils.makeHttpCallWithFallback(webAppURL.toExternalForm(), SimpleSecuredServlet.SERVLET_PATH,
                 "jduke@JBOSS.ORG", "fallback", HttpServletResponse.SC_OK);
         assertEquals("Unexpected response body", SimpleSecuredServlet.RESPONSE_BODY, responseBody);
@@ -318,6 +323,7 @@ public class SPNEGOLoginModuleTestCase {
     @Test
     @OperateOnDeployment("WEB")
     public void testSimpleSpnegoWorkflow(@ArquillianResource URL webAppURL) throws Exception {
+        KerberosTestUtils.assumeKerberosAuthenticationSupported();
         final URI uri = getServletURI(webAppURL, SimpleSecuredServlet.SERVLET_PATH);
         final String[] mechTypes = new String[]{OID_KERBEROS_V5};
         assertSpnegoWorkflow(uri, mechTypes, createNewKerberosTicketForHttp(uri), null, false, true);
@@ -330,6 +336,7 @@ public class SPNEGOLoginModuleTestCase {
     @Test
     @OperateOnDeployment("WEB")
     public void testMoreMechTypesSpnegoWorkflow(@ArquillianResource URL webAppURL) throws Exception {
+        KerberosTestUtils.assumeKerberosAuthenticationSupported();
         final URI uri = getServletURI(webAppURL, SimpleSecuredServlet.SERVLET_PATH);
         final String[] mechTypes = new String[]{OID_KERBEROS_V5, OID_DUMMY, OID_KERBEROS_V5_LEGACY};
         assertSpnegoWorkflow(uri, mechTypes, createNewKerberosTicketForHttp(uri), null, false, true);
@@ -358,7 +365,7 @@ public class SPNEGOLoginModuleTestCase {
         final URI uri = getServletURI(webAppURL, SimpleSecuredServlet.SERVLET_PATH);
         final String[] mechTypes = new String[]{OID_KERBEROS_V5_LEGACY, OID_KERBEROS_V5};
         final byte[] kerberosToken = createNewKerberosTicketForHttp(uri);
-        assertSpnegoWorkflow(uri, mechTypes, kerberosToken, kerberosToken, true, true);
+        assertSpnegoWorkflow(uri, mechTypes, kerberosToken, kerberosToken, false, true);
     }
 
     /**
@@ -414,7 +421,9 @@ public class SPNEGOLoginModuleTestCase {
             EntityUtils.consume(response.getEntity());
             httpGet.setHeader(HEADER_AUTHORIZATION, "Negotiate " + Base64.getEncoder().encodeToString(kerberosToken));
             response = httpClient.execute(httpGet);
-            LOGGER.info("Negotiate response in HTTP header:\n" + KerberosTestUtils.dumpNegotiateHeader(response));
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Negotiate response in HTTP header:\n" + KerberosTestUtils.dumpNegotiateHeader(response));
+            }
             assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
             assertEquals("Unexpected response body", SimpleSecuredServlet.RESPONSE_BODY,
                     EntityUtils.toString(response.getEntity()));
@@ -487,7 +496,9 @@ public class SPNEGOLoginModuleTestCase {
             httpGet.setHeader(HEADER_AUTHORIZATION, "Negotiate " + Base64.getEncoder().encodeToString(spnegoInitToken));
 
             response = httpClient.execute(httpGet);
-            LOGGER.info("Negotiate response in HTTP header:\n" + KerberosTestUtils.dumpNegotiateHeader(response));
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Negotiate response in HTTP header:\n" + KerberosTestUtils.dumpNegotiateHeader(response));
+            }
 
             if (continuationExpected) {
                 assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatusLine().getStatusCode());
@@ -498,7 +509,9 @@ public class SPNEGOLoginModuleTestCase {
                 byte[] spnegoRespToken = KerberosTestUtils.generateSpnegoTokenResp(responseToken);
                 httpGet.setHeader(HEADER_AUTHORIZATION, "Negotiate " + Base64.getEncoder().encodeToString(spnegoRespToken));
                 response = httpClient.execute(httpGet);
-                LOGGER.info("Negotiate response in HTTP header:\n" + KerberosTestUtils.dumpNegotiateHeader(response));
+                if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace("Negotiate response in HTTP header:\n" + KerberosTestUtils.dumpNegotiateHeader(response));
+                }
             }
             if (successExpected) {
                 assertEquals(HttpServletResponse.SC_OK, response.getStatusLine().getStatusCode());
@@ -583,7 +596,7 @@ public class SPNEGOLoginModuleTestCase {
                     IOUtils.toString(
                             SPNEGOLoginModuleTestCase.class.getResourceAsStream(SPNEGOLoginModuleTestCase.class.getSimpleName()
                                     + ".ldif"), "UTF-8"), map);
-            LOGGER.info(ldifContent);
+            LOGGER.trace(ldifContent);
             final SchemaManager schemaManager = directoryService.getSchemaManager();
             try {
 
@@ -653,8 +666,8 @@ public class SPNEGOLoginModuleTestCase {
                         .putOption("doNotPrompt", TRUE);
             }
             final String host = NetworkUtils.formatPossibleIpv6Address(Utils.getCannonicalHost(managementClient));
-            kerberosModuleBuilder.putOption("principal", "HTTP/" + host + "@JBOSS.ORG") //
-                    .putOption("debug", TRUE);
+            kerberosModuleBuilder.putOption("principal", "HTTP/" + host + "@JBOSS.ORG"); //
+                    //.putOption("debug", Boolean.FALSE.toString());
             final SecurityDomain hostDomain = new SecurityDomain.Builder().name("host")
                     .loginModules(kerberosModuleBuilder.build()) //
                     .build();
@@ -707,7 +720,7 @@ public class SPNEGOLoginModuleTestCase {
         protected SystemProperty[] getSystemProperties() {
             final Map<String, String> map = new HashMap<String, String>();
             map.put("java.security.krb5.conf", Krb5ConfServerSetupTask.getKrb5ConfFullPath());
-            map.put("sun.security.krb5.debug", TRUE);
+            //map.put("sun.security.krb5.debug", TRUE);
             map.put(SecurityConstants.DISABLE_SECDOMAIN_OPTION, TRUE);
             return mapToSystemProperties(map);
         }

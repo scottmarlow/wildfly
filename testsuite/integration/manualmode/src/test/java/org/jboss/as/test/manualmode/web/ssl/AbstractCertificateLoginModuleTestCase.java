@@ -150,7 +150,7 @@ public abstract class AbstractCertificateLoginModuleTestCase {
         HttpGet httpGet = new HttpGet(url.toURI());
         HttpResponse response = httpClient.execute(httpGet);
         int statusCode = response.getStatusLine().getStatusCode();
-        LOGGER.info("Request to: " + url + " responds: " + statusCode);
+        LOGGER.trace("Request to: " + url + " responds: " + statusCode);
 
         assertEquals("Unexpected status code", expectedStatusCode, statusCode);
 
@@ -179,7 +179,8 @@ public abstract class AbstractCertificateLoginModuleTestCase {
             WORK_DIR.mkdirs();
             Utils.createKeyMaterial(WORK_DIR);
 
-            TRACE_SECURITY.setup(managementClient, null);
+            // Uncomment if TRACE logging is necessary. Don't leave it on all the time; CI resources aren't free.
+            //TRACE_SECURITY.setup(managementClient, null);
 
             final ModelControllerClient client = managementClient.getControllerClient();
 
@@ -219,7 +220,7 @@ public abstract class AbstractCertificateLoginModuleTestCase {
 
             ModelNode operation = createOpNode("subsystem=undertow/server=default-server/https-listener=https2",
                     ModelDescriptionConstants.REMOVE);
-            operation.get(OPERATION_HEADERS, ALLOW_RESOURCE_SERVICE_RESTART).set(true);
+            operation.get(OPERATION_HEADERS, ALLOW_RESOURCE_SERVICE_RESTART).set(false);
             Utils.applyUpdate(operation, managementClient.getControllerClient());
 
             operation = createOpNode("socket-binding-group=standard-sockets/socket-binding=https2",
@@ -230,7 +231,8 @@ public abstract class AbstractCertificateLoginModuleTestCase {
             Utils.applyUpdate(operation, managementClient.getControllerClient());
 
             FileUtils.deleteDirectory(WORK_DIR);
-            TRACE_SECURITY.tearDown(managementClient, null);
+            // Uncomment if TRACE logging is necessary. Don't leave it on all the time; CI resources aren't free.
+            //TRACE_SECURITY.tearDown(managementClient, null);
 
         }
     }

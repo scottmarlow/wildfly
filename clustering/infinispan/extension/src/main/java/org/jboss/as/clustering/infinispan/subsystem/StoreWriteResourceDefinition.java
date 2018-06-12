@@ -23,12 +23,13 @@
 package org.jboss.as.clustering.infinispan.subsystem;
 
 import org.jboss.as.clustering.controller.ChildResourceDefinition;
+import org.jboss.as.clustering.controller.ManagementResourceRegistration;
 import org.jboss.as.controller.PathElement;
 
 /**
  * @author Paul Ferraro
  */
-public abstract class StoreWriteResourceDefinition extends ChildResourceDefinition {
+public abstract class StoreWriteResourceDefinition extends ChildResourceDefinition<ManagementResourceRegistration> {
 
     static final PathElement WILDCARD_PATH = pathElement(PathElement.WILDCARD_VALUE);
 
@@ -37,6 +38,6 @@ public abstract class StoreWriteResourceDefinition extends ChildResourceDefiniti
     }
 
     StoreWriteResourceDefinition(PathElement path) {
-        super(path, new InfinispanResourceDescriptionResolver(path));
+        super(path, InfinispanExtension.SUBSYSTEM_RESOLVER.createChildResolver(path));
     }
 }

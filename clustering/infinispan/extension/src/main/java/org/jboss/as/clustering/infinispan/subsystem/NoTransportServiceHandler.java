@@ -22,16 +22,24 @@
 
 package org.jboss.as.clustering.infinispan.subsystem;
 
+import static org.jboss.as.clustering.infinispan.subsystem.TransportResourceDefinition.CLUSTERING_CAPABILITIES;
+
+import java.util.EnumSet;
 import java.util.ServiceLoader;
 
+import org.jboss.as.clustering.controller.CapabilityServiceConfigurator;
 import org.jboss.as.clustering.controller.ResourceServiceHandler;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.PathAddress;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceTarget;
-import org.wildfly.clustering.service.Builder;
-import org.wildfly.clustering.spi.GroupAliasBuilderProvider;
-import org.wildfly.clustering.spi.LocalGroupBuilderProvider;
+import org.wildfly.clustering.service.ServiceNameProvider;
+import org.wildfly.clustering.spi.CapabilityServiceNameRegistry;
+import org.wildfly.clustering.spi.ClusteringRequirement;
+import org.wildfly.clustering.spi.IdentityGroupServiceConfiguratorProvider;
+import org.wildfly.clustering.spi.LocalGroupServiceConfiguratorProvider;
+import org.wildfly.clustering.spi.ServiceNameRegistry;
 
 /**
  * @author Paul Ferraro
@@ -40,32 +48,40 @@ public class NoTransportServiceHandler implements ResourceServiceHandler {
 
     @Override
     public void installServices(OperationContext context, ModelNode model) throws OperationFailedException {
-        String name = context.getCurrentAddress().getParent().getLastElement().getValue();
+        PathAddress address = context.getCurrentAddress();
+        PathAddress containerAddress = address.getParent();
+        String name = containerAddress.getLastElement().getValue();
 
         ServiceTarget target = context.getServiceTarget();
 
-        new NoTransportBuilder(name).build(target).install();
-        new SiteBuilder(name).build(target).install();
+        new NoTransportServiceConfigurator(address).build(target).install();
+        new SiteServiceConfigurator(address).build(target).install();
 
-        for (GroupAliasBuilderProvider provider : ServiceLoader.load(GroupAliasBuilderProvider.class, GroupAliasBuilderProvider.class.getClassLoader())) {
-            for (Builder<?> builder : provider.getBuilders(name, LocalGroupBuilderProvider.LOCAL)) {
-                builder.build(target).install();
+        ServiceNameRegistry<ClusteringRequirement> registry = new CapabilityServiceNameRegistry<>(CLUSTERING_CAPABILITIES, address);
+
+        for (IdentityGroupServiceConfiguratorProvider provider : ServiceLoader.load(IdentityGroupServiceConfiguratorProvider.class, IdentityGroupServiceConfiguratorProvider.class.getClassLoader())) {
+            for (CapabilityServiceConfigurator configurator : provider.getServiceConfigurators(registry, name, LocalGroupServiceConfiguratorProvider.LOCAL)) {
+                configurator.configure(context).build(target).install();
             }
         }
     }
 
     @Override
     public void removeServices(OperationContext context, ModelNode model) {
-        String name = context.getCurrentAddress().getParent().getLastElement().getValue();
+        PathAddress address = context.getCurrentAddress();
+        PathAddress containerAddress = address.getParent();
+        String name = containerAddress.getLastElement().getValue();
 
-        for (GroupAliasBuilderProvider provider : ServiceLoader.load(GroupAliasBuilderProvider.class, GroupAliasBuilderProvider.class.getClassLoader())) {
-            for (Builder<?> builder : provider.getBuilders(name, LocalGroupBuilderProvider.LOCAL)) {
-                context.removeService(builder.getServiceName());
+        ServiceNameRegistry<ClusteringRequirement> registry = new CapabilityServiceNameRegistry<>(CLUSTERING_CAPABILITIES, address);
+
+        for (IdentityGroupServiceConfiguratorProvider provider : ServiceLoader.load(IdentityGroupServiceConfiguratorProvider.class, IdentityGroupServiceConfiguratorProvider.class.getClassLoader())) {
+            for (ServiceNameProvider configurator : provider.getServiceConfigurators(registry, name, LocalGroupServiceConfiguratorProvider.LOCAL)) {
+                context.removeService(configurator.getServiceName());
             }
         }
 
-        for (CacheContainerComponent factory : CacheContainerComponent.values()) {
-            context.removeService(factory.getServiceName(name));
+        for (CacheContainerComponent component : EnumSet.allOf(CacheContainerComponent.class)) {
+            context.removeService(component.getServiceName(address));
         }
     }
 }
