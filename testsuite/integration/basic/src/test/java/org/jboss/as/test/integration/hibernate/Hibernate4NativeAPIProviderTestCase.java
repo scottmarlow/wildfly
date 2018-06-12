@@ -141,7 +141,7 @@ public class Hibernate4NativeAPIProviderTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getFlushModeFromSessionUninitialized() {
+    public void testORA5_3_1_Compatibility_getFlushModeFromSessionUninitialized() throws Exception{
         SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
@@ -158,7 +158,7 @@ public class Hibernate4NativeAPIProviderTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getFlushModeFromSession() {
+    public void testORA5_3_1_Compatibility_getFlushModeFromSession() throws Exception {
         SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
@@ -190,7 +190,7 @@ public class Hibernate4NativeAPIProviderTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getFlushModeFromQueryUninitialized() {
+    public void testORA5_3_1_Compatibility_getFlushModeFromQueryUninitialized() throws Exception {
         SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
@@ -202,7 +202,7 @@ public class Hibernate4NativeAPIProviderTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getFlushModeFromQuery() {
+    public void testORA5_3_1_Compatibility_getFlushModeFromQuery() throws Exception {
         SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
@@ -210,7 +210,7 @@ public class Hibernate4NativeAPIProviderTestCase {
             assertEquals(
                     "can handle Hibernate ORM 5.1 call to Query.getFlushMode()",
                     FlushMode.MANUAL,
-                    sfsb.getFlushModeFromQueryTest( FlushMode.MANUAL)
+                    sfsb.getFlushModeFromQueryTest( FlushMode.MANUAL )
             );
         } finally {
             sfsb.cleanup();
@@ -258,7 +258,7 @@ public class Hibernate4NativeAPIProviderTestCase {
                     "Hibernate ORM 5.1 call to Query.getFirstResult() returned Integer " + sfsb.getFirstResultTest(0),
                     sfsb.getFirstResultTest(0) instanceof Integer
             );
-            assertEquals( Integer.valueOf(0), sfsb.getFirstResultTest(0) );
+            assertEquals( Integer.valueOf( 0 ), sfsb.getFirstResultTest( 0 ) );
         } finally {
             sfsb.cleanup();
         }
@@ -334,6 +334,24 @@ public class Hibernate4NativeAPIProviderTestCase {
             // In 5.1, o.h.Query#getMaxResults returns null if set via o.h.Query.setMaxResults( negativeNumber )
             assertNull( sfsb.getMaxResultsTest( -1 ) );
         } finally {
+            sfsb.cleanup();
+        }
+    }
+
+    @Test
+    public void testORA5_3_1_Compatibility_getMaxResultsMaxValue() throws Exception {
+        SFSBHibernateSessionFactory sfsb = lookup( "SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class );
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            // In 5.1, o.h.Query#getMaxResults returns Integer.MAX_VALUE if set via o.h.Query.setMaxResults( Integer.MAX_VALUE )
+            assertTrue(
+                    "Hibernate ORM 5.1 call to Query.getMaxResult() returned Integer " + sfsb.getMaxResultsTest( Integer.MAX_VALUE ),
+                    sfsb.getMaxResultsTest( Integer.MAX_VALUE ) instanceof Integer
+            );
+            assertEquals( Integer.valueOf( Integer.MAX_VALUE ), sfsb.getMaxResultsTest( Integer.MAX_VALUE ) );
+        }
+        finally {
             sfsb.cleanup();
         }
     }
