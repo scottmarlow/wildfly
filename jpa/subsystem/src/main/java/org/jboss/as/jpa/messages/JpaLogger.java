@@ -758,4 +758,49 @@ public interface JpaLogger extends BasicLogger {
     @Message(id = 73, value = "Transformation of class %s failed")
     IllegalStateException invalidClassFormat(@Cause IllegalClassFormatException cause, String className);
 
+    /**
+     * Logs a warning message indicating call to ORM 5.1 getFlushMode method that now returns a different type,
+     * application was transformed using deprecated Hibernate51CompatibilityTransformer.
+     * Application should be rewritten.
+     *
+     * @param appname application name.
+     * @param appclass application class name.
+     * @param currentCalledClassPackage called ORM class (could be one of two different classes).
+     */
+    @LogMessage(level = WARN)
+    @Message(id = 74, value = "Deprecated Hibernate51CompatibilityTransformer is transforming application classes in '%s', " +
+            "class '%s' is calling %s.getFlushMode, which must be changed to call getHibernateFlushMode().")
+    void warnFlushModeTransformed(String appname, String appclass, String currentCalledClassPackage);
+
+    /**
+     * Logs a warning message indicating call to ORM 5.1 getMaxResults/getFirstResult method that now returns int instead of Integer,
+     * application was transformed using deprecated Hibernate51CompatibilityTransformer.
+     * Application should be rewritten.
+     *
+     * @param appname application name.
+     * @param appclass application class name.
+     * @param currentCalledClassPackage called ORM class (could be one of two different classes).
+     */
+    @LogMessage(level = WARN)
+    @Message(id = 75, value = "Deprecated Hibernate51CompatibilityTransformer is transforming application classes in '%s', " +
+            "class '%s' is calling %s.%s, which must be changed to expect int result, instead of Integer.")
+    void warnIntResultransformed(String appname, String appclass, String methodName, String currentCalledClassPackage);
+
+    /**
+     * Logs a warning message indicating call to ORM 5.1 getMaxResults/getFirstResult method that now returns int instead of Integer,
+     * application was transformed using deprecated Hibernate51CompatibilityTransformer.
+     * Application should be rewritten.
+     *
+     * @param appname application name.
+     * @param appclass application class name.
+     */
+    @LogMessage(level = WARN)
+    @Message(id = 76, value = "Deprecated Hibernate51CompatibilityTransformer is transforming application classes in '%s', " +
+            "class '%s' is using org.hibernate.FlushMode.NEVER, change to org.hibernate.FlushMode.MANUAL.")
+    void warnUseOfRemovedField(String appname, String appclass);
+
+    @LogMessage(level = INFO)
+    @Message(id = 77, value = "Deprecated Hibernate51CompatibilityTransformer is enabled for all application deployments.")
+    void hibernate51CompatibilityTransformerEnabled();
+
 }

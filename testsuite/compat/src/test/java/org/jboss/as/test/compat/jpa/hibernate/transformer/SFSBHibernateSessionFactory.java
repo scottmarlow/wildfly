@@ -20,15 +20,20 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package org.jboss.as.test.integration.hibernate;
+package org.jboss.as.test.compat.jpa.hibernate.transformer;
 
 import java.util.Properties;
+
 import javax.ejb.Stateful;
 import javax.ejb.TransactionManagement;
 import javax.ejb.TransactionManagementType;
 
+import org.hibernate.BasicQueryContract;
+import org.hibernate.FlushMode;
+import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
@@ -66,8 +71,8 @@ public class SFSBHibernateSessionFactory {
             configuration = configuration.configure("hibernate.cfg.xml");
             properties.putAll(configuration.getProperties());
 
-            Environment.verifyProperties(properties);
-            ConfigurationHelper.resolvePlaceHolders(properties);
+            Environment.verifyProperties( properties );
+            ConfigurationHelper.resolvePlaceHolders( properties );
 
             sessionFactory = configuration.buildSessionFactory();
         } catch (Throwable ex) { // Make sure you log the exception, as it might be swallowed
@@ -86,11 +91,11 @@ public class SFSBHibernateSessionFactory {
         student.setLastName(lastName);
 
         try {
-            // We are not explicitly initializing a Transaction as Hibernate is expected to invoke the JTA TransactionManager
-            // implicitly
             Session session = sessionFactory.openSession();
+            Transaction tx = session.beginTransaction();
             session.save(student);
             session.flush();
+            tx.commit();
             session.close();
         } catch (Exception e) {
             throw new RuntimeException("transactional failure while persisting student entity", e);
@@ -105,4 +110,63 @@ public class SFSBHibernateSessionFactory {
         return emp;
     }
 
+    public FlushMode getFlushModeFromQueryTest(FlushMode flushMode) {
+        FlushMode result;
+        Session session = sessionFactory.openSession();
+        Transaction transaction = session.beginTransaction();
+        try {
+            BasicQueryContract basicQueryContract = session.createQuery("from Student");
+            if ( flushMode != null ) {
+                basicQueryContract.setFlushMode(flushMode);
+            }
+            result = basicQueryContract.getFlushMode();
+            return result;
+        } finally {
+            transaction.rollback();
+            session.close();
+        }
+    }
+
+    public FlushMode getFlushModeFromSessionTest(FlushMode flushMode) {
+        Session session = sessionFactory.openSession();
+        Transaction transaction = session.beginTransaction();
+        try {
+            if ( flushMode != null ) {
+                session.setFlushMode(flushMode);
+            }
+            return session.getFlushMode();
+        } finally {
+            transaction.rollback();
+            session.close();
+        }
+     }
+
+    public Integer getFirstResultTest(Integer firstValue) {
+
+        Session session = sessionFactory.openSession();
+
+        try {
+            Query query = session.createQuery("from Student");
+            if ( firstValue != null ) {
+                query.setFirstResult( firstValue);
+            }
+            return query.getFirstResult();
+        } finally {
+            session.close();
+        }
+    }
+
+    public Integer getMaxResultsTest(Integer maxResults) {
+
+        Session session = sessionFactory.openSession();
+        try {
+            Query query = session.createQuery( "from Student" );
+            if ( maxResults != null ) {
+                query.setMaxResults(maxResults);
+            }
+            return query.getMaxResults();
+        } finally {
+            session.close();
+        }
+    }
 }
