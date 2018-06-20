@@ -768,7 +768,7 @@ public interface JpaLogger extends BasicLogger {
      * @param currentCalledClassPackage called ORM class (could be one of two different classes).
      */
     @LogMessage(level = WARN)
-    @Message(id = 74, value = "Deprecated Hibernate51CompatibilityTransformer is transforming application classes in '%s', " +
+    @Message(id = 74, value = "Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
             "class '%s' is calling %s.getFlushMode, which must be changed to call getHibernateFlushMode().")
     void warnFlushModeTransformed(String appname, String appclass, String currentCalledClassPackage);
 
@@ -782,7 +782,7 @@ public interface JpaLogger extends BasicLogger {
      * @param currentCalledClassPackage called ORM class (could be one of two different classes).
      */
     @LogMessage(level = WARN)
-    @Message(id = 75, value = "Deprecated Hibernate51CompatibilityTransformer is transforming application classes in '%s', " +
+    @Message(id = 75, value = "Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
             "class '%s' is calling %s.%s, which must be changed to expect int result, instead of Integer.")
     void warnIntResultransformed(String appname, String appclass, String methodName, String currentCalledClassPackage);
 
@@ -795,7 +795,7 @@ public interface JpaLogger extends BasicLogger {
      * @param appclass application class name.
      */
     @LogMessage(level = WARN)
-    @Message(id = 76, value = "Deprecated Hibernate51CompatibilityTransformer is transforming application classes in '%s', " +
+    @Message(id = 76, value = "Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
             "class '%s' is using org.hibernate.FlushMode.NEVER, change to org.hibernate.FlushMode.MANUAL.")
     void warnUseOfRemovedField(String appname, String appclass);
 
@@ -803,4 +803,7 @@ public interface JpaLogger extends BasicLogger {
     @Message(id = 77, value = "Deprecated Hibernate51CompatibilityTransformer is enabled for all application deployments.")
     void hibernate51CompatibilityTransformerEnabled();
 
+    @LogMessage(level = INFO)
+    @Message(id = 78, value="Hibernate51CompatibilityTransformer transforming deployment class '%s' from '%s'")
+    void infoTransformingApplicationClasses(String appclass, String appname);
 }

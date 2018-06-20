@@ -23,6 +23,7 @@ import static org.jboss.as.jpa.messages.JpaLogger.ROOT_LOGGER;
 import java.lang.instrument.ClassFileTransformer;
 import java.security.ProtectionDomain;
 
+import org.jboss.modules.ModuleClassLoader;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -48,7 +49,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
     }
 
     public byte[] transform(final ClassLoader loader, final String className, final Class<?> classBeingRedefined, final ProtectionDomain protectionDomain, final byte[] classfileBuffer) {
-        ROOT_LOGGER.debugf("Hibernate51CompatibilityTransformer transforming deployment class %s from classloader %s", className, loader.toString());
+        ROOT_LOGGER.infoTransformingApplicationClasses(className, getModuleName(loader));
         final ClassReader classReader = new ClassReader(classfileBuffer);
         final ClassWriter cv = new ClassWriter(classReader, 0);
         classReader.accept(new ClassVisitor(Opcodes.ASM6, cv) {
@@ -62,7 +63,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         if (opcode == Opcodes.INVOKEINTERFACE &&
                                 (owner.equals("org/hibernate/Session") || owner.equals("org/hibernate/BasicQueryContract"))
                                 && name.equals("getFlushMode") && desc.equals("()Lorg/hibernate/FlushMode;")) {
-                            ROOT_LOGGER.warnFlushModeTransformed(loader.toString(), className, owner);
+                            ROOT_LOGGER.warnFlushModeTransformed(getModuleName(loader), className, owner);
                             name = "getHibernateFlushMode";
                             super.visitMethodInsn(opcode, owner, name, desc, itf);
                         }
@@ -72,7 +73,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                                 owner.equals("org/hibernate/Query") &&
                                 (name.equals("getFirstResult") || name.equals("getMaxResults")) &&
                                 desc.equals("()Ljava/lang/Integer;")) {
-                            ROOT_LOGGER.warnIntResultransformed(loader.toString(), className, name, owner);
+                            ROOT_LOGGER.warnIntResultransformed(getModuleName(loader), className, name, owner);
                             super.visitMethodInsn(opcode, owner, name, "()I", itf); // call the orm 5.3 method that returns int, then convert to Integer
                             super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", itf);
                         } else {
@@ -87,7 +88,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                                 owner.equals("org/hibernate/FlushMode") &&
                                 name.equals("NEVER") &&
                                 desc.equals("Lorg/hibernate/FlushMode;")) {
-                            ROOT_LOGGER.warnUseOfRemovedField(loader.toString(), className);
+                            ROOT_LOGGER.warnUseOfRemovedField(getModuleName(loader), className);
                             super.visitFieldInsn(opcode, owner, "MANUAL", desc);
                         } else {
                             super.visitFieldInsn(opcode, owner, name, desc);
@@ -97,5 +98,12 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
             }
         }, 0);
         return cv.toByteArray();
+    }
+
+    private static final String getModuleName(ClassLoader loader) {
+        if (loader instanceof ModuleClassLoader) {
+            return ((ModuleClassLoader) loader).getName();
+        }
+        return loader.toString();
     }
 }
