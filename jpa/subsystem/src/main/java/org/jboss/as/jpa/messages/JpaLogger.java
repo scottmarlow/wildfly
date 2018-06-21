@@ -784,7 +784,7 @@ public interface JpaLogger extends BasicLogger {
     @LogMessage(level = WARN)
     @Message(id = 75, value = "Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
             "class '%s' is calling %s.%s, which must be changed to expect int result, instead of Integer.")
-    void warnIntResultransformed(String appname, String appclass, String methodName, String currentCalledClassPackage);
+    void warnIntResultTransformed(String appname, String appclass, String methodName, String currentCalledClassPackage);
 
     /**
      * Logs a warning message indicating call to ORM 5.1 getMaxResults/getFirstResult method that now returns int instead of Integer,
@@ -806,4 +806,18 @@ public interface JpaLogger extends BasicLogger {
     @LogMessage(level = INFO)
     @Message(id = 78, value="Hibernate51CompatibilityTransformer transforming deployment class '%s' from '%s'")
     void infoTransformingApplicationClasses(String appclass, String appname);
+
+    /**
+     * Logs a warning message indicating call to ORM 5.1 setMaxResults, was transformed to check for certain -1/MAXINT/Null values,
+     * application was transformed using deprecated Hibernate51CompatibilityTransformer.
+     * Application should be rewritten.
+     *
+     * @param appname application name.
+     * @param appclass application class name.
+     */
+    @LogMessage(level = WARN)
+    @Message(id = 79, value = "Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
+            "class '%s', changed code before call to org.hibernate.Query.setMaxResults to replace negative values, with zero.")
+    void warnSetMaxRowsCallTransformed(String appname, String appclass);
+
 }

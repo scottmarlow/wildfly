@@ -27,6 +27,7 @@ import org.jboss.modules.ModuleClassLoader;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -40,6 +41,7 @@ import org.objectweb.asm.Opcodes;
 public class Hibernate51CompatibilityTransformer implements ClassFileTransformer {
 
     private static final Hibernate51CompatibilityTransformer instance = new Hibernate51CompatibilityTransformer();
+    private static final boolean disableAmbiguousChanges = Boolean.getBoolean("Hibernate51CompatibilityTransformer.disableAmbiguousChanges");
 
     private Hibernate51CompatibilityTransformer() {
     }
@@ -73,10 +75,28 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                                 owner.equals("org/hibernate/Query") &&
                                 (name.equals("getFirstResult") || name.equals("getMaxResults")) &&
                                 desc.equals("()Ljava/lang/Integer;")) {
-                            ROOT_LOGGER.warnIntResultransformed(getModuleName(loader), className, name, owner);
+                            ROOT_LOGGER.warnIntResultTransformed(getModuleName(loader), className, name, owner);
                             super.visitMethodInsn(opcode, owner, name, "()I", itf); // call the orm 5.3 method that returns int, then convert to Integer
                             super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", itf);
-                        } else {
+                        } else if (!disableAmbiguousChanges && opcode == Opcodes.INVOKEINTERFACE &&
+                                owner.equals("org/hibernate/Query") &&
+                                name.equals("setMaxResults") &&
+                                desc.equals("(I)Lorg/hibernate/Query;")) {
+                            ROOT_LOGGER.warnSetMaxRowsCallTransformed(getModuleName(loader), className);
+                            super.visitInsn(Opcodes.DUP); // save extra copy of value on stack
+                            Label label2 = new Label();
+                            Label label3 = new Label();
+                            super.visitJumpInsn(Opcodes.IFGE, label2); // branch to label2 if greater than/equal to zero
+                            super.visitInsn(Opcodes.POP);  // discard saved extra copy
+                            super.visitInsn(Opcodes.ICONST_0); // replace negative int value with 0
+                            super.visitJumpInsn(Opcodes.GOTO, label3);
+                            super.visitLabel(label2);
+                            super.visitInsn(Opcodes.POP); // restore saved int value
+                            super.visitLabel(label3);
+                            super.visitMethodInsn(opcode, owner, name, desc, itf);
+                        } else
+
+                        {
                             super.visitMethodInsn(opcode, owner, name, desc, itf);
                         }
 
@@ -94,7 +114,9 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                             super.visitFieldInsn(opcode, owner, name, desc);
                         }
                     }
-                };
+                }
+
+                        ;
             }
         }, 0);
         return cv.toByteArray();
