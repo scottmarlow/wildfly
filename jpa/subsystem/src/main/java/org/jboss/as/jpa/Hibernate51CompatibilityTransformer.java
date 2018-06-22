@@ -27,7 +27,6 @@ import org.jboss.modules.ModuleClassLoader;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -83,17 +82,9 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                                 name.equals("setMaxResults") &&
                                 desc.equals("(I)Lorg/hibernate/Query;")) {
                             ROOT_LOGGER.warnSetMaxRowsCallTransformed(getModuleName(loader), className);
-                            super.visitInsn(Opcodes.DUP); // save extra copy of value on stack
-                            Label label2 = new Label();
-                            Label label3 = new Label();
-                            super.visitJumpInsn(Opcodes.IFGE, label2); // branch to label2 if greater than/equal to zero
-                            super.visitInsn(Opcodes.POP);  // discard saved extra copy
-                            super.visitInsn(Opcodes.ICONST_0); // replace negative int value with 0
-                            super.visitJumpInsn(Opcodes.GOTO, label3);
-                            super.visitLabel(label2);
-                            super.visitInsn(Opcodes.POP); // restore saved int value
-                            super.visitLabel(label3);
+                            name = "setHibernateMaxResults";
                             super.visitMethodInsn(opcode, owner, name, desc, itf);
+
                         } else
 
                         {
