@@ -18,40 +18,4 @@
            <property name="hibernate.allow_update_outside_transaction" value="true"/>
         </properties>
     </persistence-unit>
-    <persistence-unit name="mypc2">
-        <description>Persistence Unit.</description>
-        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
-        <shared-cache-mode>ENABLE_SELECTIVE</shared-cache-mode>
-        <properties>
-            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
-            <property name="hibernate.show_sql" value="false"/>
-            <property name="hibernate.cache.use_second_level_cache" value="true"/>
-            <property name="hibernate.cache.use_query_cache" value="true"/>
-            <property name="hibernate.generate_statistics" value="true"/>
-            <!-- Hibernate 5.2+ (see https://hibernate.atlassian.net/browse/HHH-10877 +
-                 https://hibernate.atlassian.net/browse/HHH-12665) no longer defaults
-                 to allowing a DML operation outside of a started transaction.
-                 The application workaround is to configure new property hibernate.allow_update_outside_transaction=true.
-            -->
-           <property name="hibernate.allow_update_outside_transaction" value="true"/>
-        </properties>
-    </persistence-unit>
-    <persistence-unit name="mypc_no_2lc">
-        <description>Persistence Unit.</description>
-        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
-        <shared-cache-mode>NONE</shared-cache-mode>
-        <properties>
-            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
-            <property name="hibernate.show_sql" value="false"/>
-            <property name="hibernate.cache.use_second_level_cache" value="false"/>
-            <property name="hibernate.cache.use_query_cache" value="false"/>
-            <property name="hibernate.generate_statistics" value="true"/>
-            <!-- Hibernate 5.2+ (see https://hibernate.atlassian.net/browse/HHH-10877 +
-                 https://hibernate.atlassian.net/browse/HHH-12665) no longer defaults
-                 to allowing a DML operation outside of a started transaction.
-                 The application workaround is to configure new property hibernate.allow_update_outside_transaction=true.
-            -->
-           <property name="hibernate.allow_update_outside_transaction" value="true"/>
-        </properties>
-    </persistence-unit>
 </persistence>
