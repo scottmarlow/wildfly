@@ -68,7 +68,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                             name = "getHibernateFlushMode";
                             super.visitMethodInsn(opcode, owner, name, desc, itf);
                         }
-                        else if (!disableAmbiguousChanges && opcode == Opcodes.INVOKEINTERFACE &&
+                        else if (opcode == Opcodes.INVOKEINTERFACE &&
                                 owner.equals("org/hibernate/Query") &&
                                 name.equals("getFirstResult") &&
                                 desc.equals("()Ljava/lang/Integer;")) {
@@ -76,7 +76,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                             ROOT_LOGGER.warnGetFirstResultCallTransformed( getModuleName( loader ), className );
                             name = "getHibernateFirstResult";
                             super.visitMethodInsn(opcode, owner, name, desc, itf);
-                        } else if (!disableAmbiguousChanges  && opcode == Opcodes.INVOKEINTERFACE &&
+                        } else if (opcode == Opcodes.INVOKEINTERFACE &&
                                 owner.equals("org/hibernate/Query") &&
                                 name.equals("getMaxResults") &&
                                 desc.equals("()Ljava/lang/Integer;")) {
