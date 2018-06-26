@@ -64,27 +64,40 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         if (opcode == Opcodes.INVOKEINTERFACE &&
                                 (owner.equals("org/hibernate/Session") || owner.equals("org/hibernate/BasicQueryContract"))
                                 && name.equals("getFlushMode") && desc.equals("()Lorg/hibernate/FlushMode;")) {
-                            ROOT_LOGGER.warnFlushModeTransformed(getModuleName(loader), className, owner);
+                            ROOT_LOGGER.warnFlushModeTransformed( getModuleName( loader ), className, owner );
                             name = "getHibernateFlushMode";
                             super.visitMethodInsn(opcode, owner, name, desc, itf);
                         }
-                        // Modify calls to org.hibernate.Query.getFirstResult() to convert returned int, to Integer result.
-                        // Modify calls to org.hibernate.Query.getMaxResults() to convert returned int, to Integer result, if returned int value is <= 0, null should be used
-                        else if (opcode == Opcodes.INVOKEINTERFACE &&
+                        else if (!disableAmbiguousChanges && opcode == Opcodes.INVOKEINTERFACE &&
                                 owner.equals("org/hibernate/Query") &&
-                                (name.equals("getFirstResult") || name.equals("getMaxResults")) &&
+                                name.equals("getFirstResult") &&
                                 desc.equals("()Ljava/lang/Integer;")) {
-                            ROOT_LOGGER.warnIntResultTransformed(getModuleName(loader), className, name, owner);
-                            super.visitMethodInsn(opcode, owner, name, "()I", itf); // call the orm 5.3 method that returns int, then convert to Integer
-                            super.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", itf);
+                            ROOT_LOGGER.warnIntResultTransformed( getModuleName( loader ), className, name, owner );
+                            ROOT_LOGGER.warnGetFirstResultCallTransformed( getModuleName( loader ), className );
+                            name = "getHibernateFirstResult";
+                            super.visitMethodInsn(opcode, owner, name, desc, itf);
+                        } else if (!disableAmbiguousChanges  && opcode == Opcodes.INVOKEINTERFACE &&
+                                owner.equals("org/hibernate/Query") &&
+                                name.equals("getMaxResults") &&
+                                desc.equals("()Ljava/lang/Integer;")) {
+                            ROOT_LOGGER.warnIntResultTransformed( getModuleName( loader ), className, name, owner );
+                            ROOT_LOGGER.warnGetMaxResultsCallTransformed( getModuleName( loader ), className );
+                            name = "getHibernateMaxResults";
+                            super.visitMethodInsn( opcode, owner, name, desc, itf );
+                        } else if (!disableAmbiguousChanges && opcode == Opcodes.INVOKEINTERFACE &&
+                                owner.equals("org/hibernate/Query") &&
+                                name.equals("setFirstResult") &&
+                                desc.equals("(I)Lorg/hibernate/Query;")) {
+                            ROOT_LOGGER.warnSetFirstResultCallTransformed( getModuleName(loader), className);
+                            name = "setHibernateFirstResult";
+                            super.visitMethodInsn(opcode, owner, name, desc, itf);
                         } else if (!disableAmbiguousChanges && opcode == Opcodes.INVOKEINTERFACE &&
                                 owner.equals("org/hibernate/Query") &&
                                 name.equals("setMaxResults") &&
                                 desc.equals("(I)Lorg/hibernate/Query;")) {
-                            ROOT_LOGGER.warnSetMaxRowsCallTransformed(getModuleName(loader), className);
+                            ROOT_LOGGER.warnSetMaxResultsCallTransformed( getModuleName( loader ), className );
                             name = "setHibernateMaxResults";
                             super.visitMethodInsn(opcode, owner, name, desc, itf);
-
                         } else
 
                         {
