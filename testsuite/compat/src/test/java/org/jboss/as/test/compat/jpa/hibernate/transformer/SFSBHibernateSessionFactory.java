@@ -22,6 +22,7 @@
 
 package org.jboss.as.test.compat.jpa.hibernate.transformer;
 
+import java.util.List;
 import java.util.Properties;
 
 import javax.ejb.Stateful;
@@ -93,7 +94,7 @@ public class SFSBHibernateSessionFactory {
         try {
             Session session = sessionFactory.openSession();
             Transaction tx = session.beginTransaction();
-            session.save(student);
+            session.save( student );
             session.flush();
             tx.commit();
             session.close();
@@ -148,7 +149,7 @@ public class SFSBHibernateSessionFactory {
         try {
             Query query = session.createQuery("from Student");
             if ( firstValue != null ) {
-                query.setFirstResult( firstValue);
+                query.setFirstResult( firstValue );
             }
             return query.getFirstResult();
         } finally {
@@ -162,11 +163,28 @@ public class SFSBHibernateSessionFactory {
         try {
             Query query = session.createQuery( "from Student" );
             if ( maxResults != null ) {
-                query.setMaxResults(maxResults);
+                query.setMaxResults( maxResults );
             }
             return query.getMaxResults();
         } finally {
             session.close();
         }
+    }
+
+    public List executeQuery(String queryString, Integer firstResult, Integer maxResults) {
+        Session session = sessionFactory.openSession();
+        try {
+            Query query = session.createQuery( queryString );
+            if ( firstResult != null ) {
+                query.setFirstResult( firstResult );
+            }
+            if ( maxResults != null ) {
+                query.setMaxResults(maxResults);
+            }
+            return query.list();
+        } finally {
+            session.close();
+        }
+
     }
 }

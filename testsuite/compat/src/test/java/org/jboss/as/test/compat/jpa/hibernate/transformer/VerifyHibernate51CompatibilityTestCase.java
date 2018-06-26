@@ -26,6 +26,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.List;
+
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
@@ -67,7 +69,7 @@ public class VerifyHibernate51CompatibilityTestCase {
             + "\"-//Hibernate/Hibernate Mapping DTD 3.0//EN\" " + "\"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd\">"
             + "<hibernate-mapping package=\"org.jboss.as.test.integration.hibernate\">"
             + "<class name=\"org.jboss.as.test.compat.jpa.hibernate.transformer.Student\" table=\"STUDENT\">"
-            + "<id name=\"studentId\" column=\"student_id\">" + "<generator class=\"native\"/>" + "</id>"
+            + "<id name=\"studentId\" column=\"student_id\">" + "<generator class=\"assigned\"/>" + "</id>"
             + "<property name=\"firstName\" column=\"first_name\"/>" + "<property name=\"lastName\" column=\"last_name\"/>"
             + "<property name=\"address\"/>"
             + "</class></hibernate-mapping>";
@@ -361,6 +363,40 @@ public class VerifyHibernate51CompatibilityTestCase {
         }
         finally {
             sfsb.cleanup();
+        }
+    }
+
+    @Test
+    public void testQueryResults() throws Exception  {
+        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            for ( int i = 0; i < 5; i++ ) {
+                sfsb.createStudent( null, null, null, i );
+            }
+            final String query = "from Student order by id";
+            checkResults( sfsb.executeQuery( query, null, null ), 0, 4 );
+            checkResults( sfsb.executeQuery( query, 0, null ), 0, 4 );
+            checkResults( sfsb.executeQuery( query, -1, null ), 0, 4 );
+            checkResults( sfsb.executeQuery( query, null, 0 ), 0, 4 );
+            checkResults( sfsb.executeQuery( query, null, -1 ), 0, 4 );
+            checkResults( sfsb.executeQuery( query, null, 2 ), 0, 1 );
+            checkResults( sfsb.executeQuery( query, -1, 0 ), 0, 4 );
+            checkResults( sfsb.executeQuery( query, -1, 3 ), 0, 2 );
+            checkResults( sfsb.executeQuery( query, 1, null ), 1, 4 );
+            checkResults( sfsb.executeQuery( query, 1, 0 ), 1, 4 );
+            checkResults( sfsb.executeQuery( query, 1, -1 ), 1, 4 );
+            checkResults( sfsb.executeQuery( query, 1, 1 ), 1, 1 );
+        } finally {
+            sfsb.cleanup();
+        }
+    }
+
+    private void checkResults( List results, int firstIdExpected, int lastIdExpected ) {
+        int resultIndex = 0;
+        for( int i = firstIdExpected ; i <= lastIdExpected ; i++, resultIndex++ ) {
+            assertEquals( i, ( (Student) results.get( resultIndex ) ).getStudentId() );
         }
     }
 }
