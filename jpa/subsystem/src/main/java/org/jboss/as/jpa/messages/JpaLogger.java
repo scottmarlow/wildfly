@@ -808,8 +808,10 @@ public interface JpaLogger extends BasicLogger {
     void infoTransformingApplicationClasses(String appclass, String appname);
 
     /**
-     * Logs a warning message indicating call to ORM 5.1 setMaxResults, was transformed to check for certain -1/MAXINT/Null values,
-     * application was transformed using deprecated Hibernate51CompatibilityTransformer.
+     * Logs a warning message indicating call to ORM 5.1 org.hibernate.Query#setMaxResults, was transformed
+     * to call deprecated ORM 5.3 method, org.hibernate.Query#setHibernateMaxResults, so that values <= 0 are
+     * the same as uninitialized.
+     * Application was transformed using deprecated Hibernate51CompatibilityTransformer.
      * Application should be rewritten.
      *
      * @param appname application name.
@@ -817,7 +819,61 @@ public interface JpaLogger extends BasicLogger {
      */
     @LogMessage(level = WARN)
     @Message(id = 79, value = "Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
-            "class '%s', changed code before call to org.hibernate.Query.setMaxResults to replace negative values, with zero.")
-    void warnSetMaxRowsCallTransformed(String appname, String appclass);
+            "class '%s', is calling org.hibernate.Query.setMaxResults, which must be changed to call setHibernateMaxResults() " +
+            "so that values <= 0 are the same as uninitialized.")
 
+    void warnSetMaxResultsCallTransformed(String appname, String appclass);
+
+    /**
+     * Logs a warning message indicating call to ORM 5.1 getMaxResults, was transformed to call deprecated
+     * ORM 5.3 method, org.hibernate.Query#setHibernateMaxResults so that null will be returned when
+     * the value was not intialized, or ORM 5.1 org.hibernate.Query#setMaxResults was used to set a value <= 0.
+     * application was transformed using deprecated Hibernate51CompatibilityTransformer.
+     * Application should be rewritten.
+     *
+     * @param appname application name.
+     * @param appclass application class name.
+     */
+    @LogMessage(level = WARN)
+    @Message(id = 80, value = "Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
+            "class '%s', is calling org.hibernate.Query.getMaxResults, which must be changed to call getHibernateMaxResults() " +
+            "so that null will be returned when the value is uninitialized or ORM 5.1 org.hibernate.Query#setMaxResults was " +
+            "used to set a value <= 0")
+    void warnGetMaxResultsCallTransformed(String appname, String appclass);
+
+    /**
+     * Logs a warning message indicating call to ORM 5.1 setFirstResult, was transformed to call deprecated
+     * ORM 5.3 method, org.hibernate.Query#setHibernateFirstResult, to change values < 0 to 0. This is done
+     * because in ORM 5.1 a negative start value is equivalent to 0 with respect to pagination. Without
+     * transformation, a negative start value will result in IllegalArgumentException.
+     * Application was transformed using deprecated Hibernate51CompatibilityTransformer.
+     * Application should be rewritten.
+     *
+     * @param appname application name.
+     * @param appclass application class name.
+     */
+    @LogMessage(level = WARN)
+    @Message(id = 81, value = "Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
+            "class '%s', is calling org.hibernate.Query.setFirstResult, which must be changed to call setHibernateFirstResult() " +
+            "so setting a value < 0 results in pagination starting with the 0th row as was done in Hibernate ORM 5.1 " +
+            "(instead of throwing IllegalArgumentException as specified by JPA).")
+    void warnSetFirstResultCallTransformed(String appname, String appclass);
+
+    /**
+     * Logs a warning message indicating call to ORM 5.1 getFirstResult, was transformed to call deprecated
+     * ORM 5.3 method, org.hibernate.Query#getHibernateFirstResult to allow null to be returned when
+     * uninitialized. Note: if a negative value was set using org.hibernate.Query.setFirstResult, 0 will
+     * be returned.
+     * Application was transformed using deprecated Hibernate51CompatibilityTransformer.
+     * Application should be rewritten.
+     *
+     * @param appname application name.
+     * @param appclass application class name.
+     */
+    @LogMessage(level = WARN)
+    @Message(id = 82, value = "Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
+            "class '%s', is calling org.hibernate.Query.getFirstResult, which must be changed to call getHibernateFirstResult() " +
+            "so null can be returned when the value is uninitialized. Please note that if a negative value was set using " +
+            "org.hibernate.Query.setFirstResult, then getHibernateFirstResult() will return 0.")
+    void warnGetFirstResultCallTransformed(String appname, String appclass);
 }
