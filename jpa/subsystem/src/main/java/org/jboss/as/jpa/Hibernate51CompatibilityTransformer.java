@@ -61,6 +61,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
             boolean implementsType;
             boolean implementsSingleColumnType;
             boolean implementsAbstractStandardBasicType;
+            boolean extendsPersistentBag;
 
             @Override
             public void visit(int version, int access, String name, String signature,
@@ -82,10 +83,12 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         } else if ( "org/hibernate/type/AbstractStandardBasicType".equals(interfaceName)) {
                             implementsAbstractStandardBasicType = true;
                         }
-
-
                     }
                 }
+                if ( "org/hibernate/collection/internal/PersistentBag".equals(superName)) {
+                    extendsPersistentBag = true;
+                }
+
                 super.visit(version, access, name, signature, superName, interfaces);
             }
 
@@ -224,13 +227,27 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                     }
                 }
 
+                if (extendsPersistentBag) {
+                    if (name.equals("<init>") &&
+                            "(Lorg/hibernate/engine/spi/SessionImplementor;)V".equals(desc)) {
+                        desc = "(Lorg/hibernate/engine/spi/SharedSessionContractImplementor;)V";
+                    }
+                    else if (name.equals("<init>") &&
+                            "(Lorg/hibernate/engine/spi/SessionImplementor;Ljava/util/Collection;)V".equals(desc)) {
+                        desc = "(Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/util/Collection;)V";
+                    }
+                    else if (name.equals("<init>") &&
+                            "(Lorg/hibernate/engine/spi/SessionImplementor;Ljava/util/List;)V".equals(desc)) {
+                        desc = "(Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/util/List;)V";
+                    }
+                }
+
                 // TODO: org.hibernate.type.VersionType
                 // TODO: org.hibernate.type.ProcedureParameterExtractionAware
                 // TODO: org.hibernate.type.ProcedureParameterNamedBinder
                 // TODO: org.hibernate.collection.spi.PersistentCollection
                 // TODO: org.hibernate.collection.internal.AbstractPersistentCollection
                 // TODO: org.hibernate.collection.internal.PersistentArrayHolder constructors
-                // TODO: org.hibernate.collection.internal.PersistentBag constructors
                 // TODO: org.hibernate.collection.internal.PersistentIdentifierBag
                 // TODO: org.hibernate.collection.internal.PersistentList constructors
                 // TODO: org.hibernate.collection.internal.PersistentMap constructors
