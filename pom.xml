@@ -5824,6 +5824,18 @@
             </dependency>
 
             <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm-util</artifactId>
+                <version>${version.org.ow2.asm}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
                 <groupId>org.picketbox</groupId>
                 <artifactId>picketbox-commons</artifactId>
                 <version>${version.org.picketbox.picketbox-commons}</version>

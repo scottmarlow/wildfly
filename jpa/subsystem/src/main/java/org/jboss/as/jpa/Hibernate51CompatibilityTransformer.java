@@ -20,6 +20,9 @@ package org.jboss.as.jpa;
 
 import static org.jboss.as.jpa.messages.JpaLogger.ROOT_LOGGER;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.security.ProtectionDomain;
 
@@ -29,6 +32,7 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.util.TraceClassVisitor;
 import org.wildfly.security.manager.WildFlySecurityManager;
 
 /**
@@ -41,6 +45,8 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
     private static final Hibernate51CompatibilityTransformer instance = new Hibernate51CompatibilityTransformer();
     private static final boolean disableAmbiguousChanges = Boolean.parseBoolean(
             WildFlySecurityManager.getPropertyPrivileged("Hibernate51CompatibilityTransformer.disableAmbiguousChanges", "false"));
+    private static final boolean showTransformedClass = Boolean.parseBoolean(
+            WildFlySecurityManager.getPropertyPrivileged("Hibernate51CompatibilityTransformer.showTransformedClass", "false"));
 
     private Hibernate51CompatibilityTransformer() {
     }
@@ -53,7 +59,15 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
         ROOT_LOGGER.debugf("Hibernate51CompatibilityTransformer transforming deployment class '%s' from '%s'", className, getModuleName(loader));
         final ClassReader classReader = new ClassReader(classfileBuffer);
         final ClassWriter cv = new ClassWriter(classReader, 0);
-        classReader.accept(new ClassVisitor(Opcodes.ASM6, cv) {
+        ClassVisitor traceClassVisitor = cv;
+        try {
+            if (showTransformedClass) {
+                traceClassVisitor = new TraceClassVisitor(cv, new PrintWriter(new File(className.replace('/', '_') + ".asm")));
+            }
+        } catch (FileNotFoundException ignored) {
+
+        }
+        classReader.accept(new ClassVisitor(Opcodes.ASM6, traceClassVisitor) {
             boolean implementsUserType;
             boolean implementsCompositeUserType;
             boolean implementsUserCollectionType;
