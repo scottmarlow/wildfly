@@ -250,4 +250,35 @@ public class SFSBHibernateSessionFactory {
             throw new RuntimeException("transactional failure while getting gene entity", e);
         }
     }
+
+    public MutualFund createMutualFund(Long id, MonetaryAmount monetaryAmount) {
+        final MutualFund mutualFund = new MutualFund();
+        mutualFund.setId( id );
+        mutualFund.setHoldings( monetaryAmount );
+        try {
+            Session session = sessionFactory.openSession();
+            Transaction tx = session.beginTransaction();
+            session.save( mutualFund );
+            session.flush();
+            tx.commit();
+            session.close();
+        } catch (Exception e) {
+            throw new RuntimeException("transactional failure while persisting MutualFund entity", e);
+        }
+
+        return mutualFund;
+    }
+
+    public MutualFund getMutualFund(Long id) {
+        try {
+            Session session = sessionFactory.openSession();
+            Transaction tx = session.beginTransaction();
+            MutualFund mutualFund = session.get( MutualFund.class, id );
+            tx.commit();
+            session.close();
+            return mutualFund;
+        } catch (Exception e) {
+            throw new RuntimeException("transactional failure while getting MutualFund entity", e);
+        }
+    }
 }
