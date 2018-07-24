@@ -26,6 +26,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.math.BigDecimal;
+import java.util.Currency;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -87,6 +89,13 @@ public class VerifyHibernate51CompatibilityTestCase {
             + "<element type=\"string\"/>"
             + "</bag>"
             + "</class>"
+            + "<class name=\"org.jboss.as.test.compat.jpa.hibernate.transformer.MutualFund\" table=\"MutualFund\">"
+            + "<id name=\"id\">" + "<generator class=\"assigned\"/>" + "</id>"
+            + "<property name=\"holdings\" type=\"org.jboss.as.test.compat.jpa.hibernate.transformer.MonetaryAmountUserType\">"
+            + "<column name=\"amount_millions\" not-null=\"true\" read=\"amount_millions * 1000000.0\" write=\"? / 1000000.0\"/>"
+            + "<column name=\"currency\" not-null=\"true\"/>"
+            + "</property>"
+            + "</class>"
             + "</hibernate-mapping>";
 
     @ArquillianResource
@@ -105,7 +114,7 @@ public class VerifyHibernate51CompatibilityTestCase {
         ear.addAsManifestResource( new StringAsset( "Dependencies: org.hibernate\n" ), "MANIFEST.MF" );
 
         JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "beans.jar");
-        lib.addClasses(SFSBHibernateSessionFactory.class);
+        lib.addClasses( SFSBHibernateSessionFactory.class );
         ear.addAsModule( lib );
 
         lib = ShrinkWrap.create(JavaArchive.class, "entities.jar");
@@ -116,8 +125,12 @@ public class VerifyHibernate51CompatibilityTestCase {
         lib.addClasses(QueueOwner.class);
         lib.addClasses(QueueType.class);
         lib.addClasses(PersistentQueue.class);
+        lib.addClasses(MonetaryAmount.class);
+        lib.addClasses(MutualFund.class);
+        lib.addClasses( MonetaryAmountUserType.class );
         lib.addAsResource(new StringAsset(testmapping), "testmapping.hbm.xml");
         lib.addAsResource(new StringAsset(hibernate_cfg), "hibernate.cfg.xml");
+        lib.addAsResource(new StringAsset(hibernate_cfg), "MutualFund.cfg.xml");
         ear.addAsLibraries(lib);
 
         final WebArchive main = ShrinkWrap.create(WebArchive.class, "main.war");
@@ -459,6 +472,24 @@ public class VerifyHibernate51CompatibilityTestCase {
         } finally {
             sfsb.cleanup();
         }
+    }
+
+    @Test
+    public void testCompositeUserTypeImplemented() throws Exception {
+
+        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            final MonetaryAmount holdings = new MonetaryAmount( new BigDecimal( 73000000d), Currency.getInstance( "USD" ) );
+            sfsb.createMutualFund( 1L, holdings );
+            final MutualFund mutualFund = sfsb.getMutualFund( 1L );
+            assertEquals( holdings, mutualFund.getHoldings() );
+        } finally {
+            sfsb.cleanup();
+        }
+
+
     }
 
 
