@@ -358,12 +358,28 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         , getModuleName(loader), className);
                 name = "setHibernateMaxResults";
                 mv.visitMethodInsn(opcode, owner, name, desc, itf);
+            } else if (opcode == Opcodes.INVOKESPECIAL &&
+                    owner.equals("org/hibernate/collection/internal/PersistentBag") &&
+                    name.equals("<init>") &&
+                    desc.equals("(Lorg/hibernate/engine/spi/SessionImplementor;)V")) {
+                ROOT_LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
+                                "class '%s' is calling %s.%s, which must be changed to use SharedSessionContractImplementor.",
+                        getModuleName(loader), className, name, owner);
+                desc = "(Lorg/hibernate/engine/spi/SharedSessionContractImplementor;)V";
+                mv.visitMethodInsn(opcode, owner, name, desc, itf);
+            } else if (opcode == Opcodes.INVOKESPECIAL &&
+                    owner.equals("org/hibernate/collection/internal/PersistentBag") &&
+                    name.equals("<init>") &&
+                    desc.equals("(Lorg/hibernate/engine/spi/SessionImplementor;Ljava/util/Collection;)V")) {
+                ROOT_LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
+                                "class '%s' is calling %s.%s, which must be changed to use SharedSessionContractImplementor.",
+                        getModuleName(loader), className, name, owner);
+                desc = "(Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/util/Collection;)V";
+                mv.visitMethodInsn(opcode, owner, name, desc, itf);
             } else
-
             {
                 mv.visitMethodInsn(opcode, owner, name, desc, itf);
             }
-
         }
 
         @Override
