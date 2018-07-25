@@ -23,6 +23,7 @@ import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.security.ProtectionDomain;
+import java.util.Arrays;
 
 import org.jboss.modules.ModuleClassLoader;
 import org.objectweb.asm.ClassReader;
@@ -45,7 +46,6 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
             WildFlySecurityManager.getPropertyPrivileged("Hibernate51CompatibilityTransformer.disableAmbiguousChanges", "false"));
     private static final boolean showTransformedClass = Boolean.parseBoolean(
             WildFlySecurityManager.getPropertyPrivileged("Hibernate51CompatibilityTransformer.showTransformedClass", "false"));
-
     private Hibernate51CompatibilityTransformer() {
     }
 
@@ -75,6 +75,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
             boolean implementsAbstractStandardBasicType;
             boolean extendsPersistentBag;
 
+
             @Override
             public void visit(int version, int access, String name, String signature,
                               String superName, String[] interfaces) {
@@ -101,6 +102,8 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                     extendsPersistentBag = true;
                 }
 
+                TransformerLogger.LOGGER.tracef("class %s extends %s implements", name, superName, Arrays.toString(interfaces));
+
                 super.visit(version, access, name, signature, superName, interfaces);
             }
 
@@ -110,7 +113,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                 // Handle changing SessionImplementor parameter to SharedSessionContractImplementor in the following methods.
                 // NOTE: handle each of the different checked interfaces, as if a class could implement multiple checked interfaces since that is possible.
 
-
+                TransformerLogger.LOGGER.tracef("method %s, description %s, signature %s", name, desc, signature);
                 if (implementsUserType) {
                     if (name.equals("nullSafeGet") &&
                             "(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
@@ -120,6 +123,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         desc = "(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SharedSessionContractImplementor;)V";
                     }
                 }
+
                 if (implementsCompositeUserType) {
                     if (name.equals("nullSafeGet") &&
                             "(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
