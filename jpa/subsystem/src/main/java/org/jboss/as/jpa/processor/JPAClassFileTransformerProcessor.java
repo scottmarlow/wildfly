@@ -24,7 +24,8 @@ package org.jboss.as.jpa.processor;
 
 import static org.jboss.as.jpa.messages.JpaLogger.ROOT_LOGGER;
 
-import org.jboss.as.jpa.Hibernate51CompatibilityTransformer;
+
+import org.jboss.as.hibernate.Hibernate51CompatibilityTransformer;
 import org.jboss.as.jpa.classloader.JPADelegatingClassFileTransformer;
 import org.jboss.as.jpa.config.Configuration;
 import org.jboss.as.jpa.config.PersistenceUnitMetadataHolder;

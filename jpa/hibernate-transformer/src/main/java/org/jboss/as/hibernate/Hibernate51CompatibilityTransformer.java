@@ -16,9 +16,7 @@
  * limitations under the License.
  */
 
-package org.jboss.as.jpa;
-
-import static org.jboss.as.jpa.messages.JpaLogger.ROOT_LOGGER;
+package org.jboss.as.hibernate;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -56,7 +54,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
     }
 
     public byte[] transform(final ClassLoader loader, final String className, final Class<?> classBeingRedefined, final ProtectionDomain protectionDomain, final byte[] classfileBuffer) {
-        ROOT_LOGGER.debugf("Hibernate51CompatibilityTransformer transforming deployment class '%s' from '%s'", className, getModuleName(loader));
+        TransformerLogger.LOGGER.debugf("Hibernate51CompatibilityTransformer transforming deployment class '%s' from '%s'", className, getModuleName(loader));
         final ClassReader classReader = new ClassReader(classfileBuffer);
         final ClassWriter cv = new ClassWriter(classReader, 0);
         ClassVisitor traceClassVisitor = cv;
@@ -304,7 +302,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
             if (opcode == Opcodes.INVOKEINTERFACE &&
                     (owner.equals("org/hibernate/Session") || owner.equals("org/hibernate/BasicQueryContract"))
                     && name.equals("getFlushMode") && desc.equals("()Lorg/hibernate/FlushMode;")) {
-                ROOT_LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
+                TransformerLogger.LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
                                 "class '%s' is calling %s.getFlushMode, which must be changed to call getHibernateFlushMode().",
                         getModuleName(loader), className, owner);
                 name = "getHibernateFlushMode";
@@ -313,10 +311,10 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                     owner.equals("org/hibernate/Query") &&
                     name.equals("getFirstResult") &&
                     desc.equals("()Ljava/lang/Integer;")) {
-                ROOT_LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
+                TransformerLogger.LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
                                 "class '%s' is calling %s.%s, which must be changed to expect int result, instead of Integer.",
                         getModuleName(loader), className, name, owner);
-                ROOT_LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
+                TransformerLogger.LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
                                 "class '%s', is calling org.hibernate.Query.getFirstResult, which must be changed to call getHibernateFirstResult() " +
                                 "so null can be returned when the value is uninitialized. Please note that if a negative value was set using " +
                                 "org.hibernate.Query.setFirstResult, then getHibernateFirstResult() will return 0.",
@@ -327,10 +325,10 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                     owner.equals("org/hibernate/Query") &&
                     name.equals("getMaxResults") &&
                     desc.equals("()Ljava/lang/Integer;")) {
-                ROOT_LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
+                TransformerLogger.LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
                                 "class '%s' is calling %s.%s, which must be changed to expect int result, instead of Integer.",
                         getModuleName(loader), className, name, owner);
-                ROOT_LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
+                TransformerLogger.LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
                                 "class '%s', is calling org.hibernate.Query.getMaxResults, which must be changed to call getHibernateMaxResults() " +
                                 "so that null will be returned when the value is uninitialized or ORM 5.1 org.hibernate.Query#setMaxResults was " +
                                 "used to set a value <= 0"
@@ -341,7 +339,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                     owner.equals("org/hibernate/Query") &&
                     name.equals("setFirstResult") &&
                     desc.equals("(I)Lorg/hibernate/Query;")) {
-                ROOT_LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
+                TransformerLogger.LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
                                 "class '%s', is calling org.hibernate.Query.setFirstResult, which must be changed to call setHibernateFirstResult() " +
                                 "so setting a value < 0 results in pagination starting with the 0th row as was done in Hibernate ORM 5.1 " +
                                 "(instead of throwing IllegalArgumentException as specified by JPA)."
@@ -352,7 +350,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                     owner.equals("org/hibernate/Query") &&
                     name.equals("setMaxResults") &&
                     desc.equals("(I)Lorg/hibernate/Query;")) {
-                ROOT_LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
+                TransformerLogger.LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
                                 "class '%s', is calling org.hibernate.Query.setMaxResults, which must be changed to call setHibernateMaxResults() " +
                                 "so that values <= 0 are the same as uninitialized."
                         , getModuleName(loader), className);
@@ -373,7 +371,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                     owner.equals("org/hibernate/FlushMode") &&
                     name.equals("NEVER") &&
                     desc.equals("Lorg/hibernate/FlushMode;")) {
-                ROOT_LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
+                TransformerLogger.LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
                                 "class '%s' is using org.hibernate.FlushMode.NEVER, change to org.hibernate.FlushMode.MANUAL."
                         , getModuleName(loader), className);
                 mv.visitFieldInsn(opcode, owner, "MANUAL", desc);
