@@ -242,7 +242,8 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         desc = "(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SharedSessionContractImplementor;)V";
                     }
                 }
-
+/* the PersistentBag constructor changes are not currently needed, instead, will use an ORM change.
+   TODO:  remove this block before merging to WildFly master.
                 if (extendsPersistentBag) {
                     if (name.equals("<init>") &&
                             "(Lorg/hibernate/engine/spi/SessionImplementor;)V".equals(desc)) {
@@ -257,7 +258,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         desc = "(Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/util/List;)V";
                     }
                 }
-
+*/
                 // TODO: org.hibernate.type.VersionType
                 // TODO: org.hibernate.type.ProcedureParameterExtractionAware
                 // TODO: org.hibernate.type.ProcedureParameterNamedBinder
