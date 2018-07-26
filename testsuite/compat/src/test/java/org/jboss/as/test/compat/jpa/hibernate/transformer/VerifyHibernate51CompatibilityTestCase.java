@@ -27,6 +27,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.math.BigDecimal;
+import java.util.BitSet;
 import java.util.Currency;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -96,6 +97,10 @@ public class VerifyHibernate51CompatibilityTestCase {
             + "<column name=\"currency\" not-null=\"true\"/>"
             + "</property>"
             + "</class>"
+            + "<class name=\"org.jboss.as.test.compat.jpa.hibernate.transformer.Product\" table=\"Product\">"
+            + "<id name=\"id\">" + "<generator class=\"assigned\"/>" + "</id>"
+            + "<property name=\"bitSet\" type=\"org.jboss.as.test.compat.jpa.hibernate.transformer.BitSetType\"/>"
+            + "</class>"
             + "</hibernate-mapping>";
 
     @ArquillianResource
@@ -127,7 +132,10 @@ public class VerifyHibernate51CompatibilityTestCase {
         lib.addClasses(PersistentQueue.class);
         lib.addClasses(MonetaryAmount.class);
         lib.addClasses(MutualFund.class);
-        lib.addClasses( MonetaryAmountUserType.class );
+        lib.addClasses(MonetaryAmountUserType.class);
+        lib.addClasses(Product.class);
+        lib.addClasses(BitSetType.class);
+        lib.addClasses(BitSetTypeDescriptor.class);
         lib.addAsResource(new StringAsset(testmapping), "testmapping.hbm.xml");
         lib.addAsResource(new StringAsset(hibernate_cfg), "hibernate.cfg.xml");
         lib.addAsResource(new StringAsset(hibernate_cfg), "MutualFund.cfg.xml");
@@ -320,7 +328,7 @@ public class VerifyHibernate51CompatibilityTestCase {
                     "Hibernate ORM 5.1 call to Query.getMaxResult() returned Integer " + sfsb.getFirstResultTest( 1 ),
                     sfsb.getFirstResultTest( 1 ) instanceof Integer
             );
-            assertEquals( Integer.valueOf(1), sfsb.getFirstResultTest( 1 ) );
+            assertEquals( Integer.valueOf( 1 ), sfsb.getFirstResultTest( 1 ) );
 
         } finally {
             sfsb.cleanup();
@@ -488,9 +496,21 @@ public class VerifyHibernate51CompatibilityTestCase {
         } finally {
             sfsb.cleanup();
         }
-
-
     }
 
+    @Test
+    public void testAbstractSingleColumnStandardBasicTypeReplaceExtended() throws Exception {
+        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+        // setup Configuration and SessionFactory
+        sfsb.setupConfig();
+        try {
+            BitSet bitset = BitSet.valueOf( new long[] { 1, 2, 3 } );
+            sfsb.createAndMergeProduct( 1, bitset );
+            final Product product = sfsb.getProduct( 1 );
+            assertEquals( bitset, product.getBitSet() );
+        } finally {
+            sfsb.cleanup();
+        }
 
+    }
 }

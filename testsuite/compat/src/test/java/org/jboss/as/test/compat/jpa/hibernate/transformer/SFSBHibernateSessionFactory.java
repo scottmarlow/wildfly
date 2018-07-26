@@ -22,6 +22,7 @@
 
 package org.jboss.as.test.compat.jpa.hibernate.transformer;
 
+import java.util.BitSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Queue;
@@ -279,6 +280,37 @@ public class SFSBHibernateSessionFactory {
             return mutualFund;
         } catch (Exception e) {
             throw new RuntimeException("transactional failure while getting MutualFund entity", e);
+        }
+    }
+
+    public Product createAndMergeProduct(int id, BitSet bitset) {
+        final Product product = new Product();
+        product.setId( id );
+        product.setBitSet( bitset );
+        try {
+            Session session = sessionFactory.openSession();
+            Transaction tx = session.beginTransaction();
+            session.merge( product );
+            session.flush();
+            tx.commit();
+            session.close();
+        } catch (Exception e) {
+            throw new RuntimeException("transactional failure while merging Product entity", e);
+        }
+
+        return product;
+    }
+
+    public Product getProduct(int id) {
+        try {
+            Session session = sessionFactory.openSession();
+            Transaction tx = session.beginTransaction();
+            Product product = session.get( Product.class, id );
+            tx.commit();
+            session.close();
+            return product;
+        } catch (Exception e) {
+            throw new RuntimeException("transactional failure while getting Product entity", e);
         }
     }
 }
