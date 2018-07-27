@@ -60,9 +60,9 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
     public byte[] transform(final ClassLoader loader, final String className, final Class<?> classBeingRedefined, final ProtectionDomain protectionDomain, final byte[] classfileBuffer) {
         TransformerLogger.LOGGER.debugf("Hibernate51CompatibilityTransformer transforming deployment class '%s' from '%s'", className, getModuleName(loader));
 
-        final Set<String> classesAndInterfaces = new HashSet<>();
-        collectClassesAndInterfaces( classesAndInterfaces, loader, className );
-        TransformerLogger.LOGGER.tracef("Class %s extends or implements %s", className, classesAndInterfaces);
+        final Set<String> parentClassesAndInterfaces = new HashSet<>();
+        collectClassesAndInterfaces( parentClassesAndInterfaces, loader, className );
+        TransformerLogger.LOGGER.tracef("Class %s extends or implements %s", className, parentClassesAndInterfaces);
 
         final ClassReader classReader = new ClassReader(classfileBuffer);
         final ClassWriter cv = new ClassWriter(classReader, 0);
@@ -83,8 +83,10 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                 // Handle changing SessionImplementor parameter to SharedSessionContractImplementor in the following methods.
                 // NOTE: handle each of the different checked interfaces, as if a class could implement multiple checked interfaces since that is possible.
 
+                boolean rewriteSessionImplementor = false;
+
                 TransformerLogger.LOGGER.tracef("method %s, description %s, signature %s", name, desc, signature);
-                if (classesAndInterfaces.contains( "org/hibernate/usertype/UserType" )) {
+                if (parentClassesAndInterfaces.contains( "org/hibernate/usertype/UserType" )) {
                     if (name.equals("nullSafeGet") &&
                             "(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
                         desc = "(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/lang/Object;)Ljava/lang/Object;";
@@ -92,9 +94,11 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                             "(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V".equals(desc)) {
                         desc = "(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SharedSessionContractImplementor;)V";
                     }
+
+                    rewriteSessionImplementor = true;
                 }
 
-                if (classesAndInterfaces.contains( "org/hibernate/usertype/CompositeUserType" )) {
+                if (parentClassesAndInterfaces.contains( "org/hibernate/usertype/CompositeUserType" )) {
                     if (name.equals("nullSafeGet") &&
                             "(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
                         desc = "(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/lang/Object;)Ljava/lang/Object;";
@@ -113,8 +117,12 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                             "(Ljava/lang/Object;Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
                         desc = "(Ljava/lang/Object;Ljava/lang/Object;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/lang/Object;)Ljava/lang/Object;";
                     }
+
+
+                    rewriteSessionImplementor = true;
                 }
-                if (classesAndInterfaces.contains( "org/hibernate/usertype/UserCollectionType" )) {
+
+                if (parentClassesAndInterfaces.contains( "org/hibernate/usertype/UserCollectionType" )) {
                     if (name.equals("instantiate") &&
                             "(Lorg/hibernate/engine/spi/SessionImplementor;Lorg/hibernate/persister/collection/CollectionPersister;)Lorg/hibernate/collection/spi/PersistentCollection;".equals(desc)) {
                         desc = "(Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Lorg/hibernate/persister/collection/CollectionPersister;)Lorg/hibernate/collection/spi/PersistentCollection;";
@@ -126,8 +134,10 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         desc = "(Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/lang/Object;)Lorg/hibernate/collection/spi/PersistentCollection;";
                     }
 
+                    rewriteSessionImplementor = true;
                 }
-                if (classesAndInterfaces.contains( "org/hibernate/usertype/UserVersionType" )) {
+
+                if (parentClassesAndInterfaces.contains( "org/hibernate/usertype/UserVersionType" )) {
                     if (name.equals("seed") &&
                             "(Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;".equals(desc)) {
                         desc = "(Lorg/hibernate/engine/spi/SharedSessionContractImplementor;)Ljava/lang/Object;";
@@ -135,8 +145,11 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                             "(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;".equals(desc)) {
                         desc = "(Ljava/lang/Object;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;)Ljava/lang/Object;";
                     }
+
+                    rewriteSessionImplementor = true;
                 }
-                if (classesAndInterfaces.contains( "org/hibernate/type/Type" )) {
+
+                if (parentClassesAndInterfaces.contains( "org/hibernate/type/Type" )) {
                     if (name.equals("assemble") &&
                             "(Ljava/io/Serializable;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
                         desc = "(Ljava/io/Serializable;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/lang/Object;)Ljava/lang/Object;";
@@ -186,8 +199,11 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                             "(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
                         desc = "(Ljava/lang/Object;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/lang/Object;)Ljava/lang/Object;";
                     }
+
+                    rewriteSessionImplementor = true;
                 }
-                if (classesAndInterfaces.contains( "org/hibernate/type/SingleColumnType" )) {
+
+                if (parentClassesAndInterfaces.contains( "org/hibernate/type/SingleColumnType" )) {
                     if (name.equals("nullSafeGet") &&
                             "(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;".equals(desc)) {
                         desc = "(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;)Ljava/lang/Object;";
@@ -198,9 +214,11 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                             "(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V".equals(desc)) {
                         desc = "(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SharedSessionContractImplementor;)V";
                     }
+
+                    rewriteSessionImplementor = true;
                 }
 
-                if (classesAndInterfaces.contains( "org/hibernate/type/AbstractStandardBasicType" )) {
+                if (parentClassesAndInterfaces.contains( "org/hibernate/type/AbstractStandardBasicType" )) {
                     if (name.equals("get") &&
                             "(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;".equals(desc)) {
                         desc = "(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;)Ljava/lang/Object;";
@@ -211,6 +229,8 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                             "(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V".equals(desc)) {
                         desc = "(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SharedSessionContractImplementor;)V";
                     }
+
+                    rewriteSessionImplementor = true;
                 }
 /* the PersistentBag constructor changes are not currently needed, instead, will use an ORM change.
    TODO:  remove this block before merging to WildFly master.
@@ -233,16 +253,9 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                 // TODO: org.hibernate.type.ProcedureParameterExtractionAware
                 // TODO: org.hibernate.type.ProcedureParameterNamedBinder
                 // TODO: org.hibernate.collection.spi.PersistentCollection
-                // TODO: org.hibernate.collection.internal.AbstractPersistentCollection
-                // TODO: org.hibernate.collection.internal.PersistentArrayHolder constructors
-                // TODO: org.hibernate.collection.internal.PersistentIdentifierBag
-                // TODO: org.hibernate.collection.internal.PersistentList constructors
-                // TODO: org.hibernate.collection.internal.PersistentMap constructors
-                // TODO: org.hibernate.collection.internal.PersistentSet constructors
-                // TODO: org.hibernate.collection.internal.PersistentSortedMap constructors
-                // TODO: org.hibernate.collection.internal.PersistentSortedSet constructors
 
-                return new MethodAdapter(Opcodes.ASM6, super.visitMethod(access, name, desc, signature, exceptions), loader, className);
+                return new MethodAdapter(rewriteSessionImplementor, parentClassesAndInterfaces, Opcodes.ASM6, super.visitMethod(access, name, desc,
+                        signature, exceptions), loader, className);
             }
         }, 0);
         return cv.toByteArray();
@@ -257,12 +270,17 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 
     protected static class MethodAdapter extends MethodVisitor {
 
+        private final Set<String> parentClassesAndInterfaces;
+        private final boolean rewriteSessionImplementor;
         private final MethodVisitor mv;
         private final ClassLoader loader;
         private final String className;
 
-        private MethodAdapter(int api, MethodVisitor mv, final ClassLoader loader, final String className) {
+        private MethodAdapter(boolean rewriteSessionImplementor, Set<String> parentClassesAndInterfaces, int api, MethodVisitor mv,
+                final ClassLoader loader, final String className) {
             super(api, mv);
+            this.rewriteSessionImplementor = rewriteSessionImplementor;
+            this.parentClassesAndInterfaces = parentClassesAndInterfaces;
             this.mv = mv;
             this.loader = loader;
             this.className = className;
@@ -274,7 +292,18 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
         // Calls to Hibernate ORM 5.3 getFlushMode(), will not be changed as the desc will not match (desc == "()Ljavax.persistence.FlushModeType;")
         @Override
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
-            if (opcode == Opcodes.INVOKEINTERFACE &&
+            if (rewriteSessionImplementor &&
+                    ( opcode == Opcodes.INVOKESPECIAL || opcode == Opcodes.INVOKEVIRTUAL ) &&
+                    owner.startsWith( "org/hibernate/" ) ) {
+                // if we have a user type calling a method from org.hibernate, we rewrite it to use SharedSessionContractImplementor
+                TransformerLogger.LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
+                        "class '%s' is calling method %s.%s, which must be changed to use SharedSessionContractImplementor as parameter.",
+                getModuleName(loader), className, owner, name);
+                mv.visitMethodInsn(opcode, owner, name,
+                        desc.replace( "Lorg/hibernate/engine/spi/SessionImplementor;",
+                                "Lorg/hibernate/engine/spi/SharedSessionContractImplementor;" ),
+                        itf);
+            } else if (opcode == Opcodes.INVOKEINTERFACE &&
                     (owner.equals("org/hibernate/Session") || owner.equals("org/hibernate/BasicQueryContract"))
                     && name.equals("getFlushMode") && desc.equals("()Lorg/hibernate/FlushMode;")) {
                 TransformerLogger.LOGGER.debugf("Deprecated Hibernate51CompatibilityTransformer transformed application classes in '%s', " +
@@ -331,9 +360,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         , getModuleName(loader), className);
                 name = "setHibernateMaxResults";
                 mv.visitMethodInsn(opcode, owner, name, desc, itf);
-            } else
-
-            {
+            } else {
                 mv.visitMethodInsn(opcode, owner, name, desc, itf);
             }
 
@@ -356,7 +383,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
         }
     }
 
-    public void collectClassesAndInterfaces(Set<String> classesAndInterfaces, ClassLoader classLoader, String className) {
+    private void collectClassesAndInterfaces(Set<String> classesAndInterfaces, ClassLoader classLoader, String className) {
         if ( className == null || "java/lang/Object".equals( className ) ) {
             return;
         }
