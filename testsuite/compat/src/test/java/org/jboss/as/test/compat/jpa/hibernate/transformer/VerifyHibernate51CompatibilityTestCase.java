@@ -489,7 +489,7 @@ public class VerifyHibernate51CompatibilityTestCase {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
-            final MonetaryAmount holdings = new MonetaryAmount( new BigDecimal( 73000000d), Currency.getInstance( "USD" ) );
+            final MonetaryAmount holdings = new MonetaryAmount( new BigDecimal( "73000000.000" ), Currency.getInstance( "USD" ) );
             sfsb.createMutualFund( 1L, holdings );
             final MutualFund mutualFund = sfsb.getMutualFund( 1L );
             assertEquals( holdings, mutualFund.getHoldings() );
