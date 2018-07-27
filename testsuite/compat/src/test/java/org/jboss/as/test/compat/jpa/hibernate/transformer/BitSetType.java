@@ -60,6 +60,7 @@ public class BitSetType
         return "bitset";
     }
 
+    @Override
     public Object replace(
             Object original,
             Object target,

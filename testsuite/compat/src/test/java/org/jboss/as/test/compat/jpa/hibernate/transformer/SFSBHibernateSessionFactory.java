@@ -244,6 +244,8 @@ public class SFSBHibernateSessionFactory {
             Session session = sessionFactory.openSession();
             Transaction tx = session.beginTransaction();
             QueueOwner queueOwner = session.get( QueueOwner.class, id );
+            // initialize the bag while the session is still open
+            queueOwner.getStrings().size();
             tx.commit();
             session.close();
             return queueOwner;
