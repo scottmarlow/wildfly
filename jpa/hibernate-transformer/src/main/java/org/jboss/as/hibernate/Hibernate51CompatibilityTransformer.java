@@ -20,10 +20,13 @@ package org.jboss.as.hibernate;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.security.ProtectionDomain;
-import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.jboss.modules.ModuleClassLoader;
 import org.objectweb.asm.ClassReader;
@@ -53,8 +56,14 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
         return instance;
     }
 
+    @Override
     public byte[] transform(final ClassLoader loader, final String className, final Class<?> classBeingRedefined, final ProtectionDomain protectionDomain, final byte[] classfileBuffer) {
         TransformerLogger.LOGGER.debugf("Hibernate51CompatibilityTransformer transforming deployment class '%s' from '%s'", className, getModuleName(loader));
+
+        final Set<String> classesAndInterfaces = new HashSet<>();
+        collectClassesAndInterfaces( classesAndInterfaces, loader, className );
+        TransformerLogger.LOGGER.tracef("Class %s extends or implements %s", className, classesAndInterfaces);
+
         final ClassReader classReader = new ClassReader(classfileBuffer);
         final ClassWriter cv = new ClassWriter(classReader, 0);
         ClassVisitor traceClassVisitor = cv;
@@ -65,47 +74,8 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
         } catch (FileNotFoundException ignored) {
 
         }
+
         classReader.accept(new ClassVisitor(Opcodes.ASM6, traceClassVisitor) {
-            boolean implementsUserType;
-            boolean implementsCompositeUserType;
-            boolean implementsUserCollectionType;
-            boolean implementsUserVersionType;
-            boolean implementsType;
-            boolean implementsSingleColumnType;
-            boolean implementsAbstractStandardBasicType;
-            boolean extendsPersistentBag;
-
-
-            @Override
-            public void visit(int version, int access, String name, String signature,
-                              String superName, String[] interfaces) {
-                if (interfaces != null) {
-                    for (String interfaceName : interfaces) {
-                        if ("org/hibernate/usertype/UserType".equals(interfaceName)) {
-                            implementsUserType = true;
-                        } else if ("org/hibernate/usertype/CompositeUserType".equals(interfaceName)) {
-                            implementsCompositeUserType = true;
-                        } else if ("org/hibernate/usertype/UserCollectionType".equals(interfaceName)) {
-                            implementsUserCollectionType = true;
-                        } else if ("org/hibernate/usertype/UserVersionType".equals(interfaceName)) {
-                            implementsUserVersionType = true;
-                        } else if ( "org/hibernate/type/Type".equals(interfaceName)) {
-                            implementsType = true;
-                        } else if ( "org/hibernate/type/SingleColumnType".equals(interfaceName)) {
-                            implementsSingleColumnType = true;
-                        } else if ( "org/hibernate/type/AbstractStandardBasicType".equals(interfaceName)) {
-                            implementsAbstractStandardBasicType = true;
-                        }
-                    }
-                }
-                if ( "org/hibernate/collection/internal/PersistentBag".equals(superName)) {
-                    extendsPersistentBag = true;
-                }
-
-                TransformerLogger.LOGGER.tracef("class %s extends %s implements", name, superName, Arrays.toString(interfaces));
-
-                super.visit(version, access, name, signature, superName, interfaces);
-            }
 
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
@@ -114,7 +84,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                 // NOTE: handle each of the different checked interfaces, as if a class could implement multiple checked interfaces since that is possible.
 
                 TransformerLogger.LOGGER.tracef("method %s, description %s, signature %s", name, desc, signature);
-                if (implementsUserType) {
+                if (classesAndInterfaces.contains( "org/hibernate/usertype/UserType" )) {
                     if (name.equals("nullSafeGet") &&
                             "(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
                         desc = "(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/lang/Object;)Ljava/lang/Object;";
@@ -124,7 +94,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                     }
                 }
 
-                if (implementsCompositeUserType) {
+                if (classesAndInterfaces.contains( "org/hibernate/usertype/CompositeUserType" )) {
                     if (name.equals("nullSafeGet") &&
                             "(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
                         desc = "(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/lang/Object;)Ljava/lang/Object;";
@@ -144,7 +114,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         desc = "(Ljava/lang/Object;Ljava/lang/Object;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/lang/Object;)Ljava/lang/Object;";
                     }
                 }
-                if (implementsUserCollectionType) {
+                if (classesAndInterfaces.contains( "org/hibernate/usertype/UserCollectionType" )) {
                     if (name.equals("instantiate") &&
                             "(Lorg/hibernate/engine/spi/SessionImplementor;Lorg/hibernate/persister/collection/CollectionPersister;)Lorg/hibernate/collection/spi/PersistentCollection;".equals(desc)) {
                         desc = "(Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Lorg/hibernate/persister/collection/CollectionPersister;)Lorg/hibernate/collection/spi/PersistentCollection;";
@@ -157,7 +127,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                     }
 
                 }
-                if (implementsUserVersionType) {
+                if (classesAndInterfaces.contains( "org/hibernate/usertype/UserVersionType" )) {
                     if (name.equals("seed") &&
                             "(Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;".equals(desc)) {
                         desc = "(Lorg/hibernate/engine/spi/SharedSessionContractImplementor;)Ljava/lang/Object;";
@@ -166,7 +136,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         desc = "(Ljava/lang/Object;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;)Ljava/lang/Object;";
                     }
                 }
-                if (implementsType) {
+                if (classesAndInterfaces.contains( "org/hibernate/type/Type" )) {
                     if (name.equals("assemble") &&
                             "(Ljava/io/Serializable;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
                         desc = "(Ljava/io/Serializable;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/lang/Object;)Ljava/lang/Object;";
@@ -217,7 +187,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         desc = "(Ljava/lang/Object;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/lang/Object;)Ljava/lang/Object;";
                     }
                 }
-                if (implementsSingleColumnType) {
+                if (classesAndInterfaces.contains( "org/hibernate/type/SingleColumnType" )) {
                     if (name.equals("nullSafeGet") &&
                             "(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;".equals(desc)) {
                         desc = "(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;)Ljava/lang/Object;";
@@ -230,7 +200,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                     }
                 }
 
-                if (implementsAbstractStandardBasicType) {
+                if (classesAndInterfaces.contains( "org/hibernate/type/AbstractStandardBasicType" )) {
                     if (name.equals("get") &&
                             "(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;".equals(desc)) {
                         desc = "(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SharedSessionContractImplementor;)Ljava/lang/Object;";
@@ -383,6 +353,39 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
             } else {
                 mv.visitFieldInsn(opcode, owner, name, desc);
             }
+        }
+    }
+
+    public void collectClassesAndInterfaces(Set<String> classesAndInterfaces, ClassLoader classLoader, String className) {
+        if ( className == null || "java/lang/Object".equals( className ) ) {
+            return;
+        }
+        if ( className.contains( "$" ) ) {
+            TransformerLogger.LOGGER.tracef( "Inner classes not supported for now: %s", className );
+            return;
+        }
+
+        try ( InputStream is = classLoader.getResourceAsStream( className.replace('.', '/') + ".class" ) ) {
+            ClassReader classReader = new ClassReader( is );
+            classReader.accept( new ClassVisitor( Opcodes.ASM6 ) {
+
+                @Override
+                public void visit(int version, int access, String name, String signature,
+                        String superName, String[] interfaces) {
+                    if ( interfaces != null ) {
+                        for ( String interfaceName : interfaces ) {
+                            classesAndInterfaces.add( interfaceName );
+                            collectClassesAndInterfaces( classesAndInterfaces, classLoader, interfaceName );
+                        }
+                    }
+
+                    classesAndInterfaces.add( superName );
+                    collectClassesAndInterfaces( classesAndInterfaces, classLoader, superName );
+                }
+            }, 0 );
+        }
+        catch (IOException e) {
+            TransformerLogger.LOGGER.warn( "Unable to open class file %1$s", className, e );
         }
     }
 }
