@@ -145,9 +145,7 @@ public class VerifyHibernate51CompatibilityTestCase {
         main.addClasses(VerifyHibernate51CompatibilityTestCase.class);
         ear.addAsModule(main);
 
-        ear.addAsManifestResource(new StringAsset("<jboss-deployment-structure>" + " <deployment>" + " <dependencies>"
-                + " <module name=\"com.h2database.h2\" />" + " <module name=\"org.slf4j\"/>" + " </dependencies>"
-                + " </deployment>" + "</jboss-deployment-structure>"), "jboss-deployment-structure.xml");
+        ear.addAsManifestResource(VerifyHibernate51CompatibilityTestCase.class.getPackage(),"jboss-deployment-structure.xml","jboss-deployment-structure.xml");
         return ear;
     }
 

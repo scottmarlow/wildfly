@@ -49,8 +49,6 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
             WildFlySecurityManager.getPropertyPrivileged("Hibernate51CompatibilityTransformer.disableAmbiguousChanges", "false"));
     private static final boolean showTransformedClass = Boolean.parseBoolean(
             WildFlySecurityManager.getPropertyPrivileged("Hibernate51CompatibilityTransformer.showTransformedClass", "false"));
-    private Hibernate51CompatibilityTransformer() {
-    }
 
     public static Hibernate51CompatibilityTransformer getInstance() {
         return instance;
