@@ -19,7 +19,6 @@
 package org.jboss.as.hibernate;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -67,9 +66,9 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
         ClassVisitor traceClassVisitor = cv;
         try {
             if (showTransformedClass) {
-                traceClassVisitor = new TraceClassVisitor(cv, new PrintWriter(new File(className.replace('/', '_') + ".asm")));
+                traceClassVisitor = new TraceClassVisitor(cv, new PrintWriter(File.createTempFile(className.replace('/', '_'),".asm")));
             }
-        } catch (FileNotFoundException ignored) {
+        } catch (IOException ignored) {
 
         }
 
