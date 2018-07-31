@@ -34,20 +34,17 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
+import javax.inject.Inject;
 
 import org.hibernate.FlushMode;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -63,7 +60,7 @@ import org.junit.runner.RunWith;
 public class VerifyHibernate51CompatibilityTestCase {
     private static final String ARCHIVE_NAME = "VerifyHibernate51CompatibilityTestCase";
 
-    public static final String hibernate_cfg = "<?xml version='1.0' encoding='utf-8'?>"
+    private static final String hibernate_cfg = "<?xml version='1.0' encoding='utf-8'?>"
             + "<!DOCTYPE hibernate-configuration PUBLIC " + "\"//Hibernate/Hibernate Configuration DTD 3.0//EN\" "
             + "\"http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd\">"
             + "<hibernate-configuration><session-factory>" + "<property name=\"show_sql\">false</property>"
@@ -71,7 +68,7 @@ public class VerifyHibernate51CompatibilityTestCase {
 // only needed for ORM 5.3.0    + "<property name=\"hibernate.allow_update_outside_transaction\">true</property>"
             + "<mapping resource=\"testmapping.hbm.xml\"/>" + "</session-factory></hibernate-configuration>";
 
-    public static final String testmapping = "<?xml version=\"1.0\"?>" + "<!DOCTYPE hibernate-mapping PUBLIC "
+    private static final String testmapping = "<?xml version=\"1.0\"?>" + "<!DOCTYPE hibernate-mapping PUBLIC "
             + "\"-//Hibernate/Hibernate Mapping DTD 3.0//EN\" " + "\"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd\">"
             + "<hibernate-mapping package=\"org.jboss.as.test.integration.hibernate\">"
             + "<class name=\"org.jboss.as.test.compat.jpa.hibernate.transformer.Student\" table=\"STUDENT\">"
@@ -103,25 +100,17 @@ public class VerifyHibernate51CompatibilityTestCase {
             + "</class>"
             + "</hibernate-mapping>";
 
-    @ArquillianResource
-    private static InitialContext iniCtx;
-
-    @BeforeClass
-    public static void beforeClass() throws NamingException {
-        iniCtx = new InitialContext();
-    }
+    @Inject
+    private SFSBHibernateSessionFactory sfsb;
 
     @Deployment
-    public static Archive<?> deploy() throws Exception {
+    public static Archive<?> deploy() {
 
         EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, ARCHIVE_NAME + ".ear");
         // add required jars as manifest dependencies
         ear.addAsManifestResource( new StringAsset( "Dependencies: org.hibernate\n" ), "MANIFEST.MF" );
 
         JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "beans.jar");
-        lib.addClasses( SFSBHibernateSessionFactory.class );
-        ear.addAsModule( lib );
-
         lib = ShrinkWrap.create(JavaArchive.class, "entities.jar");
         lib.addClasses(Student.class);
         lib.addClasses(Gene.class);
@@ -142,30 +131,19 @@ public class VerifyHibernate51CompatibilityTestCase {
         ear.addAsLibraries(lib);
 
         final WebArchive main = ShrinkWrap.create(WebArchive.class, "main.war");
-        main.addClasses(VerifyHibernate51CompatibilityTestCase.class);
+        main.addClasses(VerifyHibernate51CompatibilityTestCase.class, SFSBHibernateSessionFactory.class);
         ear.addAsModule(main);
 
         ear.addAsManifestResource(VerifyHibernate51CompatibilityTestCase.class.getPackage(),"jboss-deployment-structure.xml","jboss-deployment-structure.xml");
         return ear;
     }
 
-    protected static <T> T lookup(String beanName, Class<T> interfaceType) throws NamingException {
-        try {
-            return interfaceType.cast(iniCtx.lookup("java:global/" + ARCHIVE_NAME + "/" + "beans/" + beanName + "!"
-                    + interfaceType.getName()));
-        } catch (NamingException e) {
-            throw e;
-        }
-    }
-
     @Test
-    public void testSimpleOperation() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testSimpleOperation() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
             Student s1 = sfsb.createStudent("MADHUMITA", "SADHUKHAN", "99 Purkynova REDHAT BRNO CZ", 1);
-            Student s2 = sfsb.createStudent("REDHAT", "LINUX", "Worldwide", 3);
             Student st = sfsb.getStudent(s1.getStudentId());
             assertEquals( "name read from hibernate session is MADHUMITA", "MADHUMITA", st.getFirstName() );
         } finally {
@@ -174,8 +152,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getFlushModeFromSessionUninitialized() throws Exception{
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testORA5_3_1_Compatibility_getFlushModeFromSessionUninitialized() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -191,8 +168,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getFlushModeFromSession() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testORA5_3_1_Compatibility_getFlushModeFromSession() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -207,8 +183,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getFlushModeFromSessionNever() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testORA5_3_1_Compatibility_getFlushModeFromSessionNever() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -223,8 +198,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getFlushModeFromQueryUninitialized() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testORA5_3_1_Compatibility_getFlushModeFromQueryUninitialized() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -235,8 +209,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getFlushModeFromQuery() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testORA5_3_1_Compatibility_getFlushModeFromQuery() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -251,8 +224,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getFlushModeFromQueryNever() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testORA5_3_1_Compatibility_getFlushModeFromQueryNever() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -267,8 +239,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getFirstResultUninitialized() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testORA5_3_1_Compatibility_getFirstResultUninitialized() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -281,8 +252,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getFirstResultZero() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testORA5_3_1_Compatibility_getFirstResultZero() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -298,8 +268,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getFirstResultNegative() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testORA5_3_1_Compatibility_getFirstResultNegative() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -317,8 +286,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getFirstResultPositive() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testORA5_3_1_Compatibility_getFirstResultPositive() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -334,8 +302,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getMaxResultsUninitialized() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testORA5_3_1_Compatibility_getMaxResultsUninitialized() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -348,8 +315,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getMaxResultsZero() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testORA5_3_1_Compatibility_getMaxResultsZero() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -361,8 +327,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getMaxResultsNegative() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testORA5_3_1_Compatibility_getMaxResultsNegative() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -374,8 +339,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getMaxResultsMaxValue() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup( "SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class );
+    public void testORA5_3_1_Compatibility_getMaxResultsMaxValue() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -392,8 +356,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testORA5_3_1_Compatibility_getMaxResultsPositive() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup( "SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class );
+    public void testORA5_3_1_Compatibility_getMaxResultsPositive() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -409,8 +372,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testQueryResults() throws Exception  {
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testQueryResults() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -444,9 +406,7 @@ public class VerifyHibernate51CompatibilityTestCase {
 
 
     @Test
-    public void testUserTypeImplemented() throws Exception {
-
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testUserTypeImplemented() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -458,10 +418,9 @@ public class VerifyHibernate51CompatibilityTestCase {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Test
-    public void testCollectionUserTypeImplementedPersistentBagExtended() throws Exception {
-
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testCollectionUserTypeImplementedPersistentBagExtended() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -481,9 +440,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testCompositeUserTypeImplemented() throws Exception {
-
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testCompositeUserTypeImplemented() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
@@ -497,8 +454,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     }
 
     @Test
-    public void testAbstractSingleColumnStandardBasicTypeReplaceExtended() throws Exception {
-        SFSBHibernateSessionFactory sfsb = lookup("SFSBHibernateSessionFactory", SFSBHibernateSessionFactory.class);
+    public void testAbstractSingleColumnStandardBasicTypeReplaceExtended() {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
