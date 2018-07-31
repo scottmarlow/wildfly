@@ -18,6 +18,9 @@
 
 package org.jboss.as.hibernate;
 
+import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
+import static org.objectweb.asm.Opcodes.ACC_STATIC;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -32,6 +35,7 @@ import org.jboss.modules.ModuleClassLoader;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.util.TraceClassVisitor;
@@ -49,7 +53,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
             WildFlySecurityManager.getPropertyPrivileged("Hibernate51CompatibilityTransformer.disableAmbiguousChanges", "false"));
     private static final boolean showTransformedClass = Boolean.parseBoolean(
             WildFlySecurityManager.getPropertyPrivileged("Hibernate51CompatibilityTransformer.showTransformedClass", "false"));
-
+    private static final String markerAlreadyTransformed = "$_org_jboss_as_hibernate_Hibernate51CompatibilityTransformer_transformed_$";
     public static Hibernate51CompatibilityTransformer getInstance() {
         return instance;
     }
@@ -57,23 +61,47 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
     @Override
     public byte[] transform(final ClassLoader loader, final String className, final Class<?> classBeingRedefined, final ProtectionDomain protectionDomain, final byte[] classfileBuffer) {
         TransformerLogger.LOGGER.debugf("Hibernate51CompatibilityTransformer transforming deployment class '%s' from '%s'", className, getModuleName(loader));
-
         final Set<String> parentClassesAndInterfaces = new HashSet<>();
         collectClassesAndInterfaces( parentClassesAndInterfaces, loader, className );
         TransformerLogger.LOGGER.tracef("Class %s extends or implements %s", className, parentClassesAndInterfaces);
-
+        final TransformedState transformedState = new TransformedState();
         final ClassReader classReader = new ClassReader(classfileBuffer);
-        final ClassWriter cv = new ClassWriter(classReader, 0);
-        ClassVisitor traceClassVisitor = cv;
+        final ClassWriter classWriter = new ClassWriter(classReader, 0);
+        ClassVisitor traceClassVisitor = classWriter;
         try {
             if (showTransformedClass) {
-                traceClassVisitor = new TraceClassVisitor(cv, new PrintWriter(new File(className.replace('/', '_') + ".asm")));
+                traceClassVisitor = new TraceClassVisitor(classWriter, new PrintWriter(new File(className.replace('/', '_') + ".asm")));
             }
         } catch (FileNotFoundException ignored) {
 
         }
 
         classReader.accept(new ClassVisitor(Opcodes.ASM6, traceClassVisitor) {
+
+            // visit application class and add Transformed marker interface or mark class as already transformed
+            @Override
+            public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+                // clear per class state
+                transformedState.clear();
+                cv.visit(version, access, name, signature, superName, interfaces);
+            }
+
+            @Override
+            public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
+                // check if class has already been modified
+                if(markerAlreadyTransformed.equals(name) &&
+                        desc.equals("Z")) {
+                    transformedState.setAlreadyTransformed(true);
+                }
+                return cv.visitField(access, name, desc, signature, value);
+            }
+
+            @Override
+            public void visitEnd() {
+                if (transformedState.transformationsMade()) {
+                    cv.visitField(ACC_PUBLIC + ACC_STATIC, markerAlreadyTransformed, "Z", null, null).visitEnd();
+                }
+            }
 
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
@@ -92,7 +120,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                             "(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V".equals(desc)) {
                         desc = replaceSessionImplementor( desc );
                     }
-
+                    transformedState.setClassTransformed(true);
                     rewriteSessionImplementor = true;
                 }
 
@@ -116,7 +144,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         desc = replaceSessionImplementor( desc );
                     }
 
-
+                    transformedState.setClassTransformed(true);
                     rewriteSessionImplementor = true;
                 }
 
@@ -132,6 +160,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         desc = replaceSessionImplementor( desc );
                     }
 
+                    transformedState.setClassTransformed(true);
                     rewriteSessionImplementor = true;
                 }
 
@@ -144,6 +173,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         desc = replaceSessionImplementor( desc );
                     }
 
+                    transformedState.setClassTransformed(true);
                     rewriteSessionImplementor = true;
                 }
 
@@ -198,6 +228,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         desc = replaceSessionImplementor( desc );
                     }
 
+                    transformedState.setClassTransformed(true);
                     rewriteSessionImplementor = true;
                 }
 
@@ -213,6 +244,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         desc = replaceSessionImplementor( desc );
                     }
 
+                    transformedState.setClassTransformed(true);
                     rewriteSessionImplementor = true;
                 }
 
@@ -228,6 +260,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         desc = replaceSessionImplementor( desc );
                     }
 
+                    transformedState.setClassTransformed(true);
                     rewriteSessionImplementor = true;
                 }
 
@@ -238,6 +271,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                                     || desc.startsWith(
                                             "(Ljava/sql/CallableStatement;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)" ) ) ) {
                         desc = replaceSessionImplementor( desc );
+                        transformedState.setClassTransformed(true);
                     }
                 }
 
@@ -245,6 +279,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                     if ( name.equals( "nullSafeSet" ) &&
                             "(Ljava/sql/CallableStatement;Ljava/lang/Object;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)V".equals( desc )) {
                         desc = replaceSessionImplementor( desc );
+                        transformedState.setClassTransformed(true);
                     }
                 }
 
@@ -256,6 +291,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                     else if ( name.equals( "next" ) &&
                             desc.contains( "Lorg/hibernate/engine/spi/SessionImplementor;" ) ) {
                         desc = replaceSessionImplementor( desc );
+                        transformedState.setClassTransformed(true);
                     }
                 }
 
@@ -278,14 +314,21 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 */
                 // TODO: org.hibernate.collection.spi.PersistentCollection
 
-                return new MethodAdapter(rewriteSessionImplementor, parentClassesAndInterfaces, Opcodes.ASM6, super.visitMethod(access, name, desc,
-                        signature, exceptions), loader, className);
+                return new MethodAdapter(rewriteSessionImplementor, Opcodes.ASM6, super.visitMethod(access, name, desc,
+                        signature, exceptions), loader, className, transformedState);
             }
         }, 0);
-        return cv.toByteArray();
+        if (!transformedState.transformationsMade()) {
+            // no change was actually made, indicate so by returning null
+            return null;
+        }
+        return classWriter.toByteArray();
     }
 
     private static String getModuleName(ClassLoader loader) {
+        if (loader == null) {
+            return "(null)";
+        }
         if (loader instanceof ModuleClassLoader) {
             return ((ModuleClassLoader) loader).getName();
         }
@@ -294,20 +337,20 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 
     protected static class MethodAdapter extends MethodVisitor {
 
-        private final Set<String> parentClassesAndInterfaces;
         private final boolean rewriteSessionImplementor;
+        private final TransformedState transformedState;
         private final MethodVisitor mv;
         private final ClassLoader loader;
         private final String className;
 
-        private MethodAdapter(boolean rewriteSessionImplementor, Set<String> parentClassesAndInterfaces, int api, MethodVisitor mv,
-                final ClassLoader loader, final String className) {
+        private MethodAdapter(boolean rewriteSessionImplementor, int api, MethodVisitor mv,
+                              final ClassLoader loader, final String className, TransformedState transformedState) {
             super(api, mv);
             this.rewriteSessionImplementor = rewriteSessionImplementor;
-            this.parentClassesAndInterfaces = parentClassesAndInterfaces;
             this.mv = mv;
             this.loader = loader;
             this.className = className;
+            this.transformedState = transformedState;
         }
 
 
@@ -324,6 +367,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         "class '%s' is calling method %s.%s, which must be changed to use SharedSessionContractImplementor as parameter.",
                 getModuleName(loader), className, owner, name);
                 mv.visitMethodInsn(opcode, owner, name, replaceSessionImplementor( desc ), itf);
+                transformedState.setClassTransformed(true);
             } else if (opcode == Opcodes.INVOKEINTERFACE &&
                     (owner.equals("org/hibernate/Session") || owner.equals("org/hibernate/BasicQueryContract"))
                     && name.equals("getFlushMode") && desc.equals("()Lorg/hibernate/FlushMode;")) {
@@ -332,6 +376,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         getModuleName(loader), className, owner);
                 name = "getHibernateFlushMode";
                 mv.visitMethodInsn(opcode, owner, name, desc, itf);
+                transformedState.setClassTransformed(true);
             } else if (opcode == Opcodes.INVOKEINTERFACE &&
                     owner.equals("org/hibernate/Query") &&
                     name.equals("getFirstResult") &&
@@ -346,6 +391,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         getModuleName(loader), className);
                 name = "getHibernateFirstResult";
                 mv.visitMethodInsn(opcode, owner, name, desc, itf);
+                transformedState.setClassTransformed(true);
             } else if (opcode == Opcodes.INVOKEINTERFACE &&
                     owner.equals("org/hibernate/Query") &&
                     name.equals("getMaxResults") &&
@@ -360,6 +406,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         , getModuleName(loader), className);
                 name = "getHibernateMaxResults";
                 mv.visitMethodInsn(opcode, owner, name, desc, itf);
+                transformedState.setClassTransformed(true);
             } else if (!disableAmbiguousChanges && opcode == Opcodes.INVOKEINTERFACE &&
                     owner.equals("org/hibernate/Query") &&
                     name.equals("setFirstResult") &&
@@ -371,6 +418,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         , getModuleName(loader), className);
                 name = "setHibernateFirstResult";
                 mv.visitMethodInsn(opcode, owner, name, desc, itf);
+                transformedState.setClassTransformed(true);
             } else if (!disableAmbiguousChanges && opcode == Opcodes.INVOKEINTERFACE &&
                     owner.equals("org/hibernate/Query") &&
                     name.equals("setMaxResults") &&
@@ -381,6 +429,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         , getModuleName(loader), className);
                 name = "setHibernateMaxResults";
                 mv.visitMethodInsn(opcode, owner, name, desc, itf);
+                transformedState.setClassTransformed(true);
             } else {
                 mv.visitMethodInsn(opcode, owner, name, desc, itf);
             }
@@ -398,6 +447,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                                 "class '%s' is using org.hibernate.FlushMode.NEVER, change to org.hibernate.FlushMode.MANUAL."
                         , getModuleName(loader), className);
                 mv.visitFieldInsn(opcode, owner, "MANUAL", desc);
+                transformedState.setClassTransformed(true);
             } else {
                 mv.visitFieldInsn(opcode, owner, name, desc);
             }
@@ -411,10 +461,6 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 
     private void collectClassesAndInterfaces(Set<String> classesAndInterfaces, ClassLoader classLoader, String className) {
         if ( className == null || "java/lang/Object".equals( className ) ) {
-            return;
-        }
-        if ( className.contains( "$" ) ) {
-            TransformerLogger.LOGGER.tracef( "Inner classes not supported for now: %s", className );
             return;
         }
 
@@ -435,10 +481,39 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                     classesAndInterfaces.add( superName );
                     collectClassesAndInterfaces( classesAndInterfaces, classLoader, superName );
                 }
+
+                @Override
+                public void visitInnerClass(String name, String outerName, String innerName, int access) {
+                    if (innerName != null) {
+                        classesAndInterfaces.add(innerName);
+                    }
+                }
+
             }, 0 );
         }
         catch (IOException e) {
             TransformerLogger.LOGGER.warn( "Unable to open class file %1$s", className, e );
+        }
+    }
+
+    private static class TransformedState {
+        private boolean classTransformed;
+        private boolean alreadyTransformed;
+
+        public void setClassTransformed(boolean classTransformed) {
+            this.classTransformed = classTransformed;
+        }
+
+        public void setAlreadyTransformed(boolean alreadyTransformed) {
+            this.alreadyTransformed = alreadyTransformed;
+        }
+
+        public boolean transformationsMade() {
+            return !alreadyTransformed && classTransformed;
+        }
+
+        public void clear() {
+            alreadyTransformed = classTransformed = false;
         }
     }
 }
