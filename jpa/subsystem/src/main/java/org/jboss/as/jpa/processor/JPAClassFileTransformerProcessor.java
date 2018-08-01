@@ -46,10 +46,10 @@ import org.wildfly.security.manager.WildFlySecurityManager;
  */
 public class JPAClassFileTransformerProcessor implements DeploymentUnitProcessor {
 
-    private static final boolean hibernate51CompatibilityTransformer = Boolean.parseBoolean(
+    private final boolean hibernate51CompatibilityTransformer = Boolean.parseBoolean(
             WildFlySecurityManager.getPropertyPrivileged("Hibernate51CompatibilityTransformer","false"));
 
-    static {
+    public JPAClassFileTransformerProcessor() {
         if(hibernate51CompatibilityTransformer) {
             ROOT_LOGGER.hibernate51CompatibilityTransformerEnabled();
         }
