@@ -115,7 +115,6 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         desc = replaceSessionImplementor( desc );
                     }
 
-
                     rewriteSessionImplementor = true;
                 }
 
@@ -238,6 +237,8 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                                             "(Ljava/sql/CallableStatement;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)" ) ) ) {
                         desc = replaceSessionImplementor( desc );
                     }
+
+                    rewriteSessionImplementor = true;
                 }
 
                 if (parentClassesAndInterfaces.contains( "org/hibernate/type/ProcedureParameterNamedBinder" )) {
@@ -245,6 +246,8 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                             "(Ljava/sql/CallableStatement;Ljava/lang/Object;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)V".equals( desc )) {
                         desc = replaceSessionImplementor( desc );
                     }
+
+                    rewriteSessionImplementor = true;
                 }
 
                 if ( parentClassesAndInterfaces.contains( "org/hibernate/type/VersionType" ) ) {
@@ -256,26 +259,22 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                             desc.contains( "Lorg/hibernate/engine/spi/SessionImplementor;" ) ) {
                         desc = replaceSessionImplementor( desc );
                     }
+
+                    rewriteSessionImplementor = true;
                 }
 
-/* the PersistentBag constructor changes are not currently needed, instead, will use an ORM change.
-   TODO:  remove this block before merging to WildFly master.
-                if (extendsPersistentBag) {
-                    if (name.equals("<init>") &&
-                            "(Lorg/hibernate/engine/spi/SessionImplementor;)V".equals(desc)) {
-                        desc = "(Lorg/hibernate/engine/spi/SharedSessionContractImplementor;)V";
+                if ( parentClassesAndInterfaces.contains( "org/hibernate/collection/spi/PersistentCollection" ) ) {
+                    if ( name.equals( "unsetSession" ) &&
+                            desc.equals( "(Lorg/hibernate/engine/spi/SessionImplementor;)Z" ) ) {
+                        desc = replaceSessionImplementor( desc );
                     }
-                    else if (name.equals("<init>") &&
-                            "(Lorg/hibernate/engine/spi/SessionImplementor;Ljava/util/Collection;)V".equals(desc)) {
-                        desc = "(Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/util/Collection;)V";
+                    else if ( name.equals( "setCurrentSession" ) &&
+                            desc.equals( "(Lorg/hibernate/engine/spi/SessionImplementor;)Z" ) ) {
+                        desc = replaceSessionImplementor( desc );
                     }
-                    else if (name.equals("<init>") &&
-                            "(Lorg/hibernate/engine/spi/SessionImplementor;Ljava/util/List;)V".equals(desc)) {
-                        desc = "(Lorg/hibernate/engine/spi/SharedSessionContractImplementor;Ljava/util/List;)V";
-                    }
+
+                    rewriteSessionImplementor = true;
                 }
-*/
-                // TODO: org.hibernate.collection.spi.PersistentCollection
 
                 return new MethodAdapter(rewriteSessionImplementor, parentClassesAndInterfaces, Opcodes.ASM6, super.visitMethod(access, name, desc,
                         signature, exceptions), loader, className);

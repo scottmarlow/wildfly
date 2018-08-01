@@ -41,6 +41,11 @@ public class Hibernate51CompatibilityTransformerTest {
         rewrite(ProcedureParameterNamedBinderType.class);
     }
 
+    @Test
+    public void rewritePersistentCollection() throws IOException {
+        rewrite(MyPersistentCollection.class);
+    }
+
     private void rewrite(Class<?> clazz) throws IOException {
         try ( InputStream is = clazz.getClassLoader().getResourceAsStream( clazz.getName().replace( '.', '/' ) + ".class" ) ) {
             byte[] classFileBuffer = new byte[is.available()];
