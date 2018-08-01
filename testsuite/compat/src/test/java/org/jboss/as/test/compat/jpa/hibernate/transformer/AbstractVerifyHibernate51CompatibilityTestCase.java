@@ -33,20 +33,14 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
-
 import javax.inject.Inject;
 
 import org.hibernate.FlushMode;
-import org.jboss.arquillian.container.test.api.Deployment;
-import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
-import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 /**
  * Verify that an application compiled against Hibernate ORM 5.1.x, will run against Hibernate ORM 5.3.x on WildFly,
@@ -56,9 +50,7 @@ import org.junit.runner.RunWith;
  * @author Scott Marlow
  * @author Gail Badner
  */
-@RunWith(Arquillian.class)
-public class VerifyHibernate51CompatibilityTestCase {
-    private static final String ARCHIVE_NAME = "VerifyHibernate51CompatibilityTestCase";
+public abstract class AbstractVerifyHibernate51CompatibilityTestCase {
 
     private static final String hibernate_cfg = "<?xml version='1.0' encoding='utf-8'?>"
             + "<!DOCTYPE hibernate-configuration PUBLIC " + "\"//Hibernate/Hibernate Configuration DTD 3.0//EN\" "
@@ -103,13 +95,7 @@ public class VerifyHibernate51CompatibilityTestCase {
     @Inject
     private SFSBHibernateSessionFactory sfsb;
 
-    @Deployment
-    public static Archive<?> deploy() {
-
-        EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, ARCHIVE_NAME + ".ear");
-        // add required jars as manifest dependencies
-        ear.addAsManifestResource( new StringAsset( "Dependencies: org.hibernate\n" ), "MANIFEST.MF" );
-
+    protected static JavaArchive getLib() {
         JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "beans.jar");
         lib = ShrinkWrap.create(JavaArchive.class, "entities.jar");
         lib.addClasses(Student.class);
@@ -128,14 +114,14 @@ public class VerifyHibernate51CompatibilityTestCase {
         lib.addAsResource(new StringAsset(testmapping), "testmapping.hbm.xml");
         lib.addAsResource(new StringAsset(hibernate_cfg), "hibernate.cfg.xml");
         lib.addAsResource(new StringAsset(hibernate_cfg), "MutualFund.cfg.xml");
-        ear.addAsLibraries(lib);
+        return lib;
+    }
 
+    protected static WebArchive getWar() {
         final WebArchive main = ShrinkWrap.create(WebArchive.class, "main.war");
-        main.addClasses(VerifyHibernate51CompatibilityTestCase.class, SFSBHibernateSessionFactory.class);
-        ear.addAsModule(main);
 
-        ear.addAsManifestResource(VerifyHibernate51CompatibilityTestCase.class.getPackage(),"jboss-deployment-structure.xml","jboss-deployment-structure.xml");
-        return ear;
+        main.addClasses(AbstractVerifyHibernate51CompatibilityTestCase.class, SFSBHibernateSessionFactory.class);
+        return main;
     }
 
     @Test
@@ -145,7 +131,7 @@ public class VerifyHibernate51CompatibilityTestCase {
         try {
             Student s1 = sfsb.createStudent("MADHUMITA", "SADHUKHAN", "99 Purkynova REDHAT BRNO CZ", 1);
             Student st = sfsb.getStudent(s1.getStudentId());
-            assertEquals( "name read from hibernate session is MADHUMITA", "MADHUMITA", st.getFirstName() );
+            assertEquals("name read from hibernate session is MADHUMITA", "MADHUMITA", st.getFirstName());
         } finally {
             sfsb.cleanup();
         }
@@ -160,7 +146,7 @@ public class VerifyHibernate51CompatibilityTestCase {
             assertEquals(
                     "can handle Hibernate ORM 5.1 call to Session.getFlushMode() without setting FlushMode",
                     FlushMode.AUTO,
-                    sfsb.getFlushModeFromSessionTest( null )
+                    sfsb.getFlushModeFromSessionTest(null)
             );
         } finally {
             sfsb.cleanup();
@@ -175,7 +161,7 @@ public class VerifyHibernate51CompatibilityTestCase {
             assertEquals(
                     "can handle Hibernate ORM 5.1 call to Session.getFlushMode()",
                     FlushMode.MANUAL,
-                    sfsb.getFlushModeFromSessionTest( FlushMode.MANUAL)
+                    sfsb.getFlushModeFromSessionTest(FlushMode.MANUAL)
             );
         } finally {
             sfsb.cleanup();
@@ -190,7 +176,7 @@ public class VerifyHibernate51CompatibilityTestCase {
             assertEquals(
                     "can handle Hibernate ORM 5.1 call to Session.getFlushMode() using FlushMode.NEVER",
                     FlushMode.NEVER,
-                    sfsb.getFlushModeFromSessionTest( FlushMode.NEVER )
+                    sfsb.getFlushModeFromSessionTest(FlushMode.NEVER)
             );
         } finally {
             sfsb.cleanup();
@@ -202,7 +188,7 @@ public class VerifyHibernate51CompatibilityTestCase {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
-            assertNull( sfsb.getFlushModeFromQueryTest( null ) );
+            assertNull(sfsb.getFlushModeFromQueryTest(null));
         } finally {
             sfsb.cleanup();
         }
@@ -216,7 +202,7 @@ public class VerifyHibernate51CompatibilityTestCase {
             assertEquals(
                     "can handle Hibernate ORM 5.1 call to Query.getFlushMode()",
                     FlushMode.MANUAL,
-                    sfsb.getFlushModeFromQueryTest( FlushMode.MANUAL )
+                    sfsb.getFlushModeFromQueryTest(FlushMode.MANUAL)
             );
         } finally {
             sfsb.cleanup();
@@ -231,7 +217,7 @@ public class VerifyHibernate51CompatibilityTestCase {
             assertEquals(
                     "can handle Hibernate ORM 5.1 call to Query.getFlushMode() using FlushMode.NEVER",
                     FlushMode.NEVER,
-                    sfsb.getFlushModeFromQueryTest( FlushMode.NEVER )
+                    sfsb.getFlushModeFromQueryTest(FlushMode.NEVER)
             );
         } finally {
             sfsb.cleanup();
@@ -244,7 +230,7 @@ public class VerifyHibernate51CompatibilityTestCase {
         sfsb.setupConfig();
         try {
             // In 5.1, o.h.Query#getFirstResult returns null if no value was set via o.h.Query#setFirstResult
-            assertNull( sfsb.getFirstResultTest( null ) );
+            assertNull(sfsb.getFirstResultTest(null));
 
         } finally {
             sfsb.cleanup();
@@ -261,7 +247,7 @@ public class VerifyHibernate51CompatibilityTestCase {
                     "Hibernate ORM 5.1 call to Query.getFirstResult() returned Integer " + sfsb.getFirstResultTest(0),
                     sfsb.getFirstResultTest(0) instanceof Integer
             );
-            assertEquals( Integer.valueOf( 0 ), sfsb.getFirstResultTest( 0 ) );
+            assertEquals(Integer.valueOf(0), sfsb.getFirstResultTest(0));
         } finally {
             sfsb.cleanup();
         }
@@ -279,7 +265,7 @@ public class VerifyHibernate51CompatibilityTestCase {
             );
             // check for value of 0 being returned, to match what query.getHibernateFirstResult() is expected to
             // return when -1 is passed into query.setHibernateFirstResult()
-            assertEquals( Integer.valueOf( 0 ), sfsb.getFirstResultTest( -1 ) );
+            assertEquals(Integer.valueOf(0), sfsb.getFirstResultTest(-1));
         } finally {
             sfsb.cleanup();
         }
@@ -291,10 +277,10 @@ public class VerifyHibernate51CompatibilityTestCase {
         sfsb.setupConfig();
         try {
             assertTrue(
-                    "Hibernate ORM 5.1 call to Query.getMaxResult() returned Integer " + sfsb.getFirstResultTest( 1 ),
-                    sfsb.getFirstResultTest( 1 ) instanceof Integer
+                    "Hibernate ORM 5.1 call to Query.getMaxResult() returned Integer " + sfsb.getFirstResultTest(1),
+                    sfsb.getFirstResultTest(1) instanceof Integer
             );
-            assertEquals( Integer.valueOf( 1 ), sfsb.getFirstResultTest( 1 ) );
+            assertEquals(Integer.valueOf(1), sfsb.getFirstResultTest(1));
 
         } finally {
             sfsb.cleanup();
@@ -307,7 +293,7 @@ public class VerifyHibernate51CompatibilityTestCase {
         sfsb.setupConfig();
         try {
             // In 5.1, o.h.Query#getMaxResults returns null if no value was set via o.h.Query#setMaxResults
-            assertNull( sfsb.getMaxResultsTest( null ) );
+            assertNull(sfsb.getMaxResultsTest(null));
 
         } finally {
             sfsb.cleanup();
@@ -320,7 +306,7 @@ public class VerifyHibernate51CompatibilityTestCase {
         sfsb.setupConfig();
         try {
             // In 5.1, o.h.Query#getMaxResults returns null if 0 was set via o.h.Query.setMaxResults(0)
-            assertNull( sfsb.getMaxResultsTest( 0 ) );
+            assertNull(sfsb.getMaxResultsTest(0));
         } finally {
             sfsb.cleanup();
         }
@@ -332,7 +318,7 @@ public class VerifyHibernate51CompatibilityTestCase {
         sfsb.setupConfig();
         try {
             // In 5.1, o.h.Query#getMaxResults returns null if set via o.h.Query.setMaxResults( negativeNumber )
-            assertNull( sfsb.getMaxResultsTest( -1 ) );
+            assertNull(sfsb.getMaxResultsTest(-1));
         } finally {
             sfsb.cleanup();
         }
@@ -345,12 +331,11 @@ public class VerifyHibernate51CompatibilityTestCase {
         try {
             // In 5.1, o.h.Query#getMaxResults returns Integer.MAX_VALUE if set via o.h.Query.setMaxResults( Integer.MAX_VALUE )
             assertTrue(
-                    "Hibernate ORM 5.1 call to Query.getMaxResult() returned Integer " + sfsb.getMaxResultsTest( Integer.MAX_VALUE ),
-                    sfsb.getMaxResultsTest( Integer.MAX_VALUE ) instanceof Integer
+                    "Hibernate ORM 5.1 call to Query.getMaxResult() returned Integer " + sfsb.getMaxResultsTest(Integer.MAX_VALUE),
+                    sfsb.getMaxResultsTest(Integer.MAX_VALUE) instanceof Integer
             );
-            assertEquals( Integer.valueOf( Integer.MAX_VALUE ), sfsb.getMaxResultsTest( Integer.MAX_VALUE ) );
-        }
-        finally {
+            assertEquals(Integer.valueOf(Integer.MAX_VALUE), sfsb.getMaxResultsTest(Integer.MAX_VALUE));
+        } finally {
             sfsb.cleanup();
         }
     }
@@ -361,12 +346,11 @@ public class VerifyHibernate51CompatibilityTestCase {
         sfsb.setupConfig();
         try {
             assertTrue(
-                    "Hibernate ORM 5.1 call to Query.getMaxResult() returned Integer " + sfsb.getMaxResultsTest( 1 ),
-                    sfsb.getMaxResultsTest( 1 ) instanceof Integer
+                    "Hibernate ORM 5.1 call to Query.getMaxResult() returned Integer " + sfsb.getMaxResultsTest(1),
+                    sfsb.getMaxResultsTest(1) instanceof Integer
             );
-            assertEquals( Integer.valueOf( 1 ), sfsb.getMaxResultsTest( 1 ) );
-        }
-        finally {
+            assertEquals(Integer.valueOf(1), sfsb.getMaxResultsTest(1));
+        } finally {
             sfsb.cleanup();
         }
     }
@@ -376,31 +360,31 @@ public class VerifyHibernate51CompatibilityTestCase {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
-            for ( int i = 0; i < 5; i++ ) {
-                sfsb.createStudent( null, null, null, i );
+            for (int i = 0; i < 5; i++) {
+                sfsb.createStudent(null, null, null, i);
             }
             final String query = "from Student order by id";
-            checkResults( sfsb.executeQuery( query, null, null ), 0, 4 );
-            checkResults( sfsb.executeQuery( query, 0, null ), 0, 4 );
-            checkResults( sfsb.executeQuery( query, -1, null ), 0, 4 );
-            checkResults( sfsb.executeQuery( query, null, 0 ), 0, 4 );
-            checkResults( sfsb.executeQuery( query, null, -1 ), 0, 4 );
-            checkResults( sfsb.executeQuery( query, null, 2 ), 0, 1 );
-            checkResults( sfsb.executeQuery( query, -1, 0 ), 0, 4 );
-            checkResults( sfsb.executeQuery( query, -1, 3 ), 0, 2 );
-            checkResults( sfsb.executeQuery( query, 1, null ), 1, 4 );
-            checkResults( sfsb.executeQuery( query, 1, 0 ), 1, 4 );
-            checkResults( sfsb.executeQuery( query, 1, -1 ), 1, 4 );
-            checkResults( sfsb.executeQuery( query, 1, 1 ), 1, 1 );
+            checkResults(sfsb.executeQuery(query, null, null), 0, 4);
+            checkResults(sfsb.executeQuery(query, 0, null), 0, 4);
+            checkResults(sfsb.executeQuery(query, -1, null), 0, 4);
+            checkResults(sfsb.executeQuery(query, null, 0), 0, 4);
+            checkResults(sfsb.executeQuery(query, null, -1), 0, 4);
+            checkResults(sfsb.executeQuery(query, null, 2), 0, 1);
+            checkResults(sfsb.executeQuery(query, -1, 0), 0, 4);
+            checkResults(sfsb.executeQuery(query, -1, 3), 0, 2);
+            checkResults(sfsb.executeQuery(query, 1, null), 1, 4);
+            checkResults(sfsb.executeQuery(query, 1, 0), 1, 4);
+            checkResults(sfsb.executeQuery(query, 1, -1), 1, 4);
+            checkResults(sfsb.executeQuery(query, 1, 1), 1, 1);
         } finally {
             sfsb.cleanup();
         }
     }
 
-    private void checkResults( List results, int firstIdExpected, int lastIdExpected ) {
+    private void checkResults(List results, int firstIdExpected, int lastIdExpected) {
         int resultIndex = 0;
-        for( int i = firstIdExpected ; i <= lastIdExpected ; i++, resultIndex++ ) {
-            assertEquals( i, ( (Student) results.get( resultIndex ) ).getStudentId() );
+        for (int i = firstIdExpected; i <= lastIdExpected; i++, resultIndex++) {
+            assertEquals(i, ((Student) results.get(resultIndex)).getStudentId());
         }
     }
 
@@ -410,9 +394,9 @@ public class VerifyHibernate51CompatibilityTestCase {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
-            sfsb.createGene( 1, State.DORMANT );
-            final Gene gene = sfsb.getGene( 1 );
-            assertEquals( State.DORMANT, gene.getState() );
+            sfsb.createGene(1, State.DORMANT);
+            final Gene gene = sfsb.getGene(1);
+            assertEquals(State.DORMANT, gene.getState());
         } finally {
             sfsb.cleanup();
         }
@@ -425,14 +409,14 @@ public class VerifyHibernate51CompatibilityTestCase {
         sfsb.setupConfig();
         try {
             Queue queue = new LinkedList<String>();
-            queue.add( "first" );
-            queue.add( "second" );
-            sfsb.createQueueOwner( 1, queue );
-            final QueueOwner queueOwner = sfsb.getQueueOwner( 1 );
-            assertEquals( 2, queueOwner.getStrings().size() );
+            queue.add("first");
+            queue.add("second");
+            sfsb.createQueueOwner(1, queue);
+            final QueueOwner queueOwner = sfsb.getQueueOwner(1);
+            assertEquals(2, queueOwner.getStrings().size());
             final Iterator<String> it = queueOwner.getStrings().iterator();
-            assertEquals( "first", it.next() );
-            assertEquals( "second", it.next() );
+            assertEquals("first", it.next());
+            assertEquals("second", it.next());
 
         } finally {
             sfsb.cleanup();
@@ -444,10 +428,10 @@ public class VerifyHibernate51CompatibilityTestCase {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
-            final MonetaryAmount holdings = new MonetaryAmount( new BigDecimal( "73000000.000" ), Currency.getInstance( "USD" ) );
-            sfsb.createMutualFund( 1L, holdings );
-            final MutualFund mutualFund = sfsb.getMutualFund( 1L );
-            assertEquals( holdings, mutualFund.getHoldings() );
+            final MonetaryAmount holdings = new MonetaryAmount(new BigDecimal("73000000.000"), Currency.getInstance("USD"));
+            sfsb.createMutualFund(1L, holdings);
+            final MutualFund mutualFund = sfsb.getMutualFund(1L);
+            assertEquals(holdings, mutualFund.getHoldings());
         } finally {
             sfsb.cleanup();
         }
@@ -458,10 +442,10 @@ public class VerifyHibernate51CompatibilityTestCase {
         // setup Configuration and SessionFactory
         sfsb.setupConfig();
         try {
-            BitSet bitset = BitSet.valueOf( new long[] { 1, 2, 3 } );
-            sfsb.createAndMergeProduct( 1, bitset );
-            final Product product = sfsb.getProduct( 1 );
-            assertEquals( bitset, product.getBitSet() );
+            BitSet bitset = BitSet.valueOf(new long[]{1, 2, 3});
+            sfsb.createAndMergeProduct(1, bitset);
+            final Product product = sfsb.getProduct(1);
+            assertEquals(bitset, product.getBitSet());
         } finally {
             sfsb.cleanup();
         }
