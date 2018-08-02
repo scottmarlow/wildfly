@@ -21,7 +21,7 @@ package org.jboss.as.hibernate;
 /**
  * TransformedState
  *
- * @author Scott Marlow
+ * @deprecated
  */
 class TransformedState {
     private boolean classTransformed;

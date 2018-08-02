@@ -7,7 +7,7 @@ import org.jboss.logging.annotations.MessageLogger;
 /**
  * TransformerLogger
  *
- * @author Scott Marlow
+ * @deprecated
  */
 @MessageLogger(projectCode = "ORMTRFMR")
 public interface TransformerLogger extends BasicLogger {
