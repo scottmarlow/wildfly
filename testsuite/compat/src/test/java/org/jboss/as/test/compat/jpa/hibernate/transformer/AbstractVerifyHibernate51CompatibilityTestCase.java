@@ -277,7 +277,7 @@ public abstract class AbstractVerifyHibernate51CompatibilityTestCase {
         sfsb.setupConfig();
         try {
             assertTrue(
-                    "Hibernate ORM 5.1 call to Query.getMaxResult() returned Integer " + sfsb.getFirstResultTest(1),
+                    "Hibernate ORM 5.1 call to Query.getFirstResult() returned Integer " + sfsb.getFirstResultTest(1),
                     sfsb.getFirstResultTest(1) instanceof Integer
             );
             assertEquals(Integer.valueOf(1), sfsb.getFirstResultTest(1));
