@@ -49,12 +49,12 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 
     private static final Hibernate51CompatibilityTransformer instance = new Hibernate51CompatibilityTransformer();
     private static final File showTransformedClassFolder;
+
     static {
         String folderName = WildFlySecurityManager.getPropertyPrivileged("Hibernate51CompatibilityTransformer.showTransformedClassFolder", null);
         if (folderName != null) {
             showTransformedClassFolder = new File(folderName);
-        }
-        else {
+        } else {
             showTransformedClassFolder = null;
         }
     }
@@ -120,9 +120,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                 @Override
                 public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 
-                    // Handle changing SessionImplementor parameter to SharedSessionContractImplementor in the following methods.
-                    // NOTE: handle each of the different checked interfaces, as if a class could implement multiple checked interfaces since that is possible.
-
+                    // Handle changing SessionImplementor parameter to SharedSessionContractImplementor
                     boolean rewriteSessionImplementor = false;
 
                     TransformerLogger.LOGGER.tracef("method %s, description %s, signature %s", name, desc, signature);
@@ -349,7 +347,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
         return loader.toString();
     }
 
-    protected static String replaceSessionImplementor(String desc) {
+    private static String replaceSessionImplementor(String desc) {
         return desc.replace("Lorg/hibernate/engine/spi/SessionImplementor;",
                 "Lorg/hibernate/engine/spi/SharedSessionContractImplementor;");
     }
