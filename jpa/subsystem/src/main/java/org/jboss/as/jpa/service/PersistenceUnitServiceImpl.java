@@ -354,6 +354,9 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
         try {
             ROOT_LOGGER.tracef("calling createContainerEntityManagerFactory for pu=%s with integration properties=%s, application properties=%s",
                     pu.getScopedPersistenceUnitName(), properties.getValue(), pu.getProperties());
+            if (true) {
+                return entityManagerFactoryProxy(persistenceProvider, pu, properties.getValue());
+            }
             return persistenceProvider.createContainerEntityManagerFactory(pu, properties.getValue());
         } finally {
             try {
@@ -364,6 +367,10 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                 //pu.setTempClassLoaderFactory(null);    // close reference to temp classloader factory (only needed during call to createEntityManagerFactory)
             }
         }
+    }
+
+    private EntityManagerFactory entityManagerFactoryProxy(PersistenceProvider persistenceProvider, PersistenceUnitMetadata pu, Map properties) {
+        return EntityManagerFactoryProxy.create(persistenceProvider, pu, properties);
     }
 
     public Injector<PhaseOnePersistenceUnitServiceImpl> getPhaseOnePersistenceUnitServiceImplInjector() {
