@@ -40,7 +40,7 @@ import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
  * @author Scott Marlow
  */
 public class EntityManagerFactoryProxy implements InvocationHandler {
-    private EntityManagerFactory lazyEntityManagerFactory = null;
+    private Object lazyEntityManagerFactory = null;
     private final PersistenceProvider persistenceProvider;
     private final PersistenceUnitMetadata pu;
     private final Map properties;
@@ -53,9 +53,8 @@ public class EntityManagerFactoryProxy implements InvocationHandler {
 
     public static EntityManagerFactory create(PersistenceProvider persistenceProvider, final PersistenceUnitMetadata pu, final Map properties) {
 
-        final Object proxy = Proxy.newProxyInstance(EntityManagerFactoryProxy.class.getClassLoader(), new Class<?>[] { EntityManagerFactory.class },
+        return (EntityManagerFactory)Proxy.newProxyInstance(EntityManagerFactory.class.getClassLoader(), new Class<?>[] { EntityManagerFactory.class },
                 new EntityManagerFactoryProxy(persistenceProvider, pu, properties ));
-        return (EntityManagerFactory)proxy;
     }
 
     @Override
@@ -63,7 +62,6 @@ public class EntityManagerFactoryProxy implements InvocationHandler {
         if(lazyEntityManagerFactory == null) {
             synchronized (proxy) {
                 if(lazyEntityManagerFactory == null) {
-System.out.println("xxx create emf for EMFProxy");
                     lazyEntityManagerFactory = persistenceProvider.createContainerEntityManagerFactory(pu, properties);
                 }
             }
