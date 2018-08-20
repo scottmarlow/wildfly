@@ -268,7 +268,12 @@ public class PersistenceUnitServiceHandler {
                         final boolean twoPhaseBootStrapCapable = (adaptor instanceof TwoPhaseBootstrapCapable) && Configuration.allowTwoPhaseBootstrap(pu);
 
                         if (startEarly) {
-                            if (twoPhaseBootStrapCapable) {
+                            boolean hackit = true;
+                            if (hackit) {
+                                // temp hack to try lazy start of all EMF/EM, instrumentation tests will fail.
+                                deployPersistenceUnit(deploymentUnit, eeModuleDescription, serviceTarget, classLoader, pu, provider, adaptor, true);
+                            }
+                            else if (twoPhaseBootStrapCapable) {
                                 deployPersistenceUnitPhaseOne(deploymentUnit, eeModuleDescription, serviceTarget, classLoader, pu, adaptor);
                             }
                             else if (false == Configuration.needClassFileTransformer(pu)) {
@@ -284,7 +289,11 @@ public class PersistenceUnitServiceHandler {
                             }
                         }
                         else { // !startEarly
-                            if (twoPhaseBootStrapCapable) {
+                            boolean hackit = true;
+                            if (hackit) {
+                                // already early started all EMF lazily
+                            }
+                            else if (twoPhaseBootStrapCapable) {
                                 deployPersistenceUnitPhaseTwo(deploymentUnit, eeModuleDescription, serviceTarget, classLoader, pu, provider, adaptor);
                             } else if (false == Configuration.needClassFileTransformer(pu)) {
                                 final boolean allowCdiBeanManagerAccess = true;
