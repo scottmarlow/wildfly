@@ -64,6 +64,24 @@ public class EntityManagerProxy implements InvocationHandler {
             if ("toString".equals(method.getName()) &&
                     "string".equals(method.getGenericReturnType().getTypeName()) &&
                     method.getGenericParameterTypes().length == 0) {
+                return "uninitialized (EntityManagerFactory) EntityManager proxy";
+            } else if ("close".equals(method.getName()) &&
+                    "void".equals(method.getGenericReturnType().getTypeName())) {
+                isOpen = false;
+                return null;
+            } else if ("isOpen".equals(method.getName()) &&
+                    "boolean".equals(method.getGenericReturnType().getTypeName()) &&
+                    method.getGenericParameterTypes().length == 0) {
+                return isOpen && entityManagerFactoryProxy.isOpen();
+            }
+
+            // for other method calls, hand off EMF creation to the entityManagerFactoryProxy
+            entityManagerFactoryProxy.createEntityManagerFactory();
+
+        } else if (lazyEntityManager == null) { // no need to create the EntityManager for toString(), close(), isOpen()
+            if ("toString".equals(method.getName()) &&
+                    "string".equals(method.getGenericReturnType().getTypeName()) &&
+                    method.getGenericParameterTypes().length == 0) {
                 return "uninitialized EntityManager proxy";
             } else if ("close".equals(method.getName()) &&
                     "void".equals(method.getGenericReturnType().getTypeName())) {
@@ -72,12 +90,10 @@ public class EntityManagerProxy implements InvocationHandler {
             } else if ("isOpen".equals(method.getName()) &&
                     "boolean".equals(method.getGenericReturnType().getTypeName()) &&
                     method.getGenericParameterTypes().length == 0) {
-                return isOpen;
+                return isOpen && entityManagerFactoryProxy.isOpen();
             }
-
-            // for other method calls, hand off EMF creation to the entityManagerFactoryProxy
-            entityManagerFactoryProxy.createEntityManagerFactory();
         }
+
 
         if (lazyEntityManager == null) {
 
@@ -92,6 +108,10 @@ public class EntityManagerProxy implements InvocationHandler {
             lazyEntityManager = entityManagerFactoryProxy.createEntityManager(synchronizationType, properties);
         }
 
+        if ("close".equals(method.getName()) &&
+                "void".equals(method.getGenericReturnType().getTypeName())) {
+            isOpen = false;
+        }
         return method.invoke(lazyEntityManager, args);
     }
 

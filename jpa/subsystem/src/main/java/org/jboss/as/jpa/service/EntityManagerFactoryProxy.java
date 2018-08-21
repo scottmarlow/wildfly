@@ -74,8 +74,7 @@ public class EntityManagerFactoryProxy implements InvocationHandler {
         if (lazyEntityManagerFactory == null) {
             boolean timeToCreateEntityManagerFactory = false;
             if ("toString".equals(method.getName()) &&
-                    "string".equals(method.getGenericReturnType().getTypeName()) &&
-                    method.getGenericParameterTypes().length == 0) {
+                    "string".equals(method.getGenericReturnType().getTypeName())) {
                 return "uninitialized proxy for " + pu.getScopedPersistenceUnitName();
             } else if ("isOpen".equals(method.getName()) &&
                     "boolean".equals(method.getGenericReturnType().getTypeName()) &&
@@ -110,7 +109,6 @@ public class EntityManagerFactoryProxy implements InvocationHandler {
                     }
                 }
                 return EntityManagerProxy.create(this, synchronizationType, properties);
-
             }
 
             if (timeToCreateEntityManagerFactory) {
