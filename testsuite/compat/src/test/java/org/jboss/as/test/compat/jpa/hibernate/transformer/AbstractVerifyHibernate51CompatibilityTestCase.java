@@ -65,6 +65,7 @@ public abstract class AbstractVerifyHibernate51CompatibilityTestCase {
             + "<hibernate-mapping package=\"org.jboss.as.test.integration.hibernate\">"
             + "<class name=\"org.jboss.as.test.compat.jpa.hibernate.transformer.Student\" table=\"STUDENT\">"
             + "<id name=\"studentId\" column=\"student_id\">" + "<generator class=\"assigned\"/>" + "</id>"
+            + "<version name=\"version\" column=\"version\" type=\"org.jboss.as.test.compat.jpa.hibernate.transformer.IntegerUserVersionType\" />"
             + "<property name=\"firstName\" column=\"first_name\"/>" + "<property name=\"lastName\" column=\"last_name\"/>"
             + "<property name=\"address\"/>"
             + "</class>"
@@ -99,6 +100,7 @@ public abstract class AbstractVerifyHibernate51CompatibilityTestCase {
         JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "beans.jar");
         lib = ShrinkWrap.create(JavaArchive.class, "entities.jar");
         lib.addClasses(Student.class);
+        lib.addClass(IntegerUserVersionType.class);
         lib.addClasses(Gene.class);
         lib.addClasses(State.class);
         lib.addClasses(StateType.class);
