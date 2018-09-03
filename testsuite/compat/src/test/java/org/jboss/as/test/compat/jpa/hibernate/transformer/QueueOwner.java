@@ -27,6 +27,7 @@ import java.util.Queue;
 
 public class QueueOwner {
     private Integer id;
+    private Integer version;
     private Collection<String> strings = new LinkedList<>();
 
     public Queue<String> getStrings() {
@@ -43,5 +44,13 @@ public class QueueOwner {
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public Integer getVersion() {
+        return version;
+    }
+
+    public void setVersion(Integer version) {
+        this.version = version;
     }
 }
