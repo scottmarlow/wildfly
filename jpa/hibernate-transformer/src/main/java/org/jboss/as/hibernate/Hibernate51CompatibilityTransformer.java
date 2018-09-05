@@ -316,12 +316,15 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         } else if (name.equals("setCurrentSession") &&
                                 desc.equals("(Lorg/hibernate/engine/spi/SessionImplementor;)Z")) {
                             desc = replaceSessionImplementor(desc);
+                        } else if (name.equals("<init>")) {
+                            // update constructor methods to use SharedSessionContractImplementor instead of SessionImplementor
+                            desc = replaceSessionImplementor(desc);
                         }
 
                         rewriteSessionImplementor = true;
                     }
                     if (descOrig != desc) {  // if we are changing from type SessionImplementor to SharedSessionContractImplementor
-                                             // mark the class as transformed
+                        // mark the class as transformed
                         transformedState.setClassTransformed(true);
                     }
                     return new MethodAdapter(rewriteSessionImplementor, Opcodes.ASM6, super.visitMethod(access, name, desc,
@@ -401,5 +404,6 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
             }
         }
         return major;
-    }}
+    }
+}
 
