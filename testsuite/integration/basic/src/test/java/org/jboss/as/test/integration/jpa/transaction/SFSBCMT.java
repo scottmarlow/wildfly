@@ -44,12 +44,20 @@ public class SFSBCMT {
     @PersistenceContext(unitName = "mypcNoBounds")
     EntityManager emNoBounded;
 
-    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    @PersistenceContext(unitName = "nocache")
+    EntityManager emNoCache;
+
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public Employee getEmployee(int id) {
         return em.find(Employee.class, id);
     }
 
-    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public Employee getEmployeeNoCache(int id) {
+        return emNoCache.find(Employee.class, id);
+    }
+
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public Employee getEmployeeNoBoundedCache(int id) {
         return emNoBounded.find(Employee.class, id);
     }

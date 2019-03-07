@@ -28,6 +28,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -43,6 +44,7 @@ import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+// import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -320,6 +322,7 @@ public class TransactionTestCase {
                 assertNotNull(sfsbcmt);
                 for (int iterations = 0; iterations< 1000; iterations++) {
                     assertEquals(sfsbcmt.getEmployee(500).getName(), "MultiTasker");
+                    assertEquals(sfsbcmt.getEmployeeNoCache(500).getName(), "MultiTasker");
                     assertEquals(sfsbcmt.getEmployeeNoBoundedCache(500).getName(), "MultiTasker");
                 }
             } catch (Exception e) {
@@ -328,5 +331,134 @@ public class TransactionTestCase {
 
         }
     }
+
+    private final int ITERATIONS = 300;
+    @Test
+    @InSequence(13)
+    // @Ignore  // uncomment before merging
+    public void testMicroBench() throws Exception {
+        SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
+        sfsb1.createEmployee("MultiTasker", "314 Littleton Rd, Westford, MA 01886", 600);
+        assertEquals(sfsb1.queryEmployeeNameNoTX(600),"MultiTasker");
+        final int numThreads = 30;
+        SFSBCMT sfsbcmt = lookup("SFSBCMT", SFSBCMT.class);
+        assertNotNull(sfsbcmt);
+
+        Long startTime;
+
+        for (int looper=0; looper < 3; looper++) {
+            startTime = System.currentTimeMillis();
+            runNoCache(numThreads);
+            Long noCacheTime = System.currentTimeMillis() - startTime;
+
+            startTime = System.currentTimeMillis();
+            runCached(numThreads);
+            Long cachedTime = System.currentTimeMillis() - startTime;
+
+            startTime = System.currentTimeMillis();
+            runBoundedCached(numThreads);
+            Long boundedCachedTime = System.currentTimeMillis() - startTime;
+
+
+            System.out.println(looper + ": It took " + noCacheTime + "ms with no entity manager cache.");
+            System.out.println(looper + ": It took " + cachedTime + "ms with (unbounded) entity manager cache.");
+            System.out.println(looper + ": It took " + boundedCachedTime + "ms with (bounded[10]) entity manager cache.");
+        }
+
+    }
+
+    private void runNoCache(final int numThreads) throws ExecutionException, InterruptedException {
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+        Future[] results = new Future[numThreads];
+        for(int i = 0; i < numThreads; ++i) {
+            results[i] = executorService.submit(new MicroNoCache());
+        }
+
+        for(int i = 0; i < numThreads; ++i) {
+            results[i].get();
+        }
+        executorService.shutdown();
+
+    }
+
+    private class MicroNoCache implements Runnable {
+        SFSBCMT sfsbcmt;
+
+        @Override
+        public void run() {
+            try {
+                for (int iterations = 0; iterations< ITERATIONS; iterations++) {
+                    SFSBCMT sfsbcmt = lookup("SFSBCMT", SFSBCMT.class);
+                    assertEquals(sfsbcmt.getEmployeeNoCache(600).getName(), "MultiTasker");
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+    }
+
+
+    private void runCached(final int numThreads) throws ExecutionException, InterruptedException {
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+        Future[] results = new Future[numThreads];
+        for(int i = 0; i < numThreads; ++i) {
+            results[i] = executorService.submit(new MicroCached());
+        }
+
+        for(int i = 0; i < numThreads; ++i) {
+            results[i].get();
+        }
+        executorService.shutdown();
+
+    }
+
+    private class MicroCached implements Runnable {
+
+        @Override
+        public void run() {
+            try {
+                for (int iterations = 0; iterations< ITERATIONS; iterations++) {
+                    SFSBCMT sfsbcmt = lookup("SFSBCMT", SFSBCMT.class);
+                    assertEquals(sfsbcmt.getEmployeeNoBoundedCache(600).getName(), "MultiTasker");
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+    }
+
+
+    private void runBoundedCached(final int numThreads) throws ExecutionException, InterruptedException {
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+        Future[] results = new Future[numThreads];
+        for(int i = 0; i < numThreads; ++i) {
+            results[i] = executorService.submit(new MicroBoundedCached());
+        }
+
+        for(int i = 0; i < numThreads; ++i) {
+            results[i].get();
+        }
+        executorService.shutdown();
+
+    }
+
+    private class MicroBoundedCached implements Runnable {
+
+        @Override
+        public void run() {
+            try {
+                for (int iterations = 0; iterations< ITERATIONS; iterations++) {
+                    SFSBCMT sfsbcmt = lookup("SFSBCMT", SFSBCMT.class);
+                    assertEquals(sfsbcmt.getEmployee(600).getName(), "MultiTasker");
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+    }
+
 
 }
