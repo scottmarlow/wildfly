@@ -18,6 +18,7 @@
 
 package org.jboss.as.hibernate;
 
+import static org.objectweb.asm.ClassWriter.COMPUTE_FRAMES;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACC_STATIC;
 
@@ -75,6 +76,14 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 
     @Override
     public byte[] transform(final ClassLoader loader, final String className, final Class<?> classBeingRedefined, final ProtectionDomain protectionDomain, final byte[] classfileBuffer) {
+
+        if(className.startsWith("org/jboss/arquillian") ||
+           className.startsWith("org/jboss/as/arquillian") ||
+           className.startsWith("org/junit") ||
+           className.startsWith("org/jboss/shrinkwrap")) {
+            logger.debugf("Hibernate51CompatibilityTransformer ignoring Arquillian class '%s' from '%s'", className, getModuleName(loader));
+            return null;
+        }
         logger.debugf("Hibernate51CompatibilityTransformer transforming deployment class '%s' from '%s'", className, getModuleName(loader));
 
         final Set<String> parentClassesAndInterfaces = new HashSet<>();
@@ -83,19 +92,11 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 
         final TransformedState transformedState = new TransformedState();
         final ClassReader classReader = new ClassReader(classfileBuffer);
-        final ClassWriter classWriter = new ClassWriter(classReader, 0);
-        ClassVisitor traceClassVisitor = classWriter;
-        PrintWriter tracePrintWriter = null;
-        try {
-            if (showTransformedClassFolder != null) {
-                tracePrintWriter = new PrintWriter(new File(showTransformedClassFolder, className.replace('/', '_') + ".asm"));
-                traceClassVisitor = new TraceClassVisitor(classWriter, tracePrintWriter);
-            }
-        } catch (IOException ignored) {
+        final ClassWriter classWriter = new ClassWriter(classReader, COMPUTE_FRAMES);
+        PrintWriter traceAfterPrintWriter = null;
 
-        }
         try {
-            classReader.accept(new ClassVisitor(useASM7 ? Opcodes.ASM7 : Opcodes.ASM6, traceClassVisitor) {
+            classReader.accept(new ClassVisitor(useASM7 ? Opcodes.ASM7 : Opcodes.ASM6, classWriter) {
 
                 // clear transformed state at start of each class visit
                 @Override
@@ -141,7 +142,6 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                                 match(desc,"(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V")) {
                             desc = replaceSessionImplementor(desc);
                         }
-
                         rewriteSessionImplementor = true;
                     }
 
@@ -197,7 +197,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                                 match(desc,"(Ljava/io/Serializable;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("disassemble") &&
-                                match(desc,"(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/io/Serializable;")) {
+                                match(desc,"(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/io/Serializable;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("beforeAssemble") &&
                                 match(desc,"(Ljava/io/Serializable;Lorg/hibernate/engine/spi/SessionImplementor;)V")) {
@@ -242,7 +242,6 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                                 match(desc,"(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         }
-
                         rewriteSessionImplementor = true;
                     }
 
@@ -257,7 +256,6 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                                 match(desc,"(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V")) {
                             desc = replaceSessionImplementor(desc);
                         }
-
                         rewriteSessionImplementor = true;
                     }
 
@@ -272,7 +270,6 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                                 match(desc,"(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V")) {
                             desc = replaceSessionImplementor(desc);
                         }
-
                         rewriteSessionImplementor = true;
                     }
 
@@ -326,6 +323,15 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                         desc = replaceSessionImplementor(desc);
                     }
 
+                    // If application class has any of the above (checked) ORM classes as a super class and one of app class
+                    // method parameters reference 'SessionImplementor',
+                    // also transform every method in the application class to instead use SharedSessionContractImplementor.
+                    // This ensures that Hibernate callbacks to application code use SharedSessionContractImplementor, as will
+                    // other application methods in the same called application class.
+                    if (rewriteSessionImplementor && desc.contains("org/hibernate/engine/spi/SessionImplementor")) {
+                        desc = replaceSessionImplementor(desc);
+                    }
+
                     if (descOrig != desc) {  // if we are changing from type SessionImplementor to SharedSessionContractImplementor
                         // mark the class as transformed
                         transformedState.setClassTransformed(true);
@@ -335,13 +341,28 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                 }
             }, 0);
             if (!transformedState.transformationsMade()) {
-                // no change was actually made, indicate so by returning null
+                // no change was made, indicate so by returning null
                 return null;
             }
-            return classWriter.toByteArray();
+
+            byte[] result = classWriter.toByteArray();
+
+            try {
+                if (showTransformedClassFolder != null) {
+                    // generate .asm file that shows the transformed class
+                    ClassReader cr = new ClassReader(result);
+                    traceAfterPrintWriter =
+                        new PrintWriter(new File(showTransformedClassFolder, className.replace('/', '_') + ".asm"));
+                    ClassVisitor tv = new TraceClassVisitor(traceAfterPrintWriter);
+                    cr.accept(tv, 0);
+                }
+            } catch (IOException ignored) {
+
+            }
+            return result;
         } finally {
-            if (tracePrintWriter != null) {
-                tracePrintWriter.close();
+            if (traceAfterPrintWriter != null) {
+                traceAfterPrintWriter.close();
             }
         }
     }
@@ -366,7 +387,9 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
             return;
         }
 
-        try (InputStream is = classLoader.getResourceAsStream(className.replace('.', '/') + ".class")) {
+        InputStream is = null;
+        try {
+            is = classLoader.getResourceAsStream(className.replace('.', '/') + ".class");
             ClassReader classReader = new ClassReader(is);
             classReader.accept(new ClassVisitor(useASM7 ? Opcodes.ASM7 : Opcodes.ASM6) {
 
@@ -393,7 +416,14 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 
             }, 0);
         } catch (IOException e) {
-            logger.warn("Unable to open class file %1$s", className, e);
+            logger.debugf("Unable to open class file %s, due to exception %s", className, e);
+        } finally {
+            try {
+                if (is != null) {
+                    is.close();
+                }
+            } catch (IOException ignored) {
+            }
         }
     }
 
@@ -417,11 +447,19 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
             return false;
         }
         for(int looper=0; looper < checkType.length; looper++) {
-            if(! checkType[looper].equals(descType[looper])) {
+            if ( ! matchWildcard(descType[looper], checkType[looper]) &&
+                ! checkType[looper].equals(descType[looper])) {
                 return false;
             }
         }
         return true;
+    }
+
+    // return true if both parameter types are Objects and checkType is java.lang.Object (treat as match any object)
+    private static boolean matchWildcard(Type descType, Type checkType) {
+        return  checkType.getDescriptor().startsWith("L") &&
+                        descType.getDescriptor().startsWith("L") &&
+                        checkType.getInternalName().equals("java/lang/Object");
     }
 
 }
