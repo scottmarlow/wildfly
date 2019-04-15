@@ -53,6 +53,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 
     private static final Hibernate51CompatibilityTransformer instance = new Hibernate51CompatibilityTransformer();
     private static final File showTransformedClassFolder;
+    private static final boolean globalSessionImplentorMethodParameterTransform;
     public static final BasicLogger logger = Logger.getLogger("org.jboss.as.hibernate.transformer");
 
     static {
@@ -62,6 +63,9 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
         } else {
             showTransformedClassFolder = null;
         }
+
+        globalSessionImplentorMethodParameterTransform = Boolean.parseBoolean(
+                    WildFlySecurityManager.getPropertyPrivileged("Hibernate51CompatibilityTransformer.sessImplMtds","false"));
     }
 
     private static final boolean useASM7 = getMajorJavaVersion() >= 11;
@@ -323,6 +327,12 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                     if (rewriteSessionImplementor && name.equals("<init>")) {
                         // update constructor methods to use SharedSessionContractImplementor instead of SessionImplementor
                         desc = replaceSessionImplementor(desc);
+                    }
+
+                    // if one of the parameters references Hibernate 'SessionImplementor', also transform that
+                    if (globalSessionImplentorMethodParameterTransform && desc.contains("org/hibernate/engine/spi/SessionImplementor")) {
+                        desc = replaceSessionImplementor(desc);
+                        rewriteSessionImplementor = true;
                     }
 
                     if (descOrig != desc) {  // if we are changing from type SessionImplementor to SharedSessionContractImplementor

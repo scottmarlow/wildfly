@@ -33,6 +33,8 @@ class MethodAdapter extends MethodVisitor {
 
     private static final boolean disableAmbiguousChanges = Boolean.parseBoolean(
             WildFlySecurityManager.getPropertyPrivileged("Hibernate51CompatibilityTransformer.disableAmbiguousChanges", "false"));
+    private static final boolean globalSessionImplentorMethodParameterTransform = Boolean.parseBoolean(
+                        WildFlySecurityManager.getPropertyPrivileged("Hibernate51CompatibilityTransformer.sessImplMtds","false"));
     public static final BasicLogger logger = Logger.getLogger("org.jboss.as.hibernate.transformer");
     private final boolean rewriteSessionImplementor;
     private final TransformedState transformedState;
@@ -120,6 +122,12 @@ class MethodAdapter extends MethodVisitor {
                     , moduleName, className);
             name = "setHibernateMaxResults";
             mv.visitMethodInsn(opcode, owner, name, desc, itf);
+            transformedState.setClassTransformed(true);
+
+        } else if (globalSessionImplentorMethodParameterTransform &&
+                (opcode == Opcodes.INVOKEINTERFACE || opcode == Opcodes.INVOKESTATIC) &&
+                hasSessionImplementor(desc)) {
+            mv.visitMethodInsn(opcode, owner, name, replaceSessionImplementor(desc), itf);
             transformedState.setClassTransformed(true);
         } else {
             mv.visitMethodInsn(opcode, owner, name, desc, itf);
