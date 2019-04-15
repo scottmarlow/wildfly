@@ -24,6 +24,7 @@ package org.jboss.as.test.compat.jpa.hibernate.transformer;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.as.arquillian.api.ServerSetup;
 import org.jboss.as.test.shared.util.AssumeTestGroupUtil;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -36,6 +37,7 @@ import org.junit.runner.RunWith;
  * Enable Hibernate bytecode transformer for application with jboss-deployment-structure.xml
  */
 @RunWith(Arquillian.class)
+@ServerSetup({AbstractVerifyHibernate51CompatibilityTestCase.EnableSessImplMtdsSetupTask.class})
 public class VerifyHibernate51CompatibilityJDSEnabledTransformerTestCase
         extends AbstractVerifyHibernate51CompatibilityTestCase {
 
@@ -56,7 +58,7 @@ public class VerifyHibernate51CompatibilityJDSEnabledTransformerTestCase
         ear.addAsModule(war);
 
         ear.addAsManifestResource(VerifyHibernate51CompatibilityJDSEnabledTransformerTestCase.class.getPackage(),
-                "jboss-deployment-structure.xml","jboss-deployment-structure.xml");
+                "jboss-deployment-structure.xml", "jboss-deployment-structure.xml");
         return ear;
     }
 }

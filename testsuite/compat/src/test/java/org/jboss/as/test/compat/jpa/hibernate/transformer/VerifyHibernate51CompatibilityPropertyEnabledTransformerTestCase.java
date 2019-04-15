@@ -25,12 +25,7 @@ package org.jboss.as.test.compat.jpa.hibernate.transformer;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.arquillian.api.ServerSetup;
-import org.jboss.as.arquillian.api.ServerSetupTask;
-import org.jboss.as.arquillian.container.ManagementClient;
-import org.jboss.as.controller.client.helpers.Operations;
-import org.jboss.as.test.shared.ServerReload;
 import org.jboss.as.test.shared.util.AssumeTestGroupUtil;
-import org.jboss.dmr.ModelNode;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
@@ -43,7 +38,10 @@ import org.junit.runner.RunWith;
  * Enable Hibernate bytecode transformer globally with system-property Hibernate51CompatibilityTransformer=true
  */
 @RunWith(Arquillian.class)
-@ServerSetup(VerifyHibernate51CompatibilityPropertyEnabledTransformerTestCase.EnableHibernateBytecodeTransformerSetupTask.class)
+@ServerSetup({
+        AbstractVerifyHibernate51CompatibilityTestCase.EnableHibernateBytecodeTransformerSetupTask.class,
+        AbstractVerifyHibernate51CompatibilityTestCase.EnableSessImplMtdsSetupTask.class
+})
 public class VerifyHibernate51CompatibilityPropertyEnabledTransformerTestCase
         extends AbstractVerifyHibernate51CompatibilityTestCase {
 
@@ -69,25 +67,5 @@ public class VerifyHibernate51CompatibilityPropertyEnabledTransformerTestCase
     @BeforeClass
     public static void skipSecurityManager() {
         AssumeTestGroupUtil.assumeSecurityManagerDisabled();
-    }
-
-    public static class EnableHibernateBytecodeTransformerSetupTask implements ServerSetupTask {
-        private static final ModelNode PROP_ADDR = new ModelNode()
-                .add("system-property", "Hibernate51CompatibilityTransformer");
-
-        @Override
-        public void setup(ManagementClient managementClient, String s) throws Exception {
-            ModelNode op = Operations.createAddOperation(PROP_ADDR);
-            op.get("value").set("true");
-            managementClient.getControllerClient().execute(op);
-            ServerReload.executeReloadAndWaitForCompletion(managementClient.getControllerClient());
-        }
-
-        @Override
-        public void tearDown(ManagementClient managementClient, String s) throws Exception {
-            ModelNode op = Operations.createRemoveOperation(PROP_ADDR);
-            managementClient.getControllerClient().execute(op);
-            ServerReload.executeReloadAndWaitForCompletion(managementClient.getControllerClient());
-        }
     }
 }
