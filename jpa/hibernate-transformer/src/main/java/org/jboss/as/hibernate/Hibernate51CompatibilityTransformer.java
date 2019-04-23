@@ -41,6 +41,7 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.util.TraceClassVisitor;
 import org.wildfly.security.manager.WildFlySecurityManager;
 
@@ -134,10 +135,10 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                     logger.tracef("method %s, description %s, signature %s", name, desc, signature);
                     if (parentClassesAndInterfaces.contains("org/hibernate/usertype/UserType")) {
                         if (name.equals("nullSafeGet") &&
-                                "(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc, "(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("nullSafeSet") &&
-                                "(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V".equals(desc)) {
+                                match(desc,"(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V")) {
                             desc = replaceSessionImplementor(desc);
                         }
 
@@ -146,19 +147,19 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 
                     if (parentClassesAndInterfaces.contains("org/hibernate/usertype/CompositeUserType")) {
                         if (name.equals("nullSafeGet") &&
-                                "(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("nullSafeSet") &&
-                                "(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V".equals(desc)) {
+                                match(desc,"(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("assemble") &&
-                                "(Ljava/io/Serializable;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/io/Serializable;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("disassemble") &&
-                                "(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/io/Serializable;".equals(desc)) {
+                                match(desc,"(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/io/Serializable;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("replace") &&
-                                "(Ljava/lang/Object;Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/lang/Object;Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         }
                         rewriteSessionImplementor = true;
@@ -166,13 +167,13 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 
                     if (parentClassesAndInterfaces.contains("org/hibernate/usertype/UserCollectionType")) {
                         if (name.equals("instantiate") &&
-                                "(Lorg/hibernate/engine/spi/SessionImplementor;Lorg/hibernate/persister/collection/CollectionPersister;)Lorg/hibernate/collection/spi/PersistentCollection;".equals(desc)) {
+                                match(desc,"(Lorg/hibernate/engine/spi/SessionImplementor;Lorg/hibernate/persister/collection/CollectionPersister;)Lorg/hibernate/collection/spi/PersistentCollection;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("replaceElements") &&
-                                "(Ljava/lang/Object;Ljava/lang/Object;Lorg/hibernate/persister/collection/CollectionPersister;Ljava/lang/Object;Ljava/util/Map;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/lang/Object;Ljava/lang/Object;Lorg/hibernate/persister/collection/CollectionPersister;Ljava/lang/Object;Ljava/util/Map;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("wrap") &&
-                                "(Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Lorg/hibernate/collection/spi/PersistentCollection;".equals(desc)) {
+                                match(desc,"(Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Lorg/hibernate/collection/spi/PersistentCollection;")) {
                             desc = replaceSessionImplementor(desc);
                         }
 
@@ -181,10 +182,10 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 
                     if (parentClassesAndInterfaces.contains("org/hibernate/usertype/UserVersionType")) {
                         if (name.equals("seed") &&
-                                "(Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("next") &&
-                                "(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         }
 
@@ -193,52 +194,52 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 
                     if (parentClassesAndInterfaces.contains("org/hibernate/type/Type")) {
                         if (name.equals("assemble") &&
-                                "(Ljava/io/Serializable;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/io/Serializable;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("disassemble") &&
-                                "(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/io/Serializable;".equals(desc)) {
+                                match(desc,"(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/io/Serializable;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("beforeAssemble") &&
-                                "(Ljava/io/Serializable;Lorg/hibernate/engine/spi/SessionImplementor;)V".equals(desc)) {
+                                match(desc,"(Ljava/io/Serializable;Lorg/hibernate/engine/spi/SessionImplementor;)V")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("hydrate") &&
-                                "(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("isDirty") &&
-                                "(Ljava/lang/Object;Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;)Z".equals(desc)) {
+                                match(desc,"(Ljava/lang/Object;Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;)Z")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("isDirty") &&
-                                "(Ljava/lang/Object;Ljava/lang/Object;[ZLorg/hibernate/engine/spi/SessionImplementor;)Z".equals(desc)) {
+                                match(desc,"(Ljava/lang/Object;Ljava/lang/Object;[ZLorg/hibernate/engine/spi/SessionImplementor;)Z")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("isModified") &&
-                                "(Ljava/lang/Object;Ljava/lang/Object;[ZLorg/hibernate/engine/spi/SessionImplementor;)Z".equals(desc)) {
+                                match(desc,"(Ljava/lang/Object;Ljava/lang/Object;[ZLorg/hibernate/engine/spi/SessionImplementor;)Z")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("nullSafeGet") &&
-                                "(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/sql/ResultSet;[Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("nullSafeGet") &&
-                                "(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("nullSafeSet") &&
-                                "(Ljava/sql/PreparedStatement;Ljava/lang/Object;I[ZLorg/hibernate/engine/spi/SessionImplementor;)V".equals(desc)) {
+                                match(desc,"(Ljava/sql/PreparedStatement;Ljava/lang/Object;I[ZLorg/hibernate/engine/spi/SessionImplementor;)V")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("nullSafeSet") &&
-                                "(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V".equals(desc)) {
+                                match(desc,"(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("replace") &&
-                                "(Ljava/lang/Object;Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;Ljava/util/Map;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/lang/Object;Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;Ljava/util/Map;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("replace") &&
-                                "(Ljava/lang/Object;Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;Ljava/util/Map;Lorg/hibernate/type/ForeignKeyDirection;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/lang/Object;Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;Ljava/util/Map;Lorg/hibernate/type/ForeignKeyDirection;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("resolve") &&
-                                "(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("resolve") &&
-                                "(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;Ljava/lang/Boolean;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;Ljava/lang/Boolean;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("semiResolve") &&
-                                "(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/lang/Object;Lorg/hibernate/engine/spi/SessionImplementor;Ljava/lang/Object;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         }
 
@@ -247,13 +248,13 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 
                     if (parentClassesAndInterfaces.contains("org/hibernate/type/SingleColumnType")) {
                         if (name.equals("nullSafeGet") &&
-                                "(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("get") &&
-                                "(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("set") &&
-                                "(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V".equals(desc)) {
+                                match(desc,"(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V")) {
                             desc = replaceSessionImplementor(desc);
                         }
 
@@ -262,13 +263,13 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 
                     if (parentClassesAndInterfaces.contains("org/hibernate/type/AbstractStandardBasicType")) {
                         if (name.equals("get") &&
-                                "(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("nullSafeGet") &&
-                                "(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;".equals(desc)) {
+                                match(desc,"(Ljava/sql/ResultSet;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)Ljava/lang/Object;")) {
                             desc = replaceSessionImplementor(desc);
                         } else if (name.equals("set") &&
-                                "(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V".equals(desc)) {
+                                match(desc,"(Ljava/sql/PreparedStatement;Ljava/lang/Object;ILorg/hibernate/engine/spi/SessionImplementor;)V")) {
                             desc = replaceSessionImplementor(desc);
                         }
 
@@ -289,7 +290,7 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
 
                     if (parentClassesAndInterfaces.contains("org/hibernate/type/ProcedureParameterNamedBinder")) {
                         if (name.equals("nullSafeSet") &&
-                                "(Ljava/sql/CallableStatement;Ljava/lang/Object;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)V".equals(desc)) {
+                                match(desc,"(Ljava/sql/CallableStatement;Ljava/lang/Object;Ljava/lang/String;Lorg/hibernate/engine/spi/SessionImplementor;)V")) {
                             desc = replaceSessionImplementor(desc);
                         }
 
@@ -407,5 +408,21 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
         }
         return major;
     }
+
+    private static boolean match(String desc, String check) {
+        Type[] descType = Type.getArgumentTypes(desc);
+        Type[] checkType = Type.getArgumentTypes(check);
+
+        if(checkType.length != descType.length) {
+            return false;
+        }
+        for(int looper=0; looper < checkType.length; looper++) {
+            if(! checkType[looper].equals(descType[looper])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 }
 
