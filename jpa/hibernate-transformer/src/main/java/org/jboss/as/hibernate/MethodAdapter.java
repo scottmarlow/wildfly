@@ -33,23 +33,24 @@ class MethodAdapter extends MethodVisitor {
 
     private static final boolean disableAmbiguousChanges = Boolean.parseBoolean(
             WildFlySecurityManager.getPropertyPrivileged("Hibernate51CompatibilityTransformer.disableAmbiguousChanges", "false"));
-    private static final boolean globalSessionImplentorMethodParameterTransform = Boolean.parseBoolean(
-                        WildFlySecurityManager.getPropertyPrivileged("Hibernate51CompatibilityTransformer.sessImplMtds","false"));
     public static final BasicLogger logger = Logger.getLogger("org.jboss.as.hibernate.transformer");
     private final boolean rewriteSessionImplementor;
     private final TransformedState transformedState;
     private final MethodVisitor mv;
     private final String moduleName;
     private final String className;
+    private final boolean globalSessionImplentorMethodParameterTransform;
 
     MethodAdapter(boolean rewriteSessionImplementor, int api, MethodVisitor mv,
-                  final String moduleName, final String className, TransformedState transformedState) {
+                  final String moduleName, final String className, TransformedState transformedState,
+                  boolean globalSessionImplentorMethodParameterTransform) {
         super(api, mv);
         this.rewriteSessionImplementor = rewriteSessionImplementor;
         this.mv = mv;
         this.moduleName = moduleName;
         this.className = className;
         this.transformedState = transformedState;
+        this.globalSessionImplentorMethodParameterTransform =globalSessionImplentorMethodParameterTransform;
     }
 
 
