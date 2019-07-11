@@ -29,12 +29,11 @@ import java.sql.Types;
 
 import org.hibernate.HibernateException;
 import org.hibernate.engine.spi.SessionImplementor;
-import org.hibernate.usertype.UserType;
 
 /**
  * @author Emmanuel Bernard
  */
-public class StateType implements UserType {
+public class StateType extends AbstractStateType {
     public int[] sqlTypes() {
         return new int[] {
             Types.INTEGER

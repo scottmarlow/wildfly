@@ -53,6 +53,7 @@ public class VerifyHibernate51CompatibilityPropertyEnabledTransformerTestCase
         EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class,
                 VerifyHibernate51CompatibilityPropertyEnabledTransformerTestCase.class.getName() + ".ear");
         ear.addAsLibraries(getLib());
+        ear.addAsLibraries(getCommonLib());
 
         WebArchive war = getWar();
         war.addClasses(VerifyHibernate51CompatibilityPropertyEnabledTransformerTestCase.class);

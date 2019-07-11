@@ -105,6 +105,12 @@ public abstract class AbstractVerifyHibernate51CompatibilityTestCase {
     @Inject
     private SFSBHibernateSessionFactory sfsb;
 
+    protected static JavaArchive getCommonLib() {
+        JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "common.jar");
+        lib.addClasses(AbstractStateType.class);
+        return lib;
+    }
+
     protected static JavaArchive getLib() {
         JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "entities.jar");
         lib.addClasses(Student.class);
