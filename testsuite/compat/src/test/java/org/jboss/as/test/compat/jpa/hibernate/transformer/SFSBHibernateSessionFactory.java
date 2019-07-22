@@ -50,7 +50,7 @@ import org.hibernate.internal.util.config.ConfigurationHelper;
  */
 @Stateful
 @TransactionManagement(TransactionManagementType.BEAN)
-public class SFSBHibernateSessionFactory {
+public class SFSBHibernateSessionFactory extends AbstractSFSB {
 
     private static SessionFactory sessionFactory;
 
