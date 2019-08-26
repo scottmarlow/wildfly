@@ -6717,6 +6717,12 @@
                 <groupId>org.jboss.spec.javax.resource</groupId>
                 <artifactId>jboss-connector-api_1.7_spec</artifactId>
                 <version>${version.org.jboss.spec.javax.resource.jboss-connector-api_1.7_spec}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
