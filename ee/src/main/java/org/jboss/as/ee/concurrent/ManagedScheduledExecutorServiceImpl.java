@@ -38,7 +38,7 @@ import static org.jboss.as.ee.concurrent.ControlPointUtils.doScheduledWrap;
 import static org.jboss.as.ee.concurrent.ControlPointUtils.doWrap;
 
 /**
- * WildFly's extension of Java EE 7 RI {@link org.glassfish.enterprise.concurrent.ManagedScheduledExecutorServiceImpl}.
+ * WildFly's extension of Jakarta EE 7 RI {@link org.glassfish.enterprise.concurrent.ManagedScheduledExecutorServiceImpl}.
  *
  * @author Eduardo Martins
  */
