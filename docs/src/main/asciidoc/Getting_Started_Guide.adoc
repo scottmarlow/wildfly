@@ -23,16 +23,15 @@ ifdef::basebackend-html[toc::[]]
 
 WildFly {wildflyVersion} is the latest release in a series of JBoss open-source
 application server offerings. WildFly {wildflyVersion} is an exceptionally fast,
-lightweight and powerful implementation of the Jakarta Enterprise Edition {javaee_version}
+lightweight and powerful implementation of the Jakarta
 Platform specifications. The state-of-the-art architecture built on the
 Modular Service Container enables services on-demand when your
-application requires them. The table below lists the Java Enterprise
-Edition {javaee_version} technologies and the technologies available in WildFly {wildflyVersion}
+application requires them. The table below lists the technologies available in WildFly {wildflyVersion}
 server configuration profiles.
 
 [cols=",,,,",options="header"]
 |=======================================================================
-|Jakarta EE {javaee_version} Platform Technology |Jakarta EE {javaee_version} Full Profile |Jakarta EE {javaee_version} Web
+|Jakarta EE Platform Technology |Jakarta EE Full Profile |Jakarta EE Web
 Profile |WildFly {wildflyVersion} Full Profile |WildFly {wildflyVersion} Web Profile
 
 |JSR-356: Java API for Web Socket |X |X |X |X
@@ -289,26 +288,26 @@ process.
 ===== Standalone Server Configurations
 
 * standalone.xml (_default_)
-** Jakarta Enterprise Edition {javaee_version} web profile certified configuration with
+** Jakarta web profile certified configuration with
 the required technologies plus those noted in the table above.
 
 * standalone-ha.xml
-** Jakarta Enterprise Edition {javaee_version} web profile certified configuration with
+** Jakarta web profile certified configuration with
 high availability
 
 * standalone-full.xml
-** Jakarta Enterprise Edition {javaee_version} full profile certified configuration
-including all the required EE {javaee_version} technologies
+** Jakarta full profile certified configuration
+including all the required technologies
 
 * standalone-full-ha.xml
-** Jakarta Enterprise Edition {javaee_version} full profile certified configuration with
+** Jakarta full profile certified configuration with
 high availability
 
 [[domain-server-configurations]]
 ===== Domain Server Configurations
 
 * domain.xml
-** Jakarta Enterprise Edition {javaee_version} full and web profiles available with or
+** Jakarta full and web profiles available with or
 without high availability
 
 Important to note is that the *_domain_* and *_standalone_* modes

@@ -1,10 +1,9 @@
 [[EE_Concurrency_Utilities_Configuration]]
 = EE Concurrency Utilities
 
-EE Concurrency Utilities (JSR 236) were introduced with Jakarta EE 8, to
-ease the task of writing multithreaded Jakarta EE applications. Instances
-of these utilities are managed by WildFly, and the related configuration
-provided by the EE subsystem.
+EE Concurrency Utilities (JSR 236) were introduced to
+ease the task of writing multithreaded applications. Instances
+of these utilities are managed by WildFly, and the related configuration.
 
 [[context-services]]
 == Context Services
