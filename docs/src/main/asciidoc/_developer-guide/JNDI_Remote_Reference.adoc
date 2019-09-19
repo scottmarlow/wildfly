@@ -31,11 +31,11 @@ can be found in the `bin/client` directory of WildFly's distribution.
 final Properties env = new Properties();
 env.put(Context.INITIAL_CONTEXT_FACTORY, "org.jboss.naming.remote.client.InitialContextFactory");
 env.put(Context.PROVIDER_URL, "http-remoting://localhost:8080");
-// the property below is required ONLY if there is no ejb client configuration loaded (such as a
+// the property below is required ONLY if there is no Jakarta Enterprise Beans client configuration loaded (such as a
 // jboss-ejb-client.properties in the class path) and the context will be used to lookup EJBs
 env.put("jboss.naming.client.ejb.context", true);
 InitialContext remoteContext = new InitialContext(env);
-RemoteCalculator ejb = (RemoteCalculator) remoteContext.lookup("wildfly-http-remoting-ejb/CalculatorBean!"
+RemoteCalculator bean = (RemoteCalculator) remoteContext.lookup("wildfly-http-remoting-ejb/CalculatorBean!"
                 + RemoteCalculator.class.getName());
 ----
 
@@ -50,7 +50,7 @@ name will fail.
 
 The ejb: namespace implementation is provided by the jboss-ejb-client
 library, and allows the lookup of EJB's using their application name,
-module name, ejb name and interface type. To use it, you must have the
+module name, Jakarta Enterprise Beans name and interface type. To use it, you must have the
 appropriate jars on the class path, if you are maven user can be done
 simply by adding the following to your `pom.xml` dependencies:
 
@@ -99,5 +99,5 @@ session.
 [IMPORTANT]
 
 For more details on how the server connections are configured, including
-the *required* jboss ejb client setup, please see
+the *required* jboss Jakarta Enterprise Beans client setup, please see
 <<EJB_invocations_from_a_remote_client_using_JNDI,EJB invocations from a remote client using JNDI>>.

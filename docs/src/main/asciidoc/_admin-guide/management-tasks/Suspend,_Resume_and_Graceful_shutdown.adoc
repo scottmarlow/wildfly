@@ -126,7 +126,7 @@ functionality by setting the attribute `enable-graceful-txn-shutdown` to
 <enable-graceful-txn-shutdown value="false"/>
 ----
 
-By *default* graceful shutdown is *disabled* for the ejb subsystem.
+By *default* graceful shutdown is *disabled* for the Jakarta Enterprise Beans subsystem.
 The reason for this is that the behavior might be unwelcome in cluster
 environments, as the server notifies remote clients that the node is no
 longer available for remote calls only after the transactions are

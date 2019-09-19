@@ -62,7 +62,7 @@ itself, e.g. class files from `WEB-INF/classes` or `WEB-INF/lib` of a
 war.
 4.  Inter deployment dependencies - These are dependencies on other
 deployments in an ear deployment. This can include classes in an ear's
-lib directory, or classes defined in other ejb jars.
+lib directory, or classes defined in other Jakarta Enterprise Beans jars.
 
 [[war-class-loading]]
 == WAR Class Loading
@@ -309,7 +309,7 @@ ear deployment is as follows:
     <!-- This corresponds to the module for a web deployment -->
     <!-- it can use all the same tags as the <deployment> entry above -->
     <dependencies>
-      <!-- Adds a dependency on a ejb jar. This could also be done with a Class-Path entry -->
+      <!-- Adds a dependency on a Jakarta Enterprise Beans jar. This could also be done with a Class-Path entry -->
       <module name="deployment.myear.ear.myejbjar.jar" />
     </dependencies>
     <!-- Set's local resources to have the lowest priority -->
