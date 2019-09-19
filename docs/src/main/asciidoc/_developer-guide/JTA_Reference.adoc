@@ -11,8 +11,8 @@ for the applications. A developer can manage transactions either with
 the programmatic approach - with API defined by JTA specification.
 Or he can use annotations. There are two types.
 
-* first - EJB annotations, their meaning and capabilities are defined under
-  EJB specification and are valid when used in the EJB component
+* first - Jakarta Enterprise Beans annotations, their meaning and capabilities are defined under
+  Jakarta Enterprise Beans specification and are valid when used in the Jakarta Enterprise Beans component
 * second - CDI annotations, their meaning is defined under JTA specification
 
 [[programmatic-jta]]
@@ -40,7 +40,7 @@ EJBs defined as bean managed.
 UserTransaction txn;
 ----
 
-or with EJB `@Resource` injection where you can additionally define the JNDI
+or with Jakarta Enterprise Beans `@Resource` injection where you can additionally define the JNDI
 name to be looked-up. The specification says it's `java:comp/UserTransaction`.
 
 [source,java,options="nowrap"]
@@ -161,7 +161,7 @@ https://javaee.github.io/javaee-spec/javadocs/javax/ejb/SessionContext.html[`@Tr
 [[in-ejbs]]
 === Transactions in EJBs
 
-Transaction management in EJB is administered with two annotations:
+Transaction management in Jakarta Enterprise Beans is administered with two annotations:
 https://javaee.github.io/javaee-spec/javadocs/javax/ejb/TransactionManagement.html[`@TransactionManagement`]
  https://javaee.github.io/javaee-spec/javadocs/javax/ejb/TransactionAttribute.html[`@TransactionAttribute`].
 
@@ -175,13 +175,13 @@ NOTE: when you use message-driven bean then the `@TransactionTimeout` does not w
       and you need to define the timeout through the `@ActivationConfigProperty`:
       `@ActivationConfigProperty(propertyName="transactionTimeout", propertyValue="1")`
 
-The default behaviour of an EJB is to be
+The default behaviour of an Jakarta Enterprise Beans is to be
 
 * container managed - transaction boundaries are driven by annotations
-* when the EJB method is invoked - a new transaction is started when no transaction context is available,
+* when the Jakarta Enterprise Beans method is invoked - a new transaction is started when no transaction context is available,
 or the method joins the existing transactions when the transaction context is passed by the call
 
-It's the same transactional behaviour as if the EJB is annotated with
+It's the same transactional behaviour as if the Jakarta Enterprise Beans is annotated with
 
 [source,java,options="nowrap"]
 ----

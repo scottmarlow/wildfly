@@ -109,10 +109,10 @@ context.runCallable(callable);
 ----
 
 [[ejb-client]]
-== EJB Client
+== Jakarta Enterprise Beans Client
 
 This migration example assumes a client application is configured to
-invoke an EJB deployed on a remote server using a
+invoke an Jakarta Enterprise Beans deployed on a remote server using a
 `jboss-ejb-client.properties` file.
 
 [[original-configuration-app-client-1]]
@@ -133,7 +133,7 @@ remote.connection.default.username=bob
 remote.connection.default.password=secret
 ....
 
-An EJB can then be looked up and a method can be invoked on it as
+An Jakarta Enterprise Beans can then be looked up and a method can be invoked on it as
 follows:
 
 [source,java,options="nowrap"]
@@ -144,7 +144,7 @@ properties.put(Context.INITIAL_CONTEXT_FACTORY, "org.jboss.naming.remote.client.
 properties.put(Context.URL_PKG_PREFIXES, "org.jboss.ejb.client.naming");
 InitialContext context = new InitialContext(properties);
  
-// look up an EJB and invoke one of its methods
+// look up an Jakarta Enterprise Beans and invoke one of its methods
 RemoteCalculator statelessRemoteCalculator = (RemoteCalculator) context.lookup(
     "ejb:/ejb-remote-server-side//CalculatorBean!" + RemoteCalculator.class.getName());
 int sum = statelessRemoteCalculator.add(101, 202);
@@ -191,7 +191,7 @@ connect to the remote server can be added to the client application's
 </configuration>
 ----
 
-An EJB can then be looked up and a method can be invoked on it as
+An Jakarta Enterprise Beans can then be looked up and a method can be invoked on it as
 follows:
 
 [source,java,options="nowrap"]
@@ -201,7 +201,7 @@ Properties properties = new Properties();
 properties.put(Context.INITIAL_CONTEXT_FACTORY, "org.wildfly.naming.client.WildFlyInitialContextFactory");
 InitialContext context = new InitialContext(properties);
  
-// look up an EJB and invoke one of its methods (same as before)
+// look up an Jakarta Enterprise Beans and invoke one of its methods (same as before)
 RemoteCalculator statelessRemoteCalculator = (RemoteCalculator) context.lookup(
     "ejb:/ejb-remote-server-side//CalculatorBean!" + RemoteCalculator.class.getName());
 int sum = statelessRemoteCalculator.add(101, 202);
@@ -230,7 +230,7 @@ Callable<Void> callable = () -> {
     properties.put(Context.PROVIDER_URL, "remote+http://127.0.0.1:8080");
     InitialContext context = new InitialContext(properties);
  
-    // look up an EJB and invoke one of its methods (same as before)
+    // look up an Jakarta Enterprise Beans and invoke one of its methods (same as before)
     RemoteCalculator statelessRemoteCalculator = (RemoteCalculator) context.lookup(
         "ejb:/ejb-remote-server-side//CalculatorBean!" + RemoteCalculator.class.getName());
     int sum = statelessRemoteCalculator.add(101, 202);

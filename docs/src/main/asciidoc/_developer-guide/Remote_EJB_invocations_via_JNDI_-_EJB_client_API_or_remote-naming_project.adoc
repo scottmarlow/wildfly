@@ -1,10 +1,10 @@
 [[Remote_EJB_invocations_via_JNDI_-_EJB_client_API_or_remote-naming_project]]
-= Remote EJB invocations via JNDI - EJB client API or remote-naming project
+= Remote Jakarta Enterprise Beans invocations via JNDI - Jakarta Enterprise Beans client API or remote-naming project
 
 [[purpose]]
 == Purpose
 
-WildFly provides EJB client API project as well as remote-naming project
+WildFly provides Jakarta Enterprise Beans client API project as well as remote-naming project
 for invoking on remote objects exposed via JNDI. This article explains
 which approach to use when and what the differences and scope of each of
 these projects is.
@@ -293,7 +293,7 @@ So literally, each lookup backed by the remote-naming project entails a
 server side communication/interaction and then marshalling/unmarshalling
 of the object graph. This is very important to remember. We'll come back
 to this later, to see why this is important when it comes to using EJB
-client API project for doing EJB lookups ( <<EJB_invocations_from_a_remote_client_using_JNDI,EJB
+client API project for doing Jakarta Enterprise Beans lookups ( <<EJB_invocations_from_a_remote_client_using_JNDI,EJB
 invocations from a remote client using JNDI>>) as against using
 remote-naming project for doing the same thing.
 
@@ -313,7 +313,7 @@ invocations, can just skip the rest of this article if you aren't
 interested in those details.
 
 [[remote-ejb-invocations-backed-by-the-remote-naming-project]]
-== Remote EJB invocations backed by the remote-naming project
+== Remote Jakarta Enterprise Beans invocations backed by the remote-naming project
 
 In previous sections of this article we saw that whatever is exposed in
 the java:jboss/exported/ namespace is accessible remotely to the client
@@ -322,7 +322,7 @@ have started thinking about exposing remote views of EJBs under that
 namespace.
 
 It's important to note that WildFly server side already by default
-exposes the remote views of a EJB under the `java:jboss/exported/`
+exposes the remote views of a Jakarta Enterprise Beans under the `java:jboss/exported/`
 namespace (although it isn't logged in the server logs). So assuming
 your server side application has the following stateless bean:
 
@@ -374,7 +374,7 @@ Foo remote view under the `java:jboss/exported/` namespace would be:
 
 That's where WildFly will *automatically* expose the remote views of the
 EJBs under the `java:jboss/exported/` namespace, *in addition to* the
-java:global/ java:app/ java:module/ namespaces mandated by the EJB 3.1
+java:global/ java:app/ java:module/ namespaces mandated by the Jakarta Enterprise Beans 3.1
 spec.
 
 [NOTE]
@@ -399,7 +399,7 @@ void doBeanLookup() {
   jndiProps.put(Context.SECURITY_PRINCIPAL, "peter");
   // password
   jndiProps.put(Context.SECURITY_CREDENTIALS, "lois");
-  // This is an important property to set if you want to do EJB invocations via the remote-naming project
+  // This is an important property to set if you want to do Jakarta Enterprise Beans invocations via the remote-naming project
   jndiProps.put("jboss.naming.client.ejb.context", true);
   // create a context passing these properties
   Context ctx = new InitialContext(jndiProps);
@@ -424,26 +424,26 @@ lookup.
 
 Let's see what the " `jboss.naming.client.ejb.context`" does. In
 WildFly, remote access/invocations on EJBs is facilitated by the JBoss
-specific EJB client API, which is a project on its own
+specific Jakarta Enterprise Beans client API, which is a project on its own
 https://github.com/jbossas/jboss-ejb-client. So no matter, what
-mechanism you use (remote-naming or core EJB client API), the
-invocations are ultimately routed through the EJB client API project. In
-this case too, the remote-naming internally uses EJB client API to
-handle EJB invocations. From a EJB client API project perspective, for
+mechanism you use (remote-naming or core Jakarta Enterprise Beans client API), the
+invocations are ultimately routed through the Jakarta Enterprise Beans client API project. In
+this case too, the remote-naming internally uses Jakarta Enterprise Beans client API to
+handle Jakarta Enterprise Beans invocations. From a Jakarta Enterprise Beans client API project perspective, for
 successful communication with the server, the project expects a
 `EJBClientContext` backed by (atleast one) `EJBReceiver`(s). The
-`EJBReceiver` is responsible for handling the EJB invocations. One type
+`EJBReceiver` is responsible for handling the Jakarta Enterprise Beans invocations. One type
 of a `EJBReceiver` is a `RemotingConnectionEJBReceiver` which internally
 uses jboss-remoting project to communicate with the remote server to
-handle the EJB invocations. Such a `EJBReceiver` expects a connection
+handle the Jakarta Enterprise Beans invocations. Such a `EJBReceiver` expects a connection
 backed by the jboss-remoting project. Of course to be able to connect to
 the server, such a `EJBReceiver` would have to know the server address,
 port, security credentials and other similar parameters. If you were
-using the core EJB client API, then you would have configured all these
+using the core Jakarta Enterprise Beans client API, then you would have configured all these
 properties via the jboss-ejb-client.properties or via programatic API
 usage as explained here <<EJB_invocations_from_a_remote_client_using_JNDI,EJB invocations from a remote
 client using JNDI>>. But in the example above, we are using remote-naming
-project and are _not_ directly interacting with the EJB client API
+project and are _not_ directly interacting with the Jakarta Enterprise Beans client API
 project.
 
 If you look closely at what's being passed, via the JNDI properties, to
@@ -463,7 +463,7 @@ being used by remote-naming project for its own JNDI communication
 usage. So effectively, the InitialContext creation via the remote-naming
 project has now internally triggered the creation of a
 `EJBClientContext` containing a `EJBReceiver` capable of handling the
-EJB invocations (remember, no remote EJB invocations are possible
+EJB invocations (remember, no remote Jakarta Enterprise Beans invocations are possible
 without the presence of a `EJBClientContext` containing a `EJBReceiver`
 which can handle the EJB).
 
@@ -475,9 +475,9 @@ the lookup. And since we know that the Foo view is exposed on that JNDI
 name, we cast the returned object back to the Foo interface. Remember
 that we earlier explained how each lookup via remote-naming triggers a
 server side communication and a marshalling/unmarshalling process. This
-applies for EJB views too. In fact, the remote-naming project has no
+applies for Jakarta Enterprise Beans views too. In fact, the remote-naming project has no
 clue (since that's not in the scope of that project to know) whether
-it's an EJB or some random object.
+it's an Jakarta Enterprise Beans or some random object.
 
 Once the unmarshalled object is returned (which actually is a proxy to
 the bean), the rest is straightforward, we just invoke on that returned
@@ -486,28 +486,28 @@ necessary setup for the EJBClientContext (due to the presence of "
 `jboss.naming.client.ejb.context`" property), the invocation on that
 proxy will internally use the `EJBClientContext` (the proxy is smart
 enough to do that) to interact with the server and return back the
-result. We won't go into the details of how the EJB client API handles
+result. We won't go into the details of how the Jakarta Enterprise Beans client API handles
 the communication/invocation.
 
 _Long story short, using the remote-naming project for doing remote EJB
 invocations against WildFly is possible!_
 
 [[why-use-the-ejb-client-api-approach-then]]
-== Why use the EJB client API approach then?
+== Why use the Jakarta Enterprise Beans client API approach then?
 
 I can guess that some of you might already question why/when would one
-use the EJB client API style lookups as explained in the
+use the Jakarta Enterprise Beans client API style lookups as explained in the
 <<EJB_invocations_from_a_remote_client_using_JNDI,EJB invocations from a remote client using JNDI>>
 article instead of just using (what appears to be a simpler)
 remote-naming style lookups.
 
-Before we answer that, let's understand a bit about the EJB client
-project. The EJB client project was implemented keeping in mind various
+Before we answer that, let's understand a bit about the Jakarta Enterprise Beans client
+project. The Jakarta Enterprise Beans client project was implemented keeping in mind various
 optimizations and features that would be possible for handling remote
 invocations. One such optimization was to avoid doing unnecessary server
 side communication(s) which would typically involve network calls,
 marshalling/unmarshalling etc... The easiest place where this
-optimization can be applied, is to the EJB lookup. Consider the
+optimization can be applied, is to the Jakarta Enterprise Beans lookup. Consider the
 following code (let's ignore how the context is created):
 
 [source,java,options="nowrap"]
@@ -524,7 +524,7 @@ an object for that lookup operation is to communicate with the server
 and marshal/unmarshal the object bound on the server side. And that's
 exactly what it does (remember, we explained this earlier).
 
-The EJB client API project on the other hand optimizes this lookup. In
+The Jakarta Enterprise Beans client API project on the other hand optimizes this lookup. In
 order to do so, it expects the client application to let it know that a
 EJB is being looked up. It does this, by expecting the client
 application to use the JNDI name of the format " `ejb:`" namespace and
@@ -550,34 +550,34 @@ More details about such code can be found here <<EJB_invocations_from_a_remote_c
 invocations from a remote client using JNDI>>
 
 When a client application looks up anything under the " `ejb:`"
-namespace, it is a clear indication (for the EJB client API project) to
+namespace, it is a clear indication (for the Jakarta Enterprise Beans client API project) to
 know that the client is looking up an EJB. That's where it steps in to
 do the necessary optimizations that might be applicable. So unlike, in
 the case of remote-naming project (which has no clue about the semantics
-of the object being looked up), the EJB client API project does *not*
+of the object being looked up), the Jakarta Enterprise Beans client API project does *not*
 trigger a server side communication or a marshal/unmarshal process when
 you do lookup for a remote view of a stateless bean (it's important to
 note that we have specifically mentioned stateless bean here, we'll come
-to that later). Instead, the EJB client API just returns a
+to that later). Instead, the Jakarta Enterprise Beans client API just returns a
 java.lang.reflect.Proxy instance of the remote view type that's being
 looked up. This not just saves a network call, marshalling/unmarshalling
-step but it also means that you can create an EJB proxy even when the
+step but it also means that you can create an Jakarta Enterprise Beans proxy even when the
 server isn't up yet. Later on, when the invocation on the proxy happens,
-the EJB client API _does_ communicate with the server to carry out the
+the Jakarta Enterprise Beans client API _does_ communicate with the server to carry out the
 invocation.
 
 [[is-the-lookup-optimization-applicable-for-all-bean-types]]
 === Is the lookup optimization applicable for all bean types?
 
 In the previous section we (intentionally) mentioned that the lookup
-optimization by the EJB client API project happens for stateless beans.
+optimization by the Jakarta Enterprise Beans client API project happens for stateless beans.
 This kind of optimization is *not* possible for stateful beans because
 in case of stateful beans, a lookup is expected to create a session for
 that stateful bean and for session creation we do have to communicate
 with the server since the server is responsible for creating that
 session.
 
-That's exactly why the EJB client API project expects the JNDI name
+That's exactly why the Jakarta Enterprise Beans client API project expects the JNDI name
 lookup string for stateful beans to include the " `?stateful`" string at
 the end of the JNDI name:
 
@@ -591,23 +591,23 @@ Notice the use of `"?stateful`" in that JNDI name. See
 more details about such lookup.
 
 The presence of " `?stateful`" in the JNDI name lookup string is a
-directive to the EJB client API to let it know that a stateful bean is
+directive to the Jakarta Enterprise Beans client API to let it know that a stateful bean is
 being looked up and it's necessary to communicate with the server and
 create a session during that lookup.
 
 So as you can see, we have managed to optimize certain operations by
-using the EJB client API for EJB lookup/invocation as against using the
-remote-naming project. There are other EJB client API implementation
+using the Jakarta Enterprise Beans client API for Jakarta Enterprise Beans lookup/invocation as against using the
+remote-naming project. There are other Jakarta Enterprise Beans client API implementation
 details (and probably more might be added) which are superior when it is
-used for remote EJB invocations in client applications as against
+used for remote Jakarta Enterprise Beans invocations in client applications as against
 remote-naming project which doesn't have the intelligence to carry out
-such optimizations for EJB invocations. _That's why the remote-naming
-project_ *_for remote EJB invocations_* _is considered "_ `deprecated`
+such optimizations for Jakarta Enterprise Beans invocations. _That's why the remote-naming
+project_ *_for remote Jakarta Enterprise Beans invocations_* _is considered "_ `deprecated`
 _"_. Note that if you want to use remote-naming for looking up and
 invoking on non-EJB remote objects then you are free to do so. In fact,
 that's why that project has been provided. You can even use the
-remote-naming project for EJB invocations (like we just saw), if you are
-fine with _not_ wanting the optimizations that the EJB client API can do
+remote-naming project for Jakarta Enterprise Beans invocations (like we just saw), if you are
+fine with _not_ wanting the optimizations that the Jakarta Enterprise Beans client API can do
 for you or if you have other restrictions that force you to use that
 project.
 

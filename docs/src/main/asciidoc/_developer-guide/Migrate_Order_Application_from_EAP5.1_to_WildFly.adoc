@@ -25,7 +25,7 @@ some proprietary features that were available in EAP 5.1.
 ==== Modify JNDI lookup code
 
 Since this application was first written for EAP 4.2/4.3, which did not
-support EJB reference injection, the servlets were using pre-EE 5
+support Jakarta Enterprise Beans reference injection, the servlets were using pre-EE 5
 methods for looking up stateless and stateful session bean interfaces.
 While migrating to WildFly, it seemed a good time to change the code to
 use the @EJB annotation, although this was not a required change.
@@ -231,7 +231,7 @@ Since there is no longer an `OrderManagerEntities.jar` file, the
 
 An entry was added to the `MANIFEST.MF` file in the
 `OrderManagerWeb.war` to resolve another class loading issue resulting
-from the modification to use EJB reference injection in the servlets.
+from the modification to use Jakarta Enterprise Beans reference injection in the servlets.
 
 [source,java,options="nowrap"]
 ----

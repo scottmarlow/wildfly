@@ -2,7 +2,7 @@
 = Securing EJBs
 
 The Jakarta EE spec specifies certain annotations (like @RolesAllowed,
-@PermitAll, @DenyAll) which can be used on EJB implementation classes
+@PermitAll, @DenyAll) which can be used on Jakarta Enterprise Beans implementation classes
 and/or the business method implementations of the beans. Like with all
 other configurations, these security related configurations can also be
 done via the deployment descriptor (ejb-jar.xml). We _won't_ be going

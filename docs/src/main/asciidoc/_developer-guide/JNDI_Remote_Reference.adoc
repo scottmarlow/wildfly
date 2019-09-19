@@ -70,10 +70,10 @@ can be found in the `bin/client` directory of WildFly's distribution.
 
 This is a client side JNDI implementation. Instead of looking up an EJB
 on the server the lookup name contains enough information for the client
-side library to generate a proxy with the EJB information. When you
-invoke a method on this proxy it will use the current EJB client context
+side library to generate a proxy with the Jakarta Enterprise Beans information. When you
+invoke a method on this proxy it will use the current Jakarta Enterprise Beans client context
 to perform the invocation. If the current context does not have a
-connection to a server with the specified EJB deployed then an error
+connection to a server with the specified Jakarta Enterprise Beans deployed then an error
 will occur. Using this protocol it is possible to look up EJB's that do
 not actually exist, and no error will be thrown until the proxy is
 actually used. The exception to this is stateful session beans, which
@@ -89,7 +89,7 @@ MyRemoteInterface myRemote = (MyRemoteInterface) remoteContext.lookup("ejb:myapp
 MyStatefulRemoteInterface myStatefulRemote = (MyStatefulRemoteInterface) remoteContext.lookup("ejb:myapp/myejbjar/MyStatefulName\!comp.test.MyStatefulRemoteInterface?stateful");
 ----
 
-The first example is a lookup of a singleton, stateless or EJB 2.x home
+The first example is a lookup of a singleton, stateless or Jakarta Enterprise Beans 2.x home
 interface. This lookup will not hit the server, instead a proxy will be
 generated for the remote interface specified in the name. The second
 example is for a stateful session bean, in this case the JNDI lookup

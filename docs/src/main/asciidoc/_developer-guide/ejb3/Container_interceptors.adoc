@@ -5,7 +5,7 @@
 
 JBoss AS versions prior to WildFly8 allowed a JBoss specific way to
 plug-in user application specific interceptors on the server side so
-that those interceptors get invoked during an EJB invocation. Such
+that those interceptors get invoked during an Jakarta Enterprise Beans invocation. Such
 interceptors differed from the typical (portable) spec provided Java EE
 interceptors. The Jakarta EE interceptors are expected to run after the
 container has done necessary invocation processing which involves
@@ -15,9 +15,9 @@ picture, if the user applications have to intercept the call before
 certain container specific interceptor(s) are run.
 
 [[typical-ejb-invocation-call-path-on-the-server]]
-== Typical EJB invocation call path on the server
+== Typical Jakarta Enterprise Beans invocation call path on the server
 
-A typical EJB invocation looks like this:
+A typical Jakarta Enterprise Beans invocation looks like this:
 
 Client application
 
@@ -36,7 +36,7 @@ relevant portion of the flow shown below):
 3.  ....
 4.  WildFly specific interceptor (a.k.a container interceptor) N
 5.  User application specific Jakarta EE interceptor(s) (if any)
-6.  Invocation on the EJB instance's method
+6.  Invocation on the Jakarta Enterprise Beans instance's method
 
 The WildFly specific interceptors include the security context
 propagation, transaction management and other container provided
@@ -164,7 +164,7 @@ public class ClassLevelContainerInterceptor {
 [[container-interceptor-positioning-in-the-interceptor-chain]]
 == Container interceptor positioning in the interceptor chain
 
-The container interceptors configured for a EJB are guaranteed to be run
+The container interceptors configured for a Jakarta Enterprise Beans are guaranteed to be run
 before the WildFly provided security interceptors, transaction
 management interceptors and other such interceptors thus allowing the
 user application specific container interceptors to setup any relevant
@@ -179,7 +179,7 @@ Jakarta EE interceptors, there are some differences in the API semantics.
 One such difference is that invoking on
 javax.interceptor.InvocationContext.getTarget() method is illegal for
 container interceptors since these interceptors are invoked way before
-the EJB components are setup or instantiated.
+the Jakarta Enterprise Beans components are setup or instantiated.
 
 [[testcase]]
 == Testcase

@@ -1,5 +1,5 @@
 [[EJB_invocations_from_a_remote_client_using_JNDI]]
-= EJB invocations from a remote client using JNDI
+= Jakarta Enterprise Beans invocations from a remote client using JNDI
 
 This chapter explains how to invoke EJBs from a remote client by using
 the JNDI API to first lookup the bean proxy and then invoke on that
@@ -9,14 +9,14 @@ proxy.
 
 After you have read this article, do remember to take a look at
 https://docs.jboss.org/author/display/WFLY8/Remote+EJB+invocations+via+JNDI+-+EJB+client+API+or+remote-naming+project[Remote
-EJB invocations via JNDI - EJB client API or remote-naming project]
+EJB invocations via JNDI - Jakarta Enterprise Beans client API or remote-naming project]
 
 Before getting into the details, we would like the users to know that we
-have introduced a new EJB client API, which is a WildFly-specific API
+have introduced a new Jakarta Enterprise Beans client API, which is a WildFly-specific API
 and allows invocation on remote EJBs. This client API isn't based on
 JNDI. So remote clients need not rely on JNDI API to invoke on EJBs. A
-separate document covering the EJB remote client API will be made
-available. For now, you can refer to the javadocs of the EJB client
+separate document covering the Jakarta Enterprise Beans remote client API will be made
+available. For now, you can refer to the javadocs of the Jakarta Enterprise Beans client
 project at http://docs.jboss.org/ejbclient/. In this document, we'll
 just concentrate on the traditional JNDI based invocation on EJBs. So
 let's get started:
@@ -139,10 +139,10 @@ EJBs deployed on the server
 
 The next step is to write an application which will invoke the EJBs that
 you deployed on the server. In WildFly, you can either choose to use the
-WildFly specific EJB client API to do the invocation or use JNDI to
+WildFly specific Jakarta Enterprise Beans client API to do the invocation or use JNDI to
 lookup a proxy for your bean and invoke on that returned proxy. In this
 chapter we will concentrate on the JNDI lookup and invocation and will
-leave the EJB client API for a separate chapter.
+leave the Jakarta Enterprise Beans client API for a separate chapter.
 
 So let's take a look at what the client code looks like for looking up
 the JNDI proxy and invoking on it. Here's the entire client code which
@@ -165,7 +165,7 @@ import org.jboss.as.quickstarts.ejb.remote.stateless.RemoteCalculator;
 import org.jboss.sasl.JBossSaslProvider;
  
 /**
- * A sample program which acts a remote client for a EJB deployed on Wildfly 10 server.
+ * A sample program which acts a remote client for a Jakarta Enterprise Beans deployed on Wildfly 10 server.
  * This program shows how to lookup stateful and stateless beans via JNDI and then invoke on them
  *
  * @author Jaikiran Pai
@@ -247,18 +247,18 @@ public class RemoteEJBClient {
         final Context context = new InitialContext(jndiProperties);
         // The app name is the application name of the deployed EJBs. This is typically the ear name
         // without the .ear suffix. However, the application name could be overridden in the application.xml of the
-        // EJB deployment on the server.
+        // Jakarta Enterprise Beans deployment on the server.
         // Since we haven't deployed the application as a .ear, the app name for us will be an empty string
         final String appName = "";
         // This is the module name of the deployed EJBs on the server. This is typically the jar name of the
-        // EJB deployment, without the .jar suffix, but can be overridden via the ejb-jar.xml
+        // Jakarta Enterprise Beans deployment, without the .jar suffix, but can be overridden via the ejb-jar.xml
         // In this example, we have deployed the EJBs in a jboss-as-ejb-remote-app.jar, so the module name is
         // jboss-as-ejb-remote-app
         final String moduleName = "jboss-as-ejb-remote-app";
         // AS7 allows each deployment to have an (optional) distinct name. We haven't specified a distinct name for
-        // our EJB deployment, so this is an empty string
+        // our Jakarta Enterprise Beans deployment, so this is an empty string
         final String distinctName = "";
-        // The EJB name which by default is the simple class name of the bean implementation class
+        // The Jakarta Enterprise Beans name which by default is the simple class name of the bean implementation class
         final String beanName = CalculatorBean.class.getSimpleName();
         // the remote view fully qualified class name
         final String viewClassName = RemoteCalculator.class.getName();
@@ -278,18 +278,18 @@ public class RemoteEJBClient {
         final Context context = new InitialContext(jndiProperties);
         // The app name is the application name of the deployed EJBs. This is typically the ear name
         // without the .ear suffix. However, the application name could be overridden in the application.xml of the
-        // EJB deployment on the server.
+        // Jakarta Enterprise Beans deployment on the server.
         // Since we haven't deployed the application as a .ear, the app name for us will be an empty string
         final String appName = "";
         // This is the module name of the deployed EJBs on the server. This is typically the jar name of the
-        // EJB deployment, without the .jar suffix, but can be overridden via the ejb-jar.xml
+        // Jakarta Enterprise Beans deployment, without the .jar suffix, but can be overridden via the ejb-jar.xml
         // In this example, we have deployed the EJBs in a jboss-as-ejb-remote-app.jar, so the module name is
         // jboss-as-ejb-remote-app
         final String moduleName = "jboss-as-ejb-remote-app";
         // AS7 allows each deployment to have an (optional) distinct name. We haven't specified a distinct name for
-        // our EJB deployment, so this is an empty string
+        // our Jakarta Enterprise Beans deployment, so this is an empty string
         final String distinctName = "";
-        // The EJB name which by default is the simple class name of the bean implementation class
+        // The Jakarta Enterprise Beans name which by default is the simple class name of the bean implementation class
         final String beanName = CounterBean.class.getSimpleName();
         // the remote view fully qualified class name
         final String viewClassName = RemoteCounter.class.getName();
@@ -307,7 +307,7 @@ https://github.com/wildfly/quickstart/tree/master/ejb-remote[ejb-remote]
 
 The code has some comments which will help you understand each of those
 lines. But we'll explain here in more detail what the code does. As a
-first step in the client code, we'll do a lookup of the EJB using a JNDI
+first step in the client code, we'll do a lookup of the Jakarta Enterprise Beans using a JNDI
 name. In AS7, for remote access to EJBs, you use the ejb: namespace with
 the following syntax:
 
@@ -325,8 +325,8 @@ ejb:<app-name>/<module-name>/<distinct-name>/<bean-name>!<fully-qualified-classn
 ejb:<app-name>/<module-name>/<distinct-name>/<bean-name>!<fully-qualified-classname-of-the-remote-interface>?stateful
 ----
 
-The ejb: namespace identifies it as a EJB lookup and is a constant (i.e.
-doesn't change) for doing EJB lookups. The rest of the parts in the jndi
+The ejb: namespace identifies it as a Jakarta Enterprise Beans lookup and is a constant (i.e.
+doesn't change) for doing Jakarta Enterprise Beans lookups. The rest of the parts in the jndi
 name are as follows:
 
 *app-name* : This is the name of the .ear (without the .ear suffix) that
@@ -372,14 +372,14 @@ empty string in the JNDI name.
 For stateful beans, the JNDI name expects an additional "?stateful" to
 be appended after the fully qualified interface name part. This is
 because for stateful beans, a new session gets created on JNDI lookup
-and the EJB client API implementation doesn't contact the server during
+and the Jakarta Enterprise Beans client API implementation doesn't contact the server during
 the JNDI lookup to know what kind of a bean the JNDI name represents
 (we'll come to this in a while). So the JNDI name itself is expected to
 indicate that the client is looking up a stateful bean, so that an
 appropriate session can be created.
 
 Now that we know the syntax, let's see our code and check what JNDI name
-it uses. Since our stateless EJB named CalculatorBean is deployed in a
+it uses. Since our stateless Jakarta Enterprise Beans named CalculatorBean is deployed in a
 jboss-as-ejb-remote-app.jar (without any ear) and since we are looking
 up the org.jboss.as.quickstarts.ejb.remote.stateless.RemoteCalculator
 remote interface, our JNDI name will be:
@@ -391,7 +391,7 @@ ejb:/jboss-as-ejb-remote-app//CalculatorBean!org.jboss.as.quickstarts.ejb.remote
 That's what the lookupRemoteStatelessCalculator() method in the above
 client code uses.
 
-For the stateful EJB named CounterBean which is deployed in hte same
+For the stateful Jakarta Enterprise Beans named CounterBean which is deployed in hte same
 jboss-as-ejb-remote-app.jar and which exposes the
 org.jboss.as.quickstarts.ejb.remote.stateful.RemoteCounter, the JNDI
 name will be:
@@ -454,34 +454,34 @@ Now let's get to the point where we invoke on this returned proxy:
 
 We can see here that the proxy returned after the lookup is used to
 invoke the add(...) method of the bean. It's at this point that the JNDI
-implementation (which is backed by the EJB client API) needs to know the
+implementation (which is backed by the Jakarta Enterprise Beans client API) needs to know the
 server details. So let's now get to the important part of setting up the
 EJB client context properties.
 
 [[setting-up-ejb-client-context-properties]]
-== Setting up EJB client context properties
+== Setting up Jakarta Enterprise Beans client context properties
 
-A EJB client context is a context which contains contextual information
+A Jakarta Enterprise Beans client context is a context which contains contextual information
 for carrying out remote invocations on EJBs. This is a WildFly-specific
-API. The EJB client context can be associated with multiple EJB
-receivers. Each EJB receiver is capable of handling invocations on
-different EJBs. For example, an EJB receiver "Foo" might be able to
+API. The Jakarta Enterprise Beans client context can be associated with multiple EJB
+receivers. Each Jakarta Enterprise Beans receiver is capable of handling invocations on
+different EJBs. For example, an Jakarta Enterprise Beans receiver "Foo" might be able to
 handle invocation on a bean identified by
-app-A/module-A/distinctinctName-A/Bar!RemoteBar, whereas a EJB receiver
+app-A/module-A/distinctinctName-A/Bar!RemoteBar, whereas a Jakarta Enterprise Beans receiver
 named "Blah" might be able to handle invocation on a bean identified by
-app-B/module-B/distinctName-B/BeanB!RemoteBean. Each such EJB receiver
-knows about what set of EJBs it can handle and each of the EJB receiver
+app-B/module-B/distinctName-B/BeanB!RemoteBean. Each such Jakarta Enterprise Beans receiver
+knows about what set of EJBs it can handle and each of the Jakarta Enterprise Beans receiver
 knows which server target to use for handling the invocations on the
 bean. For example, if you have a AS7 server at 10.20.30.40 IP address
 which has its remoting port opened at 4447 and if that's the server on
 which you deployed that CalculatorBean, then you can setup a EJB
 receiver which knows its target address is 10.20.30.40:4447. Such an EJB
 receiver will be capable enough to communicate to the server via the
-JBoss specific EJB remote client protocol (details of which will be
+JBoss specific Jakarta Enterprise Beans remote client protocol (details of which will be
 explained in-depth in a separate chapter).
 
-Now that we know what a EJB client context is and what a EJB receiver
-is, let's see how we can setup a client context with 1 EJB receiver
+Now that we know what a Jakarta Enterprise Beans client context is and what a Jakarta Enterprise Beans receiver
+is, let's see how we can setup a client context with 1 Jakarta Enterprise Beans receiver
 which can connect to 10.20.30.40 IP address at port 4447. That EJB
 client context will then be used (internally) by the JNDI implementation
 to handle invocations on the bean proxy.
@@ -518,7 +518,7 @@ https://github.com/wildfly/quickstart/blob/master/ejb-remote/client/src/main/res
 We'll see what each of it means.
 
 First the endpoint.name property. We mentioned earlier that the EJB
-receivers will communicate with the server for EJB invocations.
+receivers will communicate with the server for Jakarta Enterprise Beans invocations.
 Internally, they use JBoss Remoting project to carry out the
 communication. The endpoint.name property represents the name that will
 be used to create the client side of the enpdoint. The endpoint.name
@@ -560,8 +560,8 @@ remote.connections=one, two
 ....
 
 Here we are listing 2 connections named "one" and "two". Ultimately,
-each of the connections will map to a EJB receiver. So if you have 2
-connections, that will setup 2 EJB receivers that will be added to the
+each of the connections will map to a Jakarta Enterprise Beans receiver. So if you have 2
+connections, that will setup 2 Jakarta Enterprise Beans receivers that will be added to the
 EJB client context. Each of these connections will be configured with
 the connection specific properties as follows:
 
@@ -577,7 +577,7 @@ name here is "default" and we are setting the "host" property of that
 connection to point to 10.20.30.40. Similarly we set the "port" for that
 connection to 4447.
 
-By default WildFly uses 8080 as the remoting port. The EJB client API
+By default WildFly uses 8080 as the remoting port. The Jakarta Enterprise Beans client API
 uses the http port, with the http-upgrade functionality, for
 communicating with the server for remote invocations, so that's the port
 we use in our client programs (unless the server is configured for some
@@ -623,7 +623,7 @@ remote.connection.two.connect.options.org.xnio.Options.SASL_POLICY_NOANONYMOUS=f
 
 As you can see we setup 2 connections "one" and "two" which both point
 to "localhost" as the "host" but different ports. Each of these
-connections will internally be used to create the EJB receivers in the
+connections will internally be used to create the Jakarta Enterprise Beans receivers in the
 EJB client context.
 
 So that's how the jboss-ejb-client.properties file can be setup and
@@ -632,7 +632,7 @@ placed in the classpath.
 [[section]]
 =====
 
-The EJB client code will by default look for jboss-ejb-client.properties
+The Jakarta Enterprise Beans client code will by default look for jboss-ejb-client.properties
 in the classpath. However, you can specify a different file of your
 choice by setting the "jboss.ejb.client.properties.file.path" system
 property which points to a properties file on your filesystem,
@@ -656,7 +656,7 @@ this jar as a Maven dependency.
 [[summary]]
 == Summary
 
-In the above examples, we saw what it takes to invoke a EJB from a
+In the above examples, we saw what it takes to invoke a Jakarta Enterprise Beans from a
 remote client. To summarize:
 
 * On the server side you need to deploy EJBs which expose the remote

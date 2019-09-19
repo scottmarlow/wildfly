@@ -146,13 +146,13 @@ instance pools themselves are configured in the `<pools>` element.
 [[async]]
 == <async>
 
-This element enables async EJB invocations. It is also used to specify
+This element enables async Jakarta Enterprise Beans invocations. It is also used to specify
 the thread pool that these invocations will use.
 
 [[timer-service]]
 == <timer-service>
 
-This element enables the EJB timer service. It is also used to specify
+This element enables the Jakarta Enterprise Beans timer service. It is also used to specify
 the thread pool that these invocations will use.
 
 [[data-store]]
@@ -164,7 +164,7 @@ information is saved to.
 [[remote]]
 == <remote>
 
-This is used to enable remote EJB invocations. It specifies the remoting
+This is used to enable remote Jakarta Enterprise Beans invocations. It specifies the remoting
 connector to use (as defined in the remoting subsystem configuration),
 and the thread pool to use for remote invocations.
 
@@ -204,12 +204,12 @@ false the default binding name is simply the bean name.
 == <in-vm-remote-interface-invocation>
 
 By default remote interface invocations use pass by value, as required
-by the EJB spec. This element can use used to enable pass by reference,
+by the Jakarta Enterprise Beans spec. This element can use used to enable pass by reference,
 which can give you a performance boost. Note WildFly will do a shallow
-check to see if the caller and the EJB have access to the same class
+check to see if the caller and the Jakarta Enterprise Beans have access to the same class
 definitions, which means if you are passing something such as a
 List<MyObject>, WildFly only checks the List to see if it is the same
-class definition on the call & EJB side. If the top level class
+class definition on the call & Jakarta Enterprise Beans side. If the top level class
 definition is the same, JBoss will make the call using pass by
 reference, which means that if MyObject or any objects beneath it are
 loaded from different classloaders, you would get a ClassCastException.

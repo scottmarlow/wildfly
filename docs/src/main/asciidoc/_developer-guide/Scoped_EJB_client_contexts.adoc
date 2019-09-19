@@ -1,42 +1,42 @@
 [[Scoped_EJB_client_contexts]]
-= Scoped EJB client contexts
+= Scoped Jakarta Enterprise Beans client contexts
 
 [abstract]
 
-WildFly {wildflyVersion} introduced the EJB client API for managing remote EJB
-invocations. The EJB client API works off EJBClientContext(s). An
-EJBClientContext can potentially contain any number of EJB receivers. An
+WildFly {wildflyVersion} introduced the Jakarta Enterprise Beans client API for managing remote EJB
+invocations. The Jakarta Enterprise Beans client API works off EJBClientContext(s). An
+EJBClientContext can potentially contain any number of Jakarta Enterprise Beans receivers. An
 EJB receiver is a component which knows how to communicate with a server
-which is capable of handling the EJB invocation. Typically EJB remote
+which is capable of handling the Jakarta Enterprise Beans invocation. Typically Jakarta Enterprise Beans remote
 applications can be classified into:
 
 * A remote client which runs as a standalone Java application
 * A remote client which runs within another WildFly {wildflyVersion} instance
 
-Depending on the kind of remote client, from an EJB client API point of
+Depending on the kind of remote client, from an Jakarta Enterprise Beans client API point of
 view, there can potentially be more than 1 EJBClientContext(s) within a
 JVM.
 
 In case of standalone applications, typically a single EJBClientContext
-(backed by any number of EJB receivers) exists. However this isn't
+(backed by any number of Jakarta Enterprise Beans receivers) exists. However this isn't
 mandatory. Certain standalone applications can potentially have more
-than one EJBClientContext(s) and a EJB client context selector will be
+than one EJBClientContext(s) and a Jakarta Enterprise Beans client context selector will be
 responsible for returning the appropriate context.
 
 In case of remote clients which run within another WildFly {wildflyVersion} instance,
-each deployed application will have a corresponding EJB client context.
+each deployed application will have a corresponding Jakarta Enterprise Beans client context.
 Whenever that application invokes on another EJB, the corresponding EJB
-client context will be used for finding the right EJB receiver and
+client context will be used for finding the right Jakarta Enterprise Beans receiver and
 letting it handle the invocation.
 
 [[potential-shortcomings-of-a-single-ejb-client-context]]
-== Potential shortcomings of a single EJB client context
+== Potential shortcomings of a single Jakarta Enterprise Beans client context
 
 In the Overview section we briefly looked at the different types of
 remote clients. Let's focus on the standalone remote clients (the ones
 that don't run within another WildFly {wildflyVersion} instance) for some of the next
 sections. Like mentioned earlier, typically a remote standalone client
-has just one EJB client context backed by any number of EJB receivers.
+has just one Jakarta Enterprise Beans client context backed by any number of Jakarta Enterprise Beans receivers.
 Consider this example:
 
 [source,java,options="nowrap"]
@@ -57,13 +57,13 @@ Now, we have seen in this other chapter
 https://docs.jboss.org/author/display/WFLY8/EJB+invocations+from+a+remote+client+using+JNDI[EJB
 invocations from a remote client using JNDI] that the JNDI lookups are
 (typically) backed by jboss-ejb-client.properties file which is used to
-setup the EJB client context and the EJB receivers. Let's assume we have
+setup the Jakarta Enterprise Beans client context and the Jakarta Enterprise Beans receivers. Let's assume we have
 a jboss-ejb-client.properties with the relevant receivers
 configurations. These configurations include the security credentials
-that will be used to create a EJB receiver which connects to the AS7
-server. Now when the above code is invoked, the EJB client API looks for
-the EJB client context to pick a EJB receiver, to pass on the EJB
-invocation request. Since we just have a single EJB client context, that
+that will be used to create a Jakarta Enterprise Beans receiver which connects to the AS7
+server. Now when the above code is invoked, the Jakarta Enterprise Beans client API looks for
+the Jakarta Enterprise Beans client context to pick a Jakarta Enterprise Beans receiver, to pass on the EJB
+invocation request. Since we just have a single Jakarta Enterprise Beans client context, that
 context is used by the above code to invoke the bean.
 
 Now let's consider a case where the user application wants to invoke on
@@ -96,8 +96,8 @@ public class MyApplication {
 So we have the same application, which wants to connect to the same
 server instance for invoking the EJB(s) hosted on that server, but wants
 to use two different credentials while connecting to the server.
-Remember, the client application has a single EJB client context which
-can have atmost 1 EJB recevier for each server instance. Which
+Remember, the client application has a single Jakarta Enterprise Beans client context which
+can have atmost 1 Jakarta Enterprise Beans recevier for each server instance. Which
 effectively means that the above code will end up using just one
 credential to connect to the server. So there was no easy way to have
 the above code working.
@@ -105,26 +105,26 @@ the above code working.
 That was one of the use cases which prompted the
 https://issues.jboss.org/browse/EJBCLIENT-34 feature request. The
 proposal was to introduce a way, where you can have more control over
-the EJB client contexts and their association with JNDI contexts which
-are typically used for EJB invocations.
+the Jakarta Enterprise Beans client contexts and their association with JNDI contexts which
+are typically used for Jakarta Enterprise Beans invocations.
 
 [[scoped-ejb-client-contexts]]
-== Scoped EJB client contexts
+== Scoped Jakarta Enterprise Beans client contexts
 
 Developers familiar with earlier versions of JBoss AS would remember
 that for invoking an EJB, you would typically create a JNDI context
 passing it the PROVIDER_URL which would point to the target server. That
-way any invocation done on EJB proxies looked up using that JNDI
+way any invocation done on Jakarta Enterprise Beans proxies looked up using that JNDI
 context, would end up on that server. If we look back at the example
 above, we'll realize that, we are ultimately aiming for a similar
 functionality through https://issues.jboss.org/browse/EJBCLIENT-34. We
-want the user applications to have more control over which EJB receiver
+want the user applications to have more control over which Jakarta Enterprise Beans receiver
 gets used for a specific invocation.
 
 Before we introduced https://issues.jboss.org/browse/EJBCLIENT-34
-feature, the EJB client context was typically scoped to the client
+feature, the Jakarta Enterprise Beans client context was typically scoped to the client
 application. As part of https://issues.jboss.org/browse/EJBCLIENT-34 we
-now allow the EJB client contexts to be scoped with the JNDI contexts.
+now allow the Jakarta Enterprise Beans client contexts to be scoped with the JNDI contexts.
 Consider the following example:
 
 [source,java,options="nowrap"]
@@ -139,7 +139,7 @@ public class MyApplication {
         final MyBeanInterface beanOne = ctxOne.lookup("ejb:app/module/distinct/bean!interface");
         beanOne.doSomething();
         ...
-        closeContext(ctxOne); // read on the entire article to understand more about closing scoped EJB client contexts
+        closeContext(ctxOne); // read on the entire article to understand more about closing scoped Jakarta Enterprise Beans client contexts
  
         // let's say we want to use "bar" security credential while connecting to the AS7 server for invoking on this bean instance
         final Properties ejbClientContextPropsTwo = getPropsForEJBClientContextTwo():
@@ -147,37 +147,37 @@ public class MyApplication {
         final MyBeanInterface beanTwo = ctxTwo.lookup("ejb:app/module/distinct/bean!interface");
         beanTwo.doSomething();
         ...
-        closeContext(ctxTwo); // read on the entire article to understand more about closing scoped EJB client contexts
+        closeContext(ctxTwo); // read on the entire article to understand more about closing scoped Jakarta Enterprise Beans client contexts
     }
 }
 ----
 
 Notice any difference between this code and the earlier one? We now
-create and pass EJB client context specific properties to the JNDI
-context. So what do the EJB client context properties look like? The
+create and pass Jakarta Enterprise Beans client context specific properties to the JNDI
+context. So what do the Jakarta Enterprise Beans client context properties look like? The
 properties are the same that you would pass through the
 jboss-ejb-client.properties file, except for one additional property
-which is required to scope the EJB client context to the JNDI context.
+which is required to scope the Jakarta Enterprise Beans client context to the JNDI context.
 The name of the property is:
 
 `org.jboss.ejb.client.scoped.context`
 
 which is expected to have a value true. This property lets the EJB
-client API know that it has to created a EJB client context (backed by
+client API know that it has to created a Jakarta Enterprise Beans client context (backed by
 EJB receiver(s)) and that created context is then scoped/visible to only
 that JNDI context which created it. Lookup and invocation on any EJB
 proxies looked up using this JNDI context will only know of the EJB
 client context associated with this JNDI context. This effectively means
 that the other JNDI contexts which the application uses to lookup and
-invoke on EJBs will _not_ know about the other scoped EJB client
+invoke on EJBs will _not_ know about the other scoped Jakarta Enterprise Beans client
 contexts at all.
 
-JNDI contexts which aren't scoped to a EJB client context (for example,
+JNDI contexts which aren't scoped to a Jakarta Enterprise Beans client context (for example,
 not passing the org.jboss.ejb.client.scoped.context property) will
-fallback to the default behaviour of using the "current" EJB client
+fallback to the default behaviour of using the "current" Jakarta Enterprise Beans client
 context which typically is the one tied to the entire application.
 
-This scoping of the EJB client context helps the user applications to
+This scoping of the Jakarta Enterprise Beans client context helps the user applications to
 have more control over which JNDI context "talks to" which server and
 connects to that server in "what way". This gives the user applications
 the flexibility that was associated with the JNP based JNDI invocations
@@ -185,7 +185,7 @@ prior to WildFly {wildflyVersion} versions.
 
 [NOTE]
 
-*IMPORTANT:* *It is very important to remember that scoped EJB client
+*IMPORTANT:* *It is very important to remember that scoped Jakarta Enterprise Beans client
 contexts which are scoped to the JNDI contexts are NOT fire and forget
 kind of contexts. What that means is the application program which is
 using these contexts is solely responsible for managing their lifecycle
@@ -199,16 +199,16 @@ underlying physical connection will stay open.*
 the lifecycle management of such scoped contexts.*
 
 [[lifecycle-management-of-scoped-ejb-client-contexts]]
-== Lifecycle management of scoped EJB client contexts
+== Lifecycle management of scoped Jakarta Enterprise Beans client contexts
 
-Like you saw in the previous sections, in case of scoped EJB client
-contexts, the EJB client context is tied to the JNDI context. It's very
-important to understand how the lifecycle of the EJB client context
-works in such cases. Especially since any EJB client context is almost
-always backed by connections to the server. Not managing the EJB client
+Like you saw in the previous sections, in case of scoped Jakarta Enterprise Beans client
+contexts, the Jakarta Enterprise Beans client context is tied to the JNDI context. It's very
+important to understand how the lifecycle of the Jakarta Enterprise Beans client context
+works in such cases. Especially since any Jakarta Enterprise Beans client context is almost
+always backed by connections to the server. Not managing the Jakarta Enterprise Beans client
 context lifecycle correctly can lead to connection leaks in some cases.
 
-When you create a scoped EJB client context, the EJB client context
+When you create a scoped Jakarta Enterprise Beans client context, the Jakarta Enterprise Beans client context
 connects to the server(s) listed in the JNDI properties. An internal
 implementation detail of this logic includes the ability of the EJB
 client context to cache connections based on certain internal algorithm
@@ -217,40 +217,40 @@ chances of it changing or even removal shouldn't really affect the
 client application and instead it's supposed to be transparent to the
 client application.
 
-The connections thus created for a EJB client context are kept open as
-long as the EJB client context is open. This allows the EJB client
-context to be usable for EJB invocations. The connections associated
-with the EJB client context are closed when the EJB client context
+The connections thus created for a Jakarta Enterprise Beans client context are kept open as
+long as the Jakarta Enterprise Beans client context is open. This allows the Jakarta Enterprise Beans client
+context to be usable for Jakarta Enterprise Beans invocations. The connections associated
+with the Jakarta Enterprise Beans client context are closed when the Jakarta Enterprise Beans client context
 itself is closed.
 
 [NOTE]
 
 The connections that were manually added by the application to the EJB
-client context are *not* managed by the EJB client context. i.e. they
-won't be opened (obviously) nor closed by the EJB client API when the
+client context are *not* managed by the Jakarta Enterprise Beans client context. i.e. they
+won't be opened (obviously) nor closed by the Jakarta Enterprise Beans client API when the
 EJB client context is closed.
 
 [[how-to-close-ejb-client-contexts]]
-=== How to close EJB client contexts?
+=== How to close Jakarta Enterprise Beans client contexts?
 
 The answer to that is simple. Use the close() method on the appropriate
 EJB client context.
 
 [[how-to-close-scoped-ejb-client-contexts]]
-=== How to close scoped EJB client contexts?
+=== How to close scoped Jakarta Enterprise Beans client contexts?
 
-The answer is the same, use the close() method on the EJB client
+The answer is the same, use the close() method on the Jakarta Enterprise Beans client
 context. But the real question is how do you get the relevant scoped EJB
 client context which is associated with a JNDI context. Before we get to
 that, it's important to understand how the ejb: JNDI namespace that's
-used for EJB lookups and how the JNDI context (typically the
+used for Jakarta Enterprise Beans lookups and how the JNDI context (typically the
 InitialContext that you see in the client code) are related. The JNDI
 API provided by Java language allows "URL context factory" to be
 registered in the JNDI framework (see this for details
 http://docs.oracle.com/javase/jndi/tutorial/provider/url/factory.html).
 Like that documentation states, the URL context factory can be used to
 resolve URL strings during JNDI lookup. That's what the ejb: prefix is
-when you do a remote EJB lookup. The ejb: URL string is backed by a URL
+when you do a remote Jakarta Enterprise Beans lookup. The ejb: URL string is backed by a URL
 context factory.
 
 Internally, when a lookup happens for a ejb: URL string, a relevant
@@ -279,7 +279,7 @@ better:
 ----
 // Remember, the ejb: is backed by a URL context factory which returns a Context for the ejb: URL (that's why it's called a context factory)
 final Context ejbNamingContext = (Context) jndiCtx.lookup("ejb:");
-// Use the returned EJB naming context to lookup the rest of the JNDI string for EJB
+// Use the returned Jakarta Enterprise Beans naming context to lookup the rest of the JNDI string for EJB
 final MyBean bean = ejbNamingContext.lookup("app/module/distinct/bean!interface");
 ----
 
@@ -296,15 +296,15 @@ or multiple parts, the code works the same. i.e. an instance of
 javax.naming.Context gets created for the ejb: URL string.
 
 So why am I explaining all this when the section is titled
-`"How to close scoped EJB client contexts"`? The reason is because
-client applications dealing with scoped EJB client contexts which are
+`"How to close scoped Jakarta Enterprise Beans client contexts"`? The reason is because
+client applications dealing with scoped Jakarta Enterprise Beans client contexts which are
 associated with a JNDI context would expect the following code to close
-the associated EJB client context, but will be surprised that it won't:
+the associated Jakarta Enterprise Beans client context, but will be surprised that it won't:
 
 [source,java,options="nowrap"]
 ----
 final Properties props = new Properties();
-// mark it for scoped EJB client context
+// mark it for scoped Jakarta Enterprise Beans client context
 props.put("org.jboss.ejb.client.scoped.context","true");
 // add other properties
 props.put(....);
@@ -319,25 +319,25 @@ try {
 ----
 
 Applications expect that the call to jndiCtx.close() will effectively
-close the EJB client context associated with the JNDI context. That
+close the Jakarta Enterprise Beans client context associated with the JNDI context. That
 doesn't happen because as explained previously, the javax.naming.Context
 backing the ejb: URL string is a different instance than the one the
 code is closing. The JNDI implementation in Java, only just closes the
 context on which the close was called. As a result, the other
 javax.naming.Context that backs the ejb: URL string is still not closed,
-which effectively means that the scoped EJB client context is not closed
+which effectively means that the scoped Jakarta Enterprise Beans client context is not closed
 too which then ultimately means that the connection to the server(s) in
-the EJB client context are not closed too.
+the Jakarta Enterprise Beans client context are not closed too.
 
 So now let's see how this can be done properly. We know that the ejb:
 URL string lookup returns us a javax.naming.Context. All we have to do
 is keep a reference to this instance and close it when we are done with
-the EJB invocations. So here's how it's going to look:
+the Jakarta Enterprise Beans invocations. So here's how it's going to look:
 
 [source,java,options="nowrap"]
 ----
 final Properties props = new Properties();
-// mark it for scoped EJB client context
+// mark it for scoped Jakarta Enterprise Beans client context
 props.put("org.jboss.ejb.client.scoped.context","true");
 // add other properties
 props.put(....);
@@ -345,11 +345,11 @@ props.put(....);
 Context jndiCtx = new InitialContext(props);
 Context ejbRootNamingContext = (Context) jndiCtx.lookup("ejb:");
 try {
-    final MyBean bean = ejbRootNamingContext.lookup("app/module/distinct/bean!interface"); // the rest of the EJB jndi string
+    final MyBean bean = ejbRootNamingContext.lookup("app/module/distinct/bean!interface"); // the rest of the Jakarta Enterprise Beans jndi string
     bean.doSomething();
 } finally {
     try {
-        // close the EJB naming JNDI context
+        // close the Jakarta Enterprise Beans naming JNDI context
         ejbRootNamingContext.close();
     } catch (Throwable t) {
         // log and ignore
@@ -365,37 +365,37 @@ try {
 ----
 
 As you see, we changed the code to first do a lookup on just the "ejb:"
-string to get hold of the EJB naming context and then used that
-ejbRootNamingContext instance to lookup the rest of the EJB JNDI name to
-get hold of the EJB proxy. Then when it was time to close the context,
+string to get hold of the Jakarta Enterprise Beans naming context and then used that
+ejbRootNamingContext instance to lookup the rest of the Jakarta Enterprise Beans JNDI name to
+get hold of the Jakarta Enterprise Beans proxy. Then when it was time to close the context,
 we closed the ejbRootNamingContext (as well as the other JNDI context).
-Closing the ejbRootNamingContext ensures that the scoped EJB client
+Closing the ejbRootNamingContext ensures that the scoped Jakarta Enterprise Beans client
 context associated with that JNDI context is closed too. Effectively,
-this closes the connection(s) to the server(s) within that EJB client
+this closes the connection(s) to the server(s) within that Jakarta Enterprise Beans client
 context.
 
 [[can-that-code-be-simplified-a-bit]]
 ==== Can that code be simplified a bit?
 
-If you are using that JNDI context only for EJB invocations, then yes
+If you are using that JNDI context only for Jakarta Enterprise Beans invocations, then yes
 you can get rid of some instances and code from the above code. You can
 change that code to:
 
 [source,java,options="nowrap"]
 ----
 final Properties props = new Properties();
-// mark it for scoped EJB client context
+// mark it for scoped Jakarta Enterprise Beans client context
 props.put("org.jboss.ejb.client.scoped.context","true");
 // add other properties
 props.put(....);
 ...
 Context ejbRootNamingContext = (Context) new InitialContext(props).lookup("ejb:");
 try {
-    final MyBean bean = ejbRootNamingContext.lookup("app/module/distinct/bean!interface"); // the rest of the EJB jndi string
+    final MyBean bean = ejbRootNamingContext.lookup("app/module/distinct/bean!interface"); // the rest of the Jakarta Enterprise Beans jndi string
     bean.doSomething();
 } finally {
     try {
-        // close the EJB naming JNDI context
+        // close the Jakarta Enterprise Beans naming JNDI context
         ejbRootNamingContext.close();
     } catch (Throwable t) {
         // log and ignore
@@ -406,16 +406,16 @@ try {
 Notice that we no longer hold a reference to 2 JNDI contexts and instead
 just keep track of the ejbRootNamingContext which is actually the root
 JNDI context for our "ejb:" URL string. Of course, this means that you
-can only use this context for EJB lookups or any other EJB related JNDI
+can only use this context for Jakarta Enterprise Beans lookups or any other Jakarta Enterprise Beans related JNDI
 lookups. So it depends on your application and how it's coded.
 
 [[cant-the-scoped-ejb-client-context-be-automatically-closed-by-the-ejb-client-api-when-the-jndi-context-is-no-longer-in-scope-i.e.-on-gc]]
-=== Can't the scoped EJB client context be automatically closed by the
+=== Can't the scoped Jakarta Enterprise Beans client context be automatically closed by the
 EJB client API when the JNDI context is no longer in scope (i.e. on GC)?
 
-That's one of the common questions that gets asked. No, the EJB client
+That's one of the common questions that gets asked. No, the Jakarta Enterprise Beans client
 API can't take that decision. i.e. it cannot automatically go ahead and
-close the scoped EJB client context by itself when the associated JNDI
+close the scoped Jakarta Enterprise Beans client context by itself when the associated JNDI
 context is eligible for GC. The reason is simple as illustrated by the
 following code:
 
@@ -431,13 +431,13 @@ void doEJBInvocation() {
  
 MyBean lookupEJB() {
     final Properties props = new Properties();
-    // mark it for scoped EJB client context
+    // mark it for scoped Jakarta Enterprise Beans client context
     props.put("org.jboss.ejb.client.scoped.context","true");
     // add other properties
     props.put(....);
     ...
     Context ejbRootNamingContext = (Context) new InitialContext(props).lookup("ejb:");
-    final MyBean bean = ejbRootNamingContext.lookup("app/module/distinct/bean!interface"); // rest of the EJB jndi string
+    final MyBean bean = ejbRootNamingContext.lookup("app/module/distinct/bean!interface"); // rest of the Jakarta Enterprise Beans jndi string
     return bean;
 }
 ----
@@ -447,11 +447,11 @@ method which does a lookup of the bean using a JNDI context and then
 returns the bean (proxy). The doEJBInvocation() then uses that returned
 proxy and keeps doing the invocations on the bean. As you might have
 noticed, the JNDI context that was used for lookup (i.e. the
-ejbRootNamingContext) is eligible for GC. If the EJB client API had
-closed the scoped EJB client context associated with that JNDI context,
+ejbRootNamingContext) is eligible for GC. If the Jakarta Enterprise Beans client API had
+closed the scoped Jakarta Enterprise Beans client context associated with that JNDI context,
 when that JNDI context was garbage collected, then the subsequent EJB
-invocations on the returned EJB (proxy) would start failing in
-doEJBInvocation() since the EJB client context is no longer available.
+invocations on the returned Jakarta Enterprise Beans (proxy) would start failing in
+doEJBInvocation() since the Jakarta Enterprise Beans client context is no longer available.
 
-That's the reason why the EJB client API doesn't automatically close the
+That's the reason why the Jakarta Enterprise Beans client API doesn't automatically close the
 EJB client context.

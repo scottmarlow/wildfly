@@ -31,7 +31,7 @@ namespaces:
 * java:comp - the standard EE namespace for entries scoped to a specific
 component, such as an EJB
 * java:module - the standard EE namespace for entries scoped to specific
-module, such as an EJB jar, and shared by all components in it
+module, such as an Jakarta Enterprise Beans jar, and shared by all components in it
 * java:app - the standard EE namespace for entries scoped to a specific
 application, i.e. EAR, and shared by all modules in it
 * java:global - the standard EE namespace for entries shared by all
@@ -85,7 +85,7 @@ to a ServiceTarget:
         final BinderService binderService = new BinderService(bindInfo.getBindName());
         
  // the entry's value is provided by a managed reference factory,
-        // since the value may need to be obtained on lookup (e.g. EJB reference)
+        // since the value may need to be obtained on lookup (e.g. Jakarta Enterprise Beans reference)
         final ManagedReferenceFactory managedReferenceFactory = new ImmediateManagedReferenceFactory(value);
         
  return serviceTarget

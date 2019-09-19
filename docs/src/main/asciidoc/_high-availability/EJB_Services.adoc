@@ -1,13 +1,13 @@
 [[EJB_Services]]
-= EJB Services
+= Jakarta Enterprise Beans Services
 
 This chapter explains how clustering of EJBs works in WildFly.
 
 [[ejb-subsystem]]
-== EJB Subsystem
+== Jakarta Enterprise Beans Subsystem
 
 [[ejb-timer]]
-== EJB Timer
+== Jakarta Enterprise Beans Timer
 
 WildFly now supports clustered database backed timers. For details have
 a look to the link:Developer_Guide{outfilesuffix}#EJB3_Clustered_Database_Timers[EJB3 reference section].
@@ -85,9 +85,9 @@ which runs in a separate JVM and _isn't_ running within another WildFly
 8 instance). Let's consider that we have 2 servers, server X and server
 Y which we started earlier. Each of these servers has the clustered EJB
 deployment. A standalone remote client can use either the
-link:Developer_Guide{outfilesuffix}#EJB_invocations_from_a_remote_client_using_JNDI[JNDI approach] or native JBoss EJB client APIs to
+link:Developer_Guide{outfilesuffix}#EJB_invocations_from_a_remote_client_using_JNDI[JNDI approach] or native JBoss Jakarta Enterprise Beans client APIs to
 communicate with the servers. The important thing to note is that when
-you are invoking clustered EJB deployments, you do *not* have to list
+you are invoking clustered Jakarta Enterprise Beans deployments, you do *not* have to list
 all the servers within the cluster (which obviously wouldn't have been
 feasible due the dynamic nature of cluster node additions within a
 cluster).
@@ -111,7 +111,7 @@ remote.cluster.ejb.connect.options.org.xnio.Options.SSL_ENABLED=false
 [[cluster-topology-communication]]
 ==== Cluster topology communication
 
-When a client connects to a server, the JBoss EJB client implementation
+When a client connects to a server, the JBoss Jakarta Enterprise Beans client implementation
 (internally) communicates with the server for cluster topology
 information, if the server had clustering capability. In our example
 above, let's assume we listed server X as the initial server to connect
@@ -135,12 +135,12 @@ with send back an _"affinity"_ of that session. In case of clustered
 servers, the affinity equals to the name of the cluster to which the
 stateful bean belongs on the server side. For non-clustered beans, the
 affinity is just the node name on which the session was created. This
-_affinity_ will later help the EJB client to route the invocations on
+_affinity_ will later help the Jakarta Enterprise Beans client to route the invocations on
 the proxy, appropriately to either a node within a cluster (for
 clustered beans) or to a specific node (for non-clustered beans). While
 this session creation request is going on, the server X will also send
 back an asynchronous message which contains the cluster topology. The
-JBoss EJB client implementation will take note of this topology
+JBoss Jakarta Enterprise Beans client implementation will take note of this topology
 information and will later use it for connection creation to nodes
 within the cluster and routing invocations to those nodes, whenever
 necessary.
@@ -152,18 +152,18 @@ client application looking up a stateful bean and invoking on it. During
 these invocations, the client side will have collected the cluster
 topology information from the server. Now let's assume for some reason,
 server X goes down and the client application subsequent invokes on the
-proxy. The JBoss EJB client implementation, at this stage will be aware
+proxy. The JBoss Jakarta Enterprise Beans client implementation, at this stage will be aware
 of the affinity and in this case it's a cluster affinity. Because of the
 cluster topology information it has, it knows that the cluster has two
 nodes server X and server Y. When the invocation now arrives, it sees
 that the server X is down. So it uses a selector to fetch a suitable
 node from among the cluster nodes. The selector itself is configurable,
 but we'll leave it from discussion for now. When the selector returns a
-node from among the cluster, the JBoss EJB client implementation creates
+node from among the cluster, the JBoss Jakarta Enterprise Beans client implementation creates
 a connection to that node (if not already created earlier) and creates a
 EJB receiver out of it. Since in our example, the only other node in the
 cluster is server Y, the selector will return that node and the JBoss
-EJB client implementation will use it to create a EJB receiver out of it
+EJB client implementation will use it to create a Jakarta Enterprise Beans receiver out of it
 and use that receiver to pass on the invocation on the proxy.
 Effectively, the invocation has now failed over to a different node
 within the cluster.
@@ -172,7 +172,7 @@ within the cluster.
 ==== Remote clients on another instance of WildFly
 
 So far we discussed remote standalone clients which typically use either
-the EJB client API or the jboss-ejb-client.properties based approach to
+the Jakarta Enterprise Beans client API or the jboss-ejb-client.properties based approach to
 configure and communicate with the servers where the clustered beans are
 deployed. Now let's consider the case where the client is an application
 deployed another AS7 instance and it wants to invoke on a clustered

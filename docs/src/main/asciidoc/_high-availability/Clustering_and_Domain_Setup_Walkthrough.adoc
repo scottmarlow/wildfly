@@ -310,7 +310,7 @@ Added user 'slave' to file '/home/weli/projs/wildfly-{wildflyVersion}.0.0.Final/
 Added user 'slave' with groups  to file '/home/weli/projs/wildfly-{wildflyVersion}.0.0.Final/standalone/configuration/mgmt-groups.properties'
 Added user 'slave' with groups  to file '/home/weli/projs/wildfly-{wildflyVersion}.0.0.Final/domain/configuration/mgmt-groups.properties'
 Is this new user going to be used for one AS process to connect to another AS process?
-e.g. for a slave host controller connecting to the master or for a Remoting connection for server to server EJB calls.
+e.g. for a slave host controller connecting to the master or for a Remoting connection for server to server Jakarta Enterprise Beans calls.
 yes/no? yes
 To represent the user add the following to the server-identities definition <secret value="cGFzc3cwcmQh" />
 ----

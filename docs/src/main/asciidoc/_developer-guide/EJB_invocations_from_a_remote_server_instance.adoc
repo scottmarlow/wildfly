@@ -1,5 +1,5 @@
 [[EJB_invocations_from_a_remote_server_instance]]
-= EJB invocations from a remote server instance
+= Jakarta Enterprise Beans invocations from a remote server instance
 
 The purpose of this chapter is to demonstrate how to lookup and invoke
 on EJBs deployed on an WildFly server instance *from another* WildFly
@@ -19,7 +19,7 @@ the "Destination Server" but *not* on the "Client Server".
 [[application-packaging]]
 == Application packaging
 
-In this example, we'll consider a EJB which is packaged in a myejb.jar
+In this example, we'll consider a Jakarta Enterprise Beans which is packaged in a myejb.jar
 which is within a myapp.ear. Here's how it would look like:
 
 [source,java,options="nowrap"]
@@ -28,7 +28,7 @@ myapp.ear
 |
 |---- myejb.jar
 |        |
-|        |---- <org.myapp.ejb.*> // EJB classes
+|        |---- <org.myapp.ejb.*> // Jakarta Enterprise Beans classes
 ----
 
 [NOTE]
@@ -173,17 +173,17 @@ the Admin console or any IDE or manually copy it to
 JBOSS_HOME/standalone/deployments folder (for standalone server). Just
 ensure that the application has been deployed successfully.
 
-So far, we have built a EJB application and deployed it on the
+So far, we have built a Jakarta Enterprise Beans application and deployed it on the
 "Destination Server". Now let's move to the "Client Server" which acts
 as the client for the deployed EJBs on the "Destination Server".
 
 [[configuring-the-client-server-to-point-to-the-ejb-remoting-connector-on-the-destination-server]]
-== Configuring the "Client Server" to point to the EJB remoting connector
+== Configuring the "Client Server" to point to the Jakarta Enterprise Beans remoting connector
 on the "Destination Server"
 
 As a first step on the "Client Server", we need to let the server know
-about the "Destination Server"'s EJB remoting connector, over which it
-can communicate during the EJB invocations. To do that, we'll have to
+about the "Destination Server"'s Jakarta Enterprise Beans remoting connector, over which it
+can communicate during the Jakarta Enterprise Beans invocations. To do that, we'll have to
 add a " _remote-outbound-connection_" to the remoting subsystem on the
 "Client Server". The " _remote-outbound-connection_" configuration
 indicates that a outbound connection will be created to a remote server
@@ -302,7 +302,7 @@ the host and port 8080 as the destination port. Note that the host
 information should match the host/IP of the "Destination Server" (in
 this example we are running on the same machine so we use "localhost")
 and the port information should match the http-remoting connector port
-used by the EJB subsystem (by default it's 8080). When this command is
+used by the Jakarta Enterprise Beans subsystem (by default it's 8080). When this command is
 run successfully, we'll see that the standalone-full.xml (the file which
 we used to start the server) was updated with the following
 outbound-socket-binding in the socket-binding-group:
@@ -322,7 +322,7 @@ outbound-socket-binding in the socket-binding-group:
 "outbound-socket-binding"
 
 Now let's create a " _remote-outbound-connection_" which will use the
-newly created outbound-socket-binding (pointing to the EJB remoting
+newly created outbound-socket-binding (pointing to the Jakarta Enterprise Beans remoting
 connector of the "Destination Server"). We'll continue to use the CLI to
 create this configuration:
 
@@ -412,14 +412,14 @@ client-app.ear
 
 In the client application we'll use a servlet which invokes on the bean
 deployed on the "Destination Server". We can even invoke the bean on the
-"Destination Server" from a EJB on the "Client Server". The code remains
+"Destination Server" from a Jakarta Enterprise Beans on the "Client Server". The code remains
 the same (JNDI lookup, followed by invocation on the proxy). The
 important part to notice in this client application is the file
 _jboss-ejb-client.xml_ which is packaged in the META-INF folder of a top
 level deployment (in this case our client-app.ear). This
-_jboss-ejb-client.xml_ contains the EJB client configurations which will
-be used during the EJB invocations for finding the appropriate
-destinations (also known as, EJB receivers). The contents of the
+_jboss-ejb-client.xml_ contains the Jakarta Enterprise Beans client configurations which will
+be used during the Jakarta Enterprise Beans invocations for finding the appropriate
+destinations (also known as, Jakarta Enterprise Beans receivers). The contents of the
 jboss-ejb-client.xml are explained next.
 
 [NOTE]
@@ -444,11 +444,11 @@ The jboss-ejb-client.xml will look like:
 </jboss-ejb-client>
 ----
 
-You'll notice that we have configured the EJB client context (for this
+You'll notice that we have configured the Jakarta Enterprise Beans client context (for this
 application) to use a remoting-ejb-receiver which points to our earlier
 created " _remote-outbound-connection_" named "
-_remote-ejb-connection_". This links the EJB client context to use the "
-_remote-ejb-connection_" which ultimately points to the EJB remoting
+_remote-ejb-connection_". This links the Jakarta Enterprise Beans client context to use the "
+_remote-ejb-connection_" which ultimately points to the Jakarta Enterprise Beans remoting
 connector on the "Destination Server".
 
 [[deploy-the-client-application]]

@@ -29,7 +29,7 @@ The list of {ProductName} new functionality is extensive, being the most relevan
 
 The support for some technologies was removed, due to the high maintenance cost, low community interest, and much better alternative solutions:
 
-* CMP EJB - JPA offers a much more performant and flexible API
+* CMP Jakarta Enterprise Beans - JPA offers a much more performant and flexible API
 * JAX-RPC - JAX-WS offers a much more accurate and complete solution
 * JSR-88 - With very little adoption, the more complete deployment APIs provided by vendors are preferred
 
@@ -639,7 +639,7 @@ CMP entity beans are defined in the `ejb-jar.xml` descriptor, in concrete an ent
 CMP entity beans should be replaced by JPA entities.
 
 [[ejb-client]]
-==== EJB Client
+==== Jakarta Enterprise Beans Client
 
 [[default-remote-connection-port]]
 ===== Default Remote Connection Port
@@ -672,9 +672,9 @@ remote.connection.default.connect.options.org.xnio.Options.SASL_POLICY_NOANONYMO
 
 In {ProductName}, the default connector has changed from `remoting` to `http-remoting`. This change impacts clients that use libraries from one release of JBoss and to connect to server in a different release.
 
-* If a client application uses the EJB client library from {PrevProductName} {PrevProductVersion} and wants to connect to {ProductName} {ProductVersion} server, the server must be configured to expose a remoting connector on a port other than `8080`. The client must then connect using that newly configured connector.
+* If a client application uses the Jakarta Enterprise Beans client library from {PrevProductName} {PrevProductVersion} and wants to connect to {ProductName} {ProductVersion} server, the server must be configured to expose a remoting connector on a port other than `8080`. The client must then connect using that newly configured connector.
 
-* A client application that uses the EJB client library from {ProductName} {ProductVersion} and wants to connect to a {PrevProductName} {PrevProductVersion} server must be aware that the server instance does not use the http-remoting connector and instead uses a remoting connector. This is achieved by defining a new client-side connection property.
+* A client application that uses the Jakarta Enterprise Beans client library from {ProductName} {ProductVersion} and wants to connect to a {PrevProductName} {PrevProductVersion} server must be aware that the server instance does not use the http-remoting connector and instead uses a remoting connector. This is achieved by defining a new client-side connection property.
 +
 [source,options="nowrap"]
 ----
@@ -838,9 +838,9 @@ https://access.redhat.com/documentation/en-US/JBoss_Enterprise_Application_Platf
 // FIXME: community URLs instead
 
 [[stateful-session-ejb-clustering]]
-==== Stateful Session EJB Clustering
+==== Stateful Session Jakarta Enterprise Beans Clustering
 
-{ProductName} {ProductVersion} no longer requires Stateful Session EJBs to use the `org.jboss.ejb3.annotation.Clustered` annotation to enable clustering behavior. By default, if the server is started using an HA profile, the state of your SFSBs will be replicated automatically. Disabling this behavior is achievable on a per-EJB basis, by annotating your bean using `@Stateful(passivationCapable=false)`, which is new to the EJB 3.2 specification; or globally through the configuration of the EJB3 subsystem, in the server configuration.
+{ProductName} {ProductVersion} no longer requires Stateful Session EJBs to use the `org.jboss.ejb3.annotation.Clustered` annotation to enable clustering behavior. By default, if the server is started using an HA profile, the state of your SFSBs will be replicated automatically. Disabling this behavior is achievable on a per-EJB basis, by annotating your bean using `@Stateful(passivationCapable=false)`, which is new to the Jakarta Enterprise Beans 3.2 specification; or globally through the configuration of the EJB3 subsystem, in the server configuration.
 
 Note that the `@Clustered` annotation, if used by an application, is simply ignored, the application deployment will not fail.
 
@@ -943,7 +943,7 @@ Previously, the value defined by this attribute defined a policy for triggering 
 [[remote-jndi-clients]]
 ==== Remote JNDI Clients
 
-{ProductName} {ProductVersion}'s default JNDI Provider URL has changed, which means that external applications, using JNDI to lookup remote resources, for instance an EJB or a JMS Queue, may need to change the value for the JNDI `InitialContext` environment's property named
+{ProductName} {ProductVersion}'s default JNDI Provider URL has changed, which means that external applications, using JNDI to lookup remote resources, for instance an Jakarta Enterprise Beans or a JMS Queue, may need to change the value for the JNDI `InitialContext` environment's property named
 `java.naming.provider.url`. The default URL scheme is now
 `http-remoting`, and the default URL port is now `8080`.
 

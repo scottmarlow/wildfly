@@ -251,7 +251,7 @@ public class HelloWorldCommand implements Command<String, LocalContext> {
 }
 ----
 
-Finally, we create a @Singleton EJB that implements our HelloWorld interface:
+Finally, we create a @Singleton Jakarta Enterprise Beans that implements our HelloWorld interface:
 
 [source,java,options="nowrap"]
 ----

@@ -1,5 +1,5 @@
 [[EJB3_Reference_Guide]]
-= EJB 3 Reference Guide
+= Jakarta Enterprise Beans 3 Reference Guide
 
 This chapter details the extensions that are available when developing
 Enterprise Java Beans ^tm^ on WildFly {wildflyVersion}.
@@ -61,7 +61,7 @@ For example:
 == Security Domain
 
 Each Enterprise Java Bean ^tm^ can be associated with a security domain.
-Only when an EJB is associated with a security domain will
+Only when an Jakarta Enterprise Beans is associated with a security domain will
 authentication and authorization be enforced.
 
 [[specification-of-security-domain-using-metadata-annotations]]
@@ -131,7 +131,7 @@ and is part of the standard `container-transaction` element as defined
 in the jboss namespace.
 
 For the rules when a `container-transaction` is applicable please refer
-to EJB 3.1 FR 13.3.7.2.1.
+to Jakarta Enterprise Beans 3.1 FR 13.3.7.2.1.
 
 [[example-of-trans-timeout]]
 ==== Example of trans-timeout

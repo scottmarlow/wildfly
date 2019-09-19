@@ -765,7 +765,7 @@ were used. Looking at the server log we see this:
 ----
 
 We need to modify the WAR's lib/components.xml file to use the new JNDI
-bindings. In the log, note the EJB JNDI bindings all start with
+bindings. In the log, note the Jakarta Enterprise Beans JNDI bindings all start with
 "java:app/jboss-seam-booking.jar"
 
 Replace the <core:init> element as follows:

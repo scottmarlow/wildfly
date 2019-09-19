@@ -69,7 +69,7 @@ can execute a command as follows:
 ----
 
 [[enabling-jacc-to-a-ejb-deployment]]
-== Enabling JACC to a EJB Deployment
+== Enabling JACC to a Jakarta Enterprise Beans Deployment
 
 Once JACC Policy Provider is defined you can enable JACC to EJB
 deployments by executing the following command:

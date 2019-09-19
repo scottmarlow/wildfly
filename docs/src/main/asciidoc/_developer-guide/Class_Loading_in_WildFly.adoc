@@ -77,7 +77,7 @@ classes packaged in the war will be loaded with the same class loader.
 Ear deployments are multi-module deployments. This means that not all
 classes inside an ear will necessarily have access to all other classes
 in the ear, unless explicit dependencies have been defined. By default
-the `EAR/lib` directory is a single module, and every WAR or EJB jar
+the `EAR/lib` directory is a single module, and every WAR or Jakarta Enterprise Beans jar
 deployment is also a separate module. Sub deployments (wars and
 ejb-jars) always have a dependency on the parent module, which gives
 them access to classes in `EAR/lib`, however they do not always have an

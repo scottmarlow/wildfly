@@ -51,11 +51,11 @@ public class MySuperDuperBean {
 ----
 
 As can be seen, we have a simple @Stateless EJB. When the deployment
-containing this class is being processed, the EJB deployment processor
+containing this class is being processed, the Jakarta Enterprise Beans deployment processor
 will see that the deployment contains a class with the @Stateless
-annotation and thus identifies this as a EJB deployment. *This is just
+annotation and thus identifies this as a Jakarta Enterprise Beans deployment. *This is just
 one of the several ways, various deployment processors can identify a
-deployment of some specific type.* The EJB deployment processor will
+deployment of some specific type.* The Jakarta Enterprise Beans deployment processor will
 then add an implicit dependency on the Jakarta EE API module, so that all
 the Jakarta EE API classes are visible to the deployment.
 

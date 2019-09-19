@@ -17,7 +17,7 @@ one].
 
 [IMPORTANT]
 
-Note that the application client is different to the EJB client
+Note that the application client is different to the Jakarta Enterprise Beans client
 libraries, it is perfectly possible to write client application that do
 not use the application client, but instead use the jboss-ejb-client
 library directly.

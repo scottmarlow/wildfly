@@ -1,8 +1,8 @@
 [[jboss-ejb-client]]
 = jboss-ejb-client
-<jboss-ejb-client /> - EJB Client
+<jboss-ejb-client /> - Jakarta Enterprise Beans Client
 
-The _<jboss-ejb-client />_ element in a wildfly-config.xml file can be used to specify EJB Client configuration. This element is from the “urn:jboss:wildfly-client-ejb:3.0” namespace, e.g.
+The _<jboss-ejb-client />_ element in a wildfly-config.xml file can be used to specify Jakarta Enterprise Beans Client configuration. This element is from the “urn:jboss:wildfly-client-ejb:3.0” namespace, e.g.
 
 [source,xml,options="nowrap"]
 ----
@@ -28,21 +28,21 @@ The _<jboss-ejb-client /> element can optionally contain the following three chi
 
 == <invocation-timeout />
 
-This element is used to specify an EJB invocation timeout. It has one attribute which is required:
+This element is used to specify an Jakarta Enterprise Beans invocation timeout. It has one attribute which is required:
 
 [cols=",",options="header"]
 |====
 | Attribute | Description
-| seconds | The timeout, in seconds, for the EJB handshake or method invocation request/response cycle. The invocation of any method throws a {{java.util.concurrent.TimeoutException}} if the execution takes longer than the timeout period. The server side will not be interrupted. \\ |
+| seconds | The timeout, in seconds, for the Jakarta Enterprise Beans handshake or method invocation request/response cycle. The invocation of any method throws a {{java.util.concurrent.TimeoutException}} if the execution takes longer than the timeout period. The server side will not be interrupted. \\ |
 |====
 
 == <global-interceptors />
 
-This element is used to specify global EJB client interceptors. It can contain any number of _<interceptor />_ elements.
+This element is used to specify global Jakarta Enterprise Beans client interceptors. It can contain any number of _<interceptor />_ elements.
 
 == <interceptor />
 
-This element is used to specify an EJB client interceptor. It has two attributes:
+This element is used to specify an Jakarta Enterprise Beans client interceptor. It has two attributes:
 
 [cols=",",options="header"]
 |====
@@ -53,11 +53,11 @@ This element is used to specify an EJB client interceptor. It has two attributes
 
 == <connections />
 
-This element is used to specify EJB client connections. It can contain any number of _<connection />_ elements.
+This element is used to specify Jakarta Enterprise Beans client connections. It can contain any number of _<connection />_ elements.
 
 == <connection />
 
-This element is used to specify an EJB client connection. It has one required attribute. It can also optionally contain an _<interceptors />_ element.
+This element is used to specify an Jakarta Enterprise Beans client connection. It has one required attribute. It can also optionally contain an _<interceptors />_ element.
 
 [cols=",",options="header"]
 |====
@@ -67,4 +67,4 @@ This element is used to specify an EJB client connection. It has one required at
 
 == <interceptors />
 
-This element is used to specify EJB client interceptors and can contain any number of _<interceptor />_ elements.
+This element is used to specify Jakarta Enterprise Beans client interceptors and can contain any number of _<interceptor />_ elements.

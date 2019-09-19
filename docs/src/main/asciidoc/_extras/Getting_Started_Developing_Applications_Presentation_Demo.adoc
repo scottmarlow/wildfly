@@ -376,7 +376,7 @@ instance at runtime
 The login quickstart builds on the knowledge of CDI and JSF we have got
 from numberguess. New stuff we will learn about is how to use JPA to
 store data in a database, how to use JTA to control transactions, and
-how to use EJB for declarative TX control.
+how to use Jakarta Enterprise Beans for declarative TX control.
 
 [[run-the-app-1]]
 === Run the app
@@ -468,7 +468,7 @@ newUser bean) and no need to change the view layer.
 ..  It's an alternative – explain alternatives, and that they allow
 selection of beans at deployment time
 ..  Much simple now we have declarative TX control.
-..  Start to see how we can introduce EJB to get useful enterprise
+..  Start to see how we can introduce Jakarta Enterprise Beans to get useful enterprise
 services such as declarative TX control
 .  `Resources.java`
 ..  `{EntityManager}` - explain resource producer pattern

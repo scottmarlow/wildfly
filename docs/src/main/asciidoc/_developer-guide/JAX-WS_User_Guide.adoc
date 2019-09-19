@@ -115,7 +115,7 @@ both on the remote interface and as an endpoint operation.
 [[packaging-the-endpoint-1]]
 ==== Packaging the endpoint
 
-A JSR-181 EJB service endpoint is packaged as an ordinary ejb
+A JSR-181 Jakarta Enterprise Beans service endpoint is packaged as an ordinary ejb
 deployment.
 
 ....
