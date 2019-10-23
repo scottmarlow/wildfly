@@ -105,6 +105,55 @@ public class Hibernate51CompatibilityTransformer implements ClassFileTransformer
                 return loader;
             }
 
+            private static final String rootClass = "java/lang/Object";
+
+            @Override
+            protected String getCommonSuperClass(final String type1, final String type2) {
+
+                System.out.println("xxx getCommonSuperClass type1=" + type1 + " type2=" + type2);
+// getCommonSuperClass type1=java/lang/Exception type2=org/jboss/as/test/compat/jpa/hibernate/transformer/JDBCResourceBundle
+                Class<?> class1 = null;
+                Class<?> class2 = null;
+
+                if (rootClass.equals(type1) || rootClass.equals(type2)) {
+                    return rootClass;
+                } else if (type1.equals(type2)) {
+                    return type1;
+                } else if (className.equals(type1)) { // type1 is the class being transformed, don't load it
+                    // just need to load type2 class
+                    try {
+                        System.out.println("xxx getCommonSuperClass type1 is class being transformed, so just try to load class for type2 " + type2 );
+                        class2 = Class.forName(type2.replace('/', '.'), false, getClassLoader());
+                    } catch (ClassNotFoundException e) {
+                        throw new TypeNotPresentException(type2, e);
+                    }
+                    System.out.println("xxx getCommonSuperClass loaded type2 " + class2.getName());
+                    class1 = classBeingRedefined;
+                } else if (className.equals(type2)) { // type2 is the class being transformed, don't load it
+                    // just need to load type1 class
+                    try {
+                        System.out.println("xxx getCommonSuperClass type2 is class being transformed, so just try to load class for type1 " + type1 );
+                        class1 = Class.forName(type1.replace('/', '.'), false, getClassLoader());
+                    } catch (ClassNotFoundException e) {
+                        throw new TypeNotPresentException(type1, e);
+                    }
+                    System.out.println("xxx getCommonSuperClass loaded type1 " + class1.getName());
+                    class2 = classBeingRedefined;
+                }
+                System.out.println("xxx getCommonSuperClass check class1.isAssignableFrom(class2");
+                if (class1.isAssignableFrom(class2)) {
+                    System.out.println("xxx getCommonSuperClass check class1.isAssignableFrom(class2) matched");
+                    return type1;
+                }
+                System.out.println("xxx getCommonSuperClass check class2.isAssignableFrom(class1");
+                if (class2.isAssignableFrom(class1)) {
+                    System.out.println("xxx getCommonSuperClass check class2.isAssignableFrom(class1) matched");
+                    return type2;
+                }
+                System.out.println("xxx getCommonSuperClass defer to super.getCommonSuperClass(type1, type2)");
+                return super.getCommonSuperClass(type1, type2);
+            }
+
         };
 
         PrintWriter traceAfterPrintWriter = null;
