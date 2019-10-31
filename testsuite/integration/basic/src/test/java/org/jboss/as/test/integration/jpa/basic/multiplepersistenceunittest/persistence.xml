@@ -21,4 +21,13 @@
             <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
         </properties>
     </persistence-unit>
+    <persistence-unit name="puOrm50">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <properties>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="PersistenceUnitName" value="puOrm50"/>
+            <property name="jboss.as.jpa.providerModule" value="org.hibernate:5.0"/>
+        </properties>
+    </persistence-unit>
+
 </persistence>
