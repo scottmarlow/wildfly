@@ -23,11 +23,11 @@ package org.wildfly.extension.picketlink.idm.jpa.transaction;
 
 import org.jboss.tm.TxUtils;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 import javax.transaction.Synchronization;
 
 /**
- * <p>{@link javax.transaction.Synchronization} that knows how to close a transactional {@link javax.persistence.EntityManager}
+ * <p>{@link javax.transaction.Synchronization} that knows how to close a transactional {@link jakarta.persistence.EntityManager}
  * once the transaction finishes.</p>
  *
  * @author Pedro Igor

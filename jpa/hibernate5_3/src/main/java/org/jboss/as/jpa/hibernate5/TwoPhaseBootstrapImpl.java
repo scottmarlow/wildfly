@@ -19,8 +19,8 @@ package org.jboss.as.jpa.hibernate5;
 
 import java.util.Map;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.spi.PersistenceUnitInfo;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.spi.PersistenceUnitInfo;
 
 import org.hibernate.jpa.boot.spi.Bootstrap;
 import org.jipijapa.plugin.spi.EntityManagerFactoryBuilder;
@@ -36,7 +36,7 @@ public class TwoPhaseBootstrapImpl implements EntityManagerFactoryBuilder {
 
     public TwoPhaseBootstrapImpl(final PersistenceUnitInfo info, final Map map) {
         entityManagerFactoryBuilder =
-                    Bootstrap.getEntityManagerFactoryBuilder(info, map);
+                    Bootstrap.getEntityManagerFactoryBuilder((javax.persistence.spi.PersistenceUnitInfo)info, map);
     }
 
     @Override

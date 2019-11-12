@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.ServiceLoader;
 
 import javax.enterprise.inject.spi.BeanManager;
-import javax.persistence.spi.PersistenceProvider;
+import jakarta.persistence.spi.PersistenceProvider;
 
 import org.jboss.as.jpa.messages.JpaLogger;
 import org.jboss.as.jpa.transaction.JtaManagerImpl;

@@ -24,8 +24,8 @@ package org.jboss.as.jpa.hibernate4;
 
 import java.util.Map;
 
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.spi.PersistenceUnitInfo;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.spi.PersistenceUnitInfo;
 
 import org.hibernate.jpa.boot.spi.Bootstrap;
 import org.jipijapa.plugin.spi.EntityManagerFactoryBuilder;

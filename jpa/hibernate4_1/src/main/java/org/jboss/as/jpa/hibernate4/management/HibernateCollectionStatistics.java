@@ -25,7 +25,7 @@ package org.jboss.as.jpa.hibernate4.management;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 
 import org.hibernate.SessionFactory;
 import org.hibernate.ejb.HibernateEntityManagerFactory;

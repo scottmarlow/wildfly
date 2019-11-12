@@ -29,9 +29,9 @@ import static org.jboss.logging.Logger.Level.WARN;
 import java.lang.instrument.IllegalClassFormatException;
 
 import javax.ejb.EJBException;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceException;
-import javax.persistence.TransactionRequiredException;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceException;
+import jakarta.persistence.TransactionRequiredException;
 
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
@@ -144,7 +144,7 @@ public interface JpaLogger extends BasicLogger {
 
 //    /**
 //     * warn that the entity class could not be loaded with the
-//     * {@link javax.persistence.spi.PersistenceUnitInfo#getClassLoader()}.
+//     * {@link jakarta.persistence.spi.PersistenceUnitInfo#getClassLoader()}.
 //     *
 //     * @param cause     the cause of the error.
 //     * @param className the entity class name.
@@ -262,8 +262,8 @@ public interface JpaLogger extends BasicLogger {
 
     /**
      * A message indicating the inability to inject a
-     * {@link javax.persistence.spi.PersistenceUnitTransactionType#RESOURCE_LOCAL} container managed EntityManager
-     * using the {@link javax.persistence.PersistenceContext} annotation.
+     * {@link jakarta.persistence.spi.PersistenceUnitTransactionType#RESOURCE_LOCAL} container managed EntityManager
+     * using the {@link jakarta.persistence.PersistenceContext} annotation.
      *
      * @return the message.
      */
@@ -272,7 +272,7 @@ public interface JpaLogger extends BasicLogger {
 
 //    /**
 //     * Creates an exception indicating the inability to inject a
-//     * {@link javax.persistence.spi.PersistenceUnitTransactionType#RESOURCE_LOCAL} entity manager, represented by the
+//     * {@link jakarta.persistence.spi.PersistenceUnitTransactionType#RESOURCE_LOCAL} entity manager, represented by the
 //     * {@code unitName} parameter, using the {@code <persistence-context-ref>}.
 //     *
 //     * @param unitName the unit name.
@@ -295,7 +295,7 @@ public interface JpaLogger extends BasicLogger {
 
 //    /**
 //     * Creates an exception indicating the entity class could not be loaded with the
-//     * {@link javax.persistence.spi.PersistenceUnitInfo#getClassLoader()}.
+//     * {@link jakarta.persistence.spi.PersistenceUnitInfo#getClassLoader()}.
 //     *
 //     * @param cause     the cause of the error.
 //     * @param className the entity class name.
@@ -622,7 +622,7 @@ public interface JpaLogger extends BasicLogger {
      * Creates an exception indicating the persistence provider could not be found.
      *
      * @param providerName the provider name.
-     * @return a {@link javax.persistence.PersistenceException} for the error.
+     * @return a {@link jakarta.persistence.PersistenceException} for the error.
      */
     @Message(id = 57, value = "PersistenceProvider '%s' not found")
     PersistenceException persistenceProviderNotFound(String providerName);
@@ -650,7 +650,7 @@ public interface JpaLogger extends BasicLogger {
     /**
      * Creates an exception indicating a transaction is required for the operation.
      *
-     * @return a {@link javax.persistence.TransactionRequiredException} for the error.
+     * @return a {@link jakarta.persistence.TransactionRequiredException} for the error.
      */
     @Message(id = 60, value = "Transaction is required to perform this operation (either use a transaction or extended persistence context)")
     TransactionRequiredException transactionRequired();

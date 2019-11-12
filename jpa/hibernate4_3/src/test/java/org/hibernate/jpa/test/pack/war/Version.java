@@ -21,7 +21,7 @@
  */
 package org.hibernate.jpa.test.pack.war;
 
-import javax.persistence.Embeddable;
+import jakarta.persistence.Embeddable;
 
 /**
  * @author Emmanuel Bernard

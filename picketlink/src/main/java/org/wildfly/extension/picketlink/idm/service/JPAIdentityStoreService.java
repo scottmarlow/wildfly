@@ -41,10 +41,10 @@ import org.wildfly.transaction.client.ContextTransactionManager;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-import javax.persistence.metamodel.EntityType;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
+import jakarta.persistence.metamodel.EntityType;
 import javax.transaction.Status;
 import javax.transaction.TransactionManager;
 import javax.transaction.TransactionSynchronizationRegistry;
@@ -150,7 +150,7 @@ public class JPAIdentityStoreService implements Service<JPAIdentityStoreService>
 
             if (!isNullOrEmpty(dataSourceJndiUrl)) {
                 ROOT_LOGGER.debugf("Using datasource [%s] for embedded EntityManagerFactory.", dataSourceJndiUrl);
-                properties.put("javax.persistence.jtaDataSource", dataSourceJndiUrl);
+                properties.put("jakarta.persistence.jtaDataSource", dataSourceJndiUrl);
             }
 
             properties.put(AvailableSettings.JTA_PLATFORM, new JBossAppServerJtaPlatform());
@@ -216,7 +216,7 @@ public class JPAIdentityStoreService implements Service<JPAIdentityStoreService>
     }
 
     /**
-     * <p>Returns an {@link javax.persistence.EntityManager} associated with the actual {@link javax.transaction.Transaction}, if present.</p>
+     * <p>Returns an {@link jakarta.persistence.EntityManager} associated with the actual {@link javax.transaction.Transaction}, if present.</p>
      *
      * <p>If {@link javax.transaction.Transaction} is {@link Status#STATUS_ACTIVE}, this method tries to return an entity manager
      * already associated with it. If there is no entity manager a new one is created.</p>

@@ -62,7 +62,7 @@ public class PhaseOnePersistenceUnitServiceImpl implements Service<PhaseOnePersi
     private final InjectedValue<DataSource> nonJtaDataSource = new InjectedValue<>();
     private final InjectedValue<ExecutorService> executorInjector = new InjectedValue<>();
 
-    private static final String CDI_BEAN_MANAGER = "javax.persistence.bean.manager";
+    private static final String CDI_BEAN_MANAGER = "jakarta.persistence.bean.manager";
 
     private final PersistenceProviderAdaptor persistenceProviderAdaptor;
     private final PersistenceUnitMetadata pu;
