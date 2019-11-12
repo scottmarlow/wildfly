@@ -24,13 +24,13 @@ package org.wildfly.extension.picketlink.idm.jpa.transaction;
 
 import org.wildfly.extension.picketlink.logging.PicketLinkLogger;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 import javax.transaction.TransactionSynchronizationRegistry;
 
 /**
- * <p>A helper that knows how to associate {@link javax.persistence.EntityManager} instances with active transactions.</p>
+ * <p>A helper that knows how to associate {@link jakarta.persistence.EntityManager} instances with active transactions.</p>
  *
  * @author Pedro Igor (reusing code from JPA subsystem)
  */

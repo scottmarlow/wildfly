@@ -32,8 +32,8 @@ import javax.ejb.Handle;
 import javax.ejb.HomeHandle;
 import javax.ejb.SessionContext;
 import javax.ejb.Timer;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import javax.transaction.UserTransaction;
 
 import org.jboss.as.ee.component.BasicComponentInstance;

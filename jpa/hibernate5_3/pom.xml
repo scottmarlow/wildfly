@@ -131,6 +131,8 @@
         <dependency>
             <groupId>jakarta.persistence</groupId>
             <artifactId>jakarta.persistence-api</artifactId>
+            <!-- remove version after Hibernate integration code can work with Hibernate ORM implementation using Jakarta namespace -->
+            <version>2.2.3</version>
         </dependency>
 
         <dependency>

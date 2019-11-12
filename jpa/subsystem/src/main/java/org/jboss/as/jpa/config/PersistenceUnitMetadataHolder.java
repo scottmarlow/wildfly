@@ -22,9 +22,8 @@
 
 package org.jboss.as.jpa.config;
 
+import jakarta.persistence.spi.PersistenceUnitInfo;
 import java.util.List;
-
-import javax.persistence.spi.PersistenceUnitInfo;
 
 import org.jboss.as.server.deployment.AttachmentKey;
 import org.jipijapa.plugin.spi.PersistenceUnitMetadata;

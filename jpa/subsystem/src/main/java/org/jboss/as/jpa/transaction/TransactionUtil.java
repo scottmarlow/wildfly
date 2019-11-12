@@ -28,7 +28,7 @@ import static org.jboss.as.jpa.messages.JpaLogger.ROOT_LOGGER;
 import java.security.PrivilegedAction;
 import java.util.EnumSet;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;

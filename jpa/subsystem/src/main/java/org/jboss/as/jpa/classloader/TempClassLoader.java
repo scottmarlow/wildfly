@@ -38,7 +38,7 @@ import org.jboss.modules.ConcurrentClassLoader;
  * resources, or open URLs.  None of the classes loaded by this class loader will be visible to
  * application components.
  * <p/>
- * TempClassLoader is suitable for implementing javax.persistence.spi.PersistenceUnitInfo.getNewTempClassLoader()
+ * TempClassLoader is suitable for implementing jakarta.persistence.spi.PersistenceUnitInfo.getNewTempClassLoader()
  * <p/>
  *
  * @author Scott Marlow
@@ -68,7 +68,7 @@ public class TempClassLoader extends ConcurrentClassLoader {
             return loaded;
         }
 
-        // javax.persistence classes must be loaded by module classloader, otherwise
+        // jakarta.persistence classes must be loaded by module classloader, otherwise
         // the persistence provider can't read JPA annotations with reflection
         if (name.startsWith("javax.") || name.startsWith("java.")) {
             return Class.forName(name, resolve, delegate);

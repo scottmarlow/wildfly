@@ -31,8 +31,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 
 import javax.enterprise.inject.spi.BeanManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.spi.PersistenceProvider;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.spi.PersistenceProvider;
 import javax.sql.DataSource;
 import javax.validation.ValidatorFactory;
 
@@ -75,8 +75,8 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
     private final InjectedValue<BeanManager> beanManagerInjector = new InjectedValue<>();
     private final InjectedValue<PhaseOnePersistenceUnitServiceImpl> phaseOnePersistenceUnitServiceInjectedValue = new InjectedValue<>();
 
-    private static final String CDI_BEAN_MANAGER = "javax.persistence.bean.manager";
-    private static final String VALIDATOR_FACTORY = "javax.persistence.validation.factory";
+    private static final String CDI_BEAN_MANAGER = "jakarta.persistence.bean.manager";
+    private static final String VALIDATOR_FACTORY = "jakarta.persistence.validation.factory";
 
     private final Map properties;
     private final PersistenceProviderAdaptor persistenceProviderAdaptor;
