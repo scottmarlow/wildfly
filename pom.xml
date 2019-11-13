@@ -96,6 +96,7 @@
         <module>undertow</module>
         <module>servlet-build</module>
         <module>servlet-build-legacy</module>
+        <module>transformer</module>
         <module>web-common</module>
         <module>servlet-dist</module>
         <module>servlet-dist-legacy</module>
