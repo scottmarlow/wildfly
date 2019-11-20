@@ -36,7 +36,7 @@ public class TwoPhaseBootstrapImpl implements EntityManagerFactoryBuilder {
 
     public TwoPhaseBootstrapImpl(final PersistenceUnitInfo info, final Map map) {
         entityManagerFactoryBuilder =
-                    Bootstrap.getEntityManagerFactoryBuilder(info, map);
+                    Bootstrap.getEntityManagerFactoryBuilder((javax.persistence.spi.PersistenceUnitInfo)info, map);
     }
 
     @Override
