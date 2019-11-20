@@ -16,7 +16,7 @@
  */
 package org.hibernate.jpa.test.pack.war;
 
-import javax.persistence.PrePersist;
+import jakarta.persistence.PrePersist;
 
 /**
  * @author Emmanuel Bernard

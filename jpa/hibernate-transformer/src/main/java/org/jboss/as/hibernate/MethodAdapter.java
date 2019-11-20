@@ -51,7 +51,7 @@ class MethodAdapter extends MethodVisitor {
 
     // Change call to org.hibernate.BasicQueryContract.getFlushMode() to instead call BasicQueryContract.getHibernateFlushMode().
     // Change call to org.hibernate.Session.getFlushMode, to instead call Session.getHibernateFlushMode()
-    // Calls to Hibernate ORM 5.3 getFlushMode(), will not be changed as the desc will not match (desc == "()Ljavax.persistence.FlushModeType;")
+    // Calls to Hibernate ORM 5.3 getFlushMode(), will not be changed as the desc will not match (desc == "()Ljakarta.persistence.FlushModeType;")
     @Override
     public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
         if (rewriteSessionImplementor &&

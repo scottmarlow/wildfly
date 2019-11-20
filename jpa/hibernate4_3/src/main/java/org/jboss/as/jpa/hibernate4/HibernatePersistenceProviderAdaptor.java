@@ -27,7 +27,7 @@ import static org.jipijapa.JipiLogger.JPA_LOGGER;
 import java.util.Map;
 
 import javax.enterprise.inject.spi.BeanManager;
-import javax.persistence.spi.PersistenceUnitInfo;
+import jakarta.persistence.spi.PersistenceUnitInfo;
 
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.cfg.Configuration;

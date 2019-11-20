@@ -21,7 +21,7 @@
  */
 package org.hibernate.jpa.test.pack.defaultpar;
 
-import javax.persistence.PrePersist;
+import jakarta.persistence.PrePersist;
 
 /**
  * @author Emmanuel Bernard

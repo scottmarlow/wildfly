@@ -22,9 +22,11 @@
     <modules>
         <module>subsystem</module>
         <module>spi</module>
+<!--  disable hibernate 4.x + 5.1 integration for now
         <module>hibernate4_1</module>
         <module>hibernate4_3</module>
         <module>hibernate5</module>
+-->
         <module>hibernate5_3</module>
         <module>hibernate5-3-legacy</module>
         <module>hibernate5-legacy</module>
