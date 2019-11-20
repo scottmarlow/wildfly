@@ -20,13 +20,12 @@
  *  02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package javax.persistence;
+package javax.persistence.spi;
 
 /**
- * EntityManagerFactory
- * TODO: move to separate maven module for compile time only, not runtime
+ * PersistenceUnitInfo
  *
  * @author Scott Marlow
  */
-public interface EntityManagerFactory extends jakarta.persistence.EntityManagerFactory {
+public interface PersistenceUnitInfo extends jakarta.persistence.spi.PersistenceUnitInfo {
 }

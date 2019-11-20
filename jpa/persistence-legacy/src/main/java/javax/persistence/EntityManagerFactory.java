@@ -23,10 +23,9 @@
 package javax.persistence;
 
 /**
- * PersistenceException
- * TODO: move to separate maven module for compile time only, not runtime
+ * EntityManagerFactory
  *
  * @author Scott Marlow
  */
-public class PersistenceException extends jakarta.persistence.PersistenceException {
+public interface EntityManagerFactory extends jakarta.persistence.EntityManagerFactory {
 }

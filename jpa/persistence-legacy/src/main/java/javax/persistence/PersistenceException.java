@@ -20,13 +20,12 @@
  *  02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-package javax.persistence.spi;
+package javax.persistence;
 
 /**
- * PersistenceUnitInfo
- * TODO: move to separate maven module for compile time only, not runtime
+ * PersistenceException
  *
  * @author Scott Marlow
  */
-public interface PersistenceUnitInfo extends jakarta.persistence.spi.PersistenceUnitInfo {
+public class PersistenceException extends jakarta.persistence.PersistenceException {
 }
