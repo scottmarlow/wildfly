@@ -2681,6 +2681,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.convert2ee9</groupId>
+            <artifactId>convert2ee9</artifactId>
+            <version>1.0.0.Alpha1-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-core</artifactId>
             <exclusions>

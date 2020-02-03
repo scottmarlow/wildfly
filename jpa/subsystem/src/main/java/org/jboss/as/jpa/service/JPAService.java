@@ -63,6 +63,8 @@ import org.jipijapa.plugin.spi.ManagementAdaptor;
  * @author Scott Marlow
  */
 public class JPAService implements Service<Void> {
+    // TODO: remove org.convert2ee9.Agent reference
+    org.convert2ee9.Agent agent = new org.convert2ee9.Agent();
 
     public static final ServiceName SERVICE_NAME = JPAServiceNames.getJPAServiceName();
 

@@ -104,6 +104,11 @@
         </dependency>
 
         <dependency>
+             <groupId>org.convert2ee9</groupId>
+             <artifactId>convert2ee9</artifactId>
+        </dependency>
+        
+        <dependency>
             <groupId>org.wildfly.core</groupId>
             <artifactId>wildfly-subsystem-test</artifactId>
             <type>pom</type>
