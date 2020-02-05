@@ -544,6 +544,12 @@
                 <version>${version.org.bytebuddy}</version>
             </dependency>
 
+           <dependency>
+                <groupId>org.convert2ee9</groupId>
+                <artifactId>convert2ee9</artifactId>
+                <version>1.0.0.Alpha1-SNAPSHOT</version>
+            </dependency>
+
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>jipijapa-spi</artifactId>
