@@ -17,12 +17,18 @@
 
 package org.jboss.as.jpa.hibernate5;
 
+import java.net.URL;
+import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.spi.PersistenceUnitInfo;
 
+import jakarta.persistence.spi.PersistenceUnitTransactionType;
+import org.hibernate.bytecode.enhance.spi.EnhancementContext;
 import org.hibernate.jpa.boot.spi.Bootstrap;
+import org.hibernate.jpa.boot.spi.PersistenceUnitDescriptor;
 import org.jipijapa.plugin.spi.EntityManagerFactoryBuilder;
 
 /**
@@ -36,7 +42,94 @@ public class TwoPhaseBootstrapImpl implements EntityManagerFactoryBuilder {
 
     public TwoPhaseBootstrapImpl(final PersistenceUnitInfo info, final Map map) {
         entityManagerFactoryBuilder =
-                    Bootstrap.getEntityManagerFactoryBuilder((javax.persistence.spi.PersistenceUnitInfo)info, map);
+                    Bootstrap.getEntityManagerFactoryBuilder(
+                            new PersistenceUnitDescriptor() {
+
+                                @Override
+                                public URL getPersistenceUnitRootUrl() {
+                                    return info.getPersistenceUnitRootUrl();
+                                }
+
+                                @Override
+                                public String getName() {
+                                    return info.getPersistenceUnitName();
+                                }
+
+                                @Override
+                                public String getProviderClassName() {
+                                    return info.getPersistenceProviderClassName();
+                                }
+
+                                @Override
+                                public boolean isUseQuotedIdentifiers() {
+                                    return false;
+                                }
+
+                                @Override
+                                public boolean isExcludeUnlistedClasses() {
+                                    return info.excludeUnlistedClasses();
+                                }
+
+                                @Override
+                                public PersistenceUnitTransactionType getTransactionType() {
+                                    return null;
+                                }
+
+                                @Override
+                                public javax.persistence.ValidationMode getValidationMode() {
+                                    return null;
+                                }
+
+                                @Override
+                                public javax.persistence.SharedCacheMode getSharedCacheMode() {
+                                    return null;
+                                }
+
+                                @Override
+                                public List<String> getManagedClassNames() {
+                                    return null;
+                                }
+
+                                @Override
+                                public List<String> getMappingFileNames() {
+                                    return null;
+                                }
+
+                                @Override
+                                public List<URL> getJarFileUrls() {
+                                    return null;
+                                }
+
+                                @Override
+                                public Object getNonJtaDataSource() {
+                                    return null;
+                                }
+
+                                @Override
+                                public Object getJtaDataSource() {
+                                    return null;
+                                }
+
+                                @Override
+                                public Properties getProperties() {
+                                    return null;
+                                }
+
+                                @Override
+                                public ClassLoader getClassLoader() {
+                                    return null;
+                                }
+
+                                @Override
+                                public ClassLoader getTempClassLoader() {
+                                    return null;
+                                }
+
+                                @Override
+                                public void pushClassTransformer(EnhancementContext enhancementContext) {
+
+                                }
+                            }, map);
     }
 
     @Override

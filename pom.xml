@@ -441,6 +441,12 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>jipijapa-persistence-legacy</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>jipijapa-eclipselink</artifactId>
                 <version>${project.version}</version>
             </dependency>
