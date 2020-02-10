@@ -17,18 +17,11 @@
 
 package org.jboss.as.jpa.hibernate5;
 
-import java.net.URL;
-import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.spi.PersistenceUnitInfo;
 
-import jakarta.persistence.spi.PersistenceUnitTransactionType;
-import org.hibernate.bytecode.enhance.spi.EnhancementContext;
-import org.hibernate.jpa.boot.spi.Bootstrap;
-import org.hibernate.jpa.boot.spi.PersistenceUnitDescriptor;
 import org.jipijapa.plugin.spi.EntityManagerFactoryBuilder;
 
 /**
@@ -41,7 +34,8 @@ public class TwoPhaseBootstrapImpl implements EntityManagerFactoryBuilder {
     final org.hibernate.jpa.boot.spi.EntityManagerFactoryBuilder entityManagerFactoryBuilder;
 
     public TwoPhaseBootstrapImpl(final PersistenceUnitInfo info, final Map map) {
-        entityManagerFactoryBuilder =
+        entityManagerFactoryBuilder = null;
+        /*
                     Bootstrap.getEntityManagerFactoryBuilder(
                             new PersistenceUnitDescriptor() {
 
@@ -130,6 +124,7 @@ public class TwoPhaseBootstrapImpl implements EntityManagerFactoryBuilder {
 
                                 }
                             }, map);
+         */
     }
 
     @Override
