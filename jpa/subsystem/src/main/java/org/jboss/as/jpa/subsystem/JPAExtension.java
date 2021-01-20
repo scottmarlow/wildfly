@@ -151,9 +151,6 @@ public class JPAExtension implements Extension {
             }
             // Require no content
             ParseUtils.requireNoContent(reader);
-            if (dataSourceName == null) {
-                throw ParseUtils.missingRequired(reader, Collections.singleton(Attribute.DEFAULT_DATASOURCE_NAME));
-            }
             return operation;
         }
 
@@ -233,9 +230,6 @@ public class JPAExtension implements Extension {
             }
             // Require no content
             ParseUtils.requireNoContent(reader);
-            if (dataSourceName == null) {
-                throw ParseUtils.missingRequired(reader, Collections.singleton(Attribute.DEFAULT_DATASOURCE_NAME));
-            }
             return operation;
         }
     }
