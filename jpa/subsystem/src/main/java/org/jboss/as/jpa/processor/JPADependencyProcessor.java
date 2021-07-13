@@ -24,12 +24,10 @@ package org.jboss.as.jpa.processor;
 
 import static org.jboss.as.jpa.messages.JpaLogger.ROOT_LOGGER;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
 import org.jboss.as.ee.component.ComponentDescription;
@@ -144,60 +142,43 @@ public class JPADependencyProcessor implements DeploymentUnitProcessor {
         final EEModuleDescription eeModuleDescription = deploymentUnit.getAttachment(org.jboss.as.ee.component.Attachments.EE_MODULE_DESCRIPTION);
         final Collection<ComponentDescription> components = eeModuleDescription.getComponentDescriptions();
         boolean earSubDeploymentsAreInitializedInCustomOrder = false;
-        final DeploymentUnit parent = deploymentUnit.getParent();
         EarMetaData earConfig = null;
-        if (parent != null) {
-            earConfig = parent.getAttachment(org.jboss.as.ee.structure.Attachments.EAR_METADATA);
-            earSubDeploymentsAreInitializedInCustomOrder = earConfig != null && earConfig.getInitializeInOrder() && earConfig.getModules().size() > 1;
-        }
+
+        earConfig = DeploymentUtils.getTopDeploymentUnit(deploymentUnit).getAttachment(org.jboss.as.ee.structure.Attachments.EAR_METADATA);
+        earSubDeploymentsAreInitializedInCustomOrder = earConfig != null && earConfig.getInitializeInOrder() && earConfig.getModules().size() > 1;
+
         if (earSubDeploymentsAreInitializedInCustomOrder) {
-            // WFLY-14923 for for Jakarta EE components in current deployment unit,
-            // add Jakarta EE component dependencies on all persistence units in current deployment unit.
-            if (deploymentUnit.getAttachment(PersistenceUnitsInApplication.PERSISTENCE_UNITS_IN_APPLICATION) != null) {
-                for (PersistenceUnitMetadataHolder holder : deploymentUnit.getAttachment(PersistenceUnitsInApplication.PERSISTENCE_UNITS_IN_APPLICATION).getPersistenceUnitHolders()) {
-                    addPUServiceDependencyToComponents(components, holder);
-                }
-            }
 
-            // WFLY-14923 add component dependencies on all persistence units in root deployment unit
-            List<ResourceRoot> resourceRoots = DeploymentUtils.getTopDeploymentUnit(deploymentUnit).getAttachmentList(Attachments.RESOURCE_ROOTS);
-            for (ResourceRoot resourceRoot : resourceRoots) {
-                // look at lib/*.jar files that aren't subdeployments
-                if (!SubDeploymentMarker.isSubDeployment(resourceRoot) &&
-                        resourceRoot.getRoot().getName().toLowerCase(Locale.ENGLISH).endsWith(JAR_FILE_EXTENSION) &&
-                        resourceRoot.getRoot().getParent().getName().equals(LIB_FOLDER)) {
-                    PersistenceUnitMetadataHolder holder = resourceRoot.getAttachment(PersistenceUnitMetadataHolder.PERSISTENCE_UNITS);
-                    addPUServiceDependencyToComponents(components, holder);
-                }
-            }
-
-            // WFLY-14923 for for Jakarta EE components in current deployment unit,
-            // add component dependencies on app persistence units in previous sub-deployments
-
-            final Map<String, DeploymentUnit> deploymentUnitMap = new HashMap<String, DeploymentUnit>();
-            for (final DeploymentUnit subDeployment : parent.getAttachment(org.jboss.as.server.deployment.Attachments.SUB_DEPLOYMENTS)) {
-                final ResourceRoot deploymentRoot = subDeployment.getAttachment(org.jboss.as.server.deployment.Attachments.DEPLOYMENT_ROOT);
+            if (deploymentUnit.getParent() != null) {
+                // WFLY-14923 add persistence units defined in current (sub) deployment unit to EE components
+                // also in current deployment unit.
+                List<PersistenceUnitMetadata> collectPersistenceUnitsForCurrentDeploymentUnit = new ArrayList<>();
+                final ResourceRoot deploymentRoot = deploymentUnit.getAttachment(org.jboss.as.server.deployment.Attachments.DEPLOYMENT_ROOT);
                 final ModuleMetaData moduleMetaData = deploymentRoot.getAttachment(org.jboss.as.ee.structure.Attachments.MODULE_META_DATA);
-                if (moduleMetaData != null) {
-                    deploymentUnitMap.put(moduleMetaData.getFileName(), subDeployment);
-                }
-            }
 
-            final ResourceRoot deploymentRoot = deploymentUnit.getAttachment(org.jboss.as.server.deployment.Attachments.DEPLOYMENT_ROOT);
-            final ModuleMetaData thisModulesMetadata = deploymentRoot.getAttachment(org.jboss.as.ee.structure.Attachments.MODULE_META_DATA);
-            if (thisModulesMetadata != null && thisModulesMetadata.getType() != ModuleMetaData.ModuleType.Client) {
-
-                for (ModuleMetaData module : earConfig.getModules()) {
-                    if (module.getType() != ModuleMetaData.ModuleType.Client) {
-                        final DeploymentUnit prevDeployment = deploymentUnitMap.get(module.getFileName());
-                        if (prevDeployment.getAttachment(PersistenceUnitsInApplication.PERSISTENCE_UNITS_IN_APPLICATION) != null) {
-                            for (PersistenceUnitMetadataHolder holder : prevDeployment.getAttachment(PersistenceUnitsInApplication.PERSISTENCE_UNITS_IN_APPLICATION).getPersistenceUnitHolders()) {
-                                addPUServiceDependencyToComponents(components, holder);
+                for (PersistenceUnitMetadataHolder holder : persistenceUnitsInApplication.getPersistenceUnitHolders()) {
+                    if (holder != null && holder.getPersistenceUnits() != null) {
+                        for (PersistenceUnitMetadata pu : holder.getPersistenceUnits()) {
+                            String moduleName = pu.getContainingModuleName().get(pu.getContainingModuleName().size() - 1);
+                            if (moduleName.equals(moduleMetaData.getFileName())) {
+                                ROOT_LOGGER.tracef("Jakarta EE components in %s will depend on persistence unit %s", moduleName, pu.getScopedPersistenceUnitName());
+                                collectPersistenceUnitsForCurrentDeploymentUnit.add(pu);
                             }
                         }
-                        if (module.getFileName().equals(thisModulesMetadata.getFileName())) {
-                            break;
-                        }
+                    }
+                }
+                if (collectPersistenceUnitsForCurrentDeploymentUnit != null && !collectPersistenceUnitsForCurrentDeploymentUnit.isEmpty()) {
+                    addPUServiceDependencyToComponents(components,
+                            new PersistenceUnitMetadataHolder(collectPersistenceUnitsForCurrentDeploymentUnit));
+                }
+            } else {
+                // WFLY-14923
+                // add Jakarta EE component dependencies on all persistence units in top level deployment unit.
+                List<ResourceRoot> resourceRoots = DeploymentUtils.getTopDeploymentUnit(deploymentUnit).getAttachmentList(Attachments.RESOURCE_ROOTS);
+                for (ResourceRoot resourceRoot : resourceRoots) {
+                    // look at resources that aren't subdeployments
+                    if (!SubDeploymentMarker.isSubDeployment(resourceRoot)) {
+                        addPUServiceDependencyToComponents(components, resourceRoot.getAttachment(PersistenceUnitMetadataHolder.PERSISTENCE_UNITS));
                     }
                 }
             }
