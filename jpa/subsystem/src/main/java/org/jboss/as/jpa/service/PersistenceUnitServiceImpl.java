@@ -39,6 +39,7 @@ import javax.validation.ValidatorFactory;
 import org.jboss.as.jpa.beanmanager.BeanManagerAfterDeploymentValidation;
 import org.jboss.as.jpa.beanmanager.ProxyBeanManager;
 import org.jboss.as.jpa.classloader.TempClassLoaderFactoryImpl;
+import org.jboss.as.jpa.container.LazyEntityManagerFactory;
 import org.jboss.as.jpa.spi.PersistenceUnitService;
 import org.jboss.as.jpa.subsystem.PersistenceUnitRegistryImpl;
 import org.jboss.as.jpa.util.JPAServiceNames;
@@ -87,6 +88,7 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
     private final ServiceName deploymentUnitServiceName;
     private final ValidatorFactory validatorFactory;
     private final BeanManagerAfterDeploymentValidation beanManagerAfterDeploymentValidation;
+    private final boolean allowLazyBootstrap;
 
     private volatile EntityManagerFactory entityManagerFactory;
     private volatile ProxyBeanManager proxyBeanManager;
@@ -101,7 +103,8 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
             final PersistenceUnitRegistryImpl persistenceUnitRegistry,
             final ServiceName deploymentUnitServiceName,
             final ValidatorFactory validatorFactory, SetupAction javaNamespaceSetup,
-            BeanManagerAfterDeploymentValidation beanManagerAfterDeploymentValidation) {
+            BeanManagerAfterDeploymentValidation beanManagerAfterDeploymentValidation,
+            final boolean allowLazyBootstrap) {
         this.properties = properties;
         this.pu = pu;
         this.persistenceProviderAdaptor = persistenceProviderAdaptor;
@@ -112,6 +115,7 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
         this.validatorFactory = validatorFactory;
         this.javaNamespaceSetup = javaNamespaceSetup;
         this.beanManagerAfterDeploymentValidation = beanManagerAfterDeploymentValidation;
+        this.allowLazyBootstrap = allowLazyBootstrap;
     }
 
     @Override
@@ -119,7 +123,6 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
         final ExecutorService executor = executorInjector.getValue();
         final AccessControlContext accessControlContext =
                 AccessController.doPrivileged(GetAccessControlContextAction.getInstance());
-
         final Runnable task = new Runnable() {
             // run async in a background thread
             @Override
@@ -193,8 +196,13 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                                     if(wrapperBeanManagerLifeCycle != null) {
                                         beanManagerAfterDeploymentValidation.register(persistenceProviderAdaptor, wrapperBeanManagerLifeCycle);
                                     }
-                                    context.complete();
+                                    if (!allowLazyBootstrap) {
+                                        context.complete();
+                                    }
                                 } catch (Throwable t) {
+                                    if (allowLazyBootstrap) {
+                                        throw new RuntimeException(t.getMessage(),t);
+                                    }
                                     context.failed(new StartException(t));
                                 } finally {
                                     Thread.currentThread().setContextClassLoader(old);
@@ -215,12 +223,18 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
             }
 
         };
-        try {
-            executor.execute(task);
-        } catch (RejectedExecutionException e) {
-            task.run();
-        } finally {
-            context.asynchronous();
+        if (allowLazyBootstrap) {
+            // entityManagerFactory will lazily call task.run() on first use.
+            entityManagerFactory = new LazyEntityManagerFactory(task, this);
+                context.complete();
+        } else {
+            try {
+                executor.execute(task);
+            } catch (RejectedExecutionException e) {
+                task.run();
+            } finally {
+                context.asynchronous();
+            }
         }
     }
 
@@ -256,7 +270,12 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                                             if (entityManagerFactory != null) {
                                                 WritableServiceBasedNamingStore.pushOwner(deploymentUnitServiceName);
                                                 try {
-                                                    if (entityManagerFactory.isOpen()) {
+                                                    if (allowLazyBootstrap && entityManagerFactory instanceof LazyEntityManagerFactory) {
+                                                        LazyEntityManagerFactory lazyEntityManagerFactory = (LazyEntityManagerFactory)entityManagerFactory;
+                                                        if (lazyEntityManagerFactory.wasLazyEntityManagerFactoryUsed()) {
+                                                            entityManagerFactory.close();
+                                                        }
+                                                    } else if (entityManagerFactory.isOpen()) {
                                                         entityManagerFactory.close();
                                                     }
                                                 } catch (Throwable t) {
