@@ -409,7 +409,7 @@ public class PersistenceUnitServiceHandler {
             // JPA 2.1 sections 3.5.1 + 9.1 require the Jakarta Contexts and Dependency Injection bean manager to be passed to the peristence provider
             // if the persistence unit is contained in a deployment that is a Jakarta Contexts and Dependency Injection bean archive (has beans.xml).
             final CapabilityServiceSupport support = deploymentUnit.getAttachment(Attachments.CAPABILITY_SERVICE_SUPPORT);
-            if (!allowLazyBootstrap && support.hasCapability(WELD_CAPABILITY_NAME) && allowCdiBeanManagerAccess) {
+            if (support.hasCapability(WELD_CAPABILITY_NAME) && allowCdiBeanManagerAccess) {
                 support.getOptionalCapabilityRuntimeAPI(WELD_CAPABILITY_NAME, WeldCapability.class).get()
                         .addBeanManagerService(deploymentUnit, builder, service.getBeanManagerInjector());
             }
