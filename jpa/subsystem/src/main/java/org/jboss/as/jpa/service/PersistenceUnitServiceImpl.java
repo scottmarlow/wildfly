@@ -39,6 +39,8 @@ import javax.validation.ValidatorFactory;
 import org.jboss.as.jpa.beanmanager.BeanManagerAfterDeploymentValidation;
 import org.jboss.as.jpa.beanmanager.ProxyBeanManager;
 import org.jboss.as.jpa.classloader.TempClassLoaderFactoryImpl;
+import org.jboss.as.jpa.config.Configuration;
+import org.jboss.as.jpa.container.LazyEntityManagerFactory;
 import org.jboss.as.jpa.spi.PersistenceUnitService;
 import org.jboss.as.jpa.subsystem.PersistenceUnitRegistryImpl;
 import org.jboss.as.jpa.util.JPAServiceNames;
@@ -119,7 +121,6 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
         final ExecutorService executor = executorInjector.getValue();
         final AccessControlContext accessControlContext =
                 AccessController.doPrivileged(GetAccessControlContextAction.getInstance());
-
         final Runnable task = new Runnable() {
             // run async in a background thread
             @Override
@@ -165,7 +166,6 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                                         if (validatorFactory != null) {
                                             emfBuilder.withValidatorFactory(validatorFactory);
                                         }
-
                                         // get the EntityManagerFactory from the second phase of the persistence unit bootstrap
                                         entityManagerFactory = emfBuilder.build();
                                     } else {
@@ -193,8 +193,13 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                                     if(wrapperBeanManagerLifeCycle != null) {
                                         beanManagerAfterDeploymentValidation.register(persistenceProviderAdaptor, wrapperBeanManagerLifeCycle);
                                     }
-                                    context.complete();
+                                    if (!Configuration.allowLazyBootstrap(pu)) {
+                                        context.complete();
+                                    }
                                 } catch (Throwable t) {
+                                    if (Configuration.allowLazyBootstrap(pu)) {
+                                        throw new RuntimeException(t.getMessage(),t);
+                                    }
                                     context.failed(new StartException(t));
                                 } finally {
                                     Thread.currentThread().setContextClassLoader(old);
@@ -215,12 +220,18 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
             }
 
         };
-        try {
-            executor.execute(task);
-        } catch (RejectedExecutionException e) {
-            task.run();
-        } finally {
-            context.asynchronous();
+        if (Configuration.allowLazyBootstrap(pu)) {
+            // entityManagerFactory will lazily call task.run() on first use.
+            entityManagerFactory = new LazyEntityManagerFactory(task, this);
+                context.complete();
+        } else {
+            try {
+                executor.execute(task);
+            } catch (RejectedExecutionException e) {
+                task.run();
+            } finally {
+                context.asynchronous();
+            }
         }
     }
 
@@ -256,7 +267,12 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                                             if (entityManagerFactory != null) {
                                                 WritableServiceBasedNamingStore.pushOwner(deploymentUnitServiceName);
                                                 try {
-                                                    if (entityManagerFactory.isOpen()) {
+                                                    if (Configuration.allowLazyBootstrap(pu) && entityManagerFactory instanceof LazyEntityManagerFactory) {
+                                                        LazyEntityManagerFactory lazyEntityManagerFactory = (LazyEntityManagerFactory)entityManagerFactory;
+                                                        if (lazyEntityManagerFactory.wasLazyEntityManagerFactoryUsed()) {
+                                                            entityManagerFactory.close();
+                                                        }
+                                                    } else if (entityManagerFactory.isOpen()) {
                                                         entityManagerFactory.close();
                                                     }
                                                 } catch (Throwable t) {

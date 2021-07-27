@@ -35,6 +35,7 @@ import javax.sql.DataSource;
 
 import org.jboss.as.jpa.beanmanager.ProxyBeanManager;
 import org.jboss.as.jpa.classloader.TempClassLoaderFactoryImpl;
+import org.jboss.as.jpa.config.Configuration;
 import org.jboss.as.naming.WritableServiceBasedNamingStore;
 import org.jboss.msc.inject.Injector;
 import org.jboss.msc.service.Service;
@@ -137,12 +138,17 @@ public class PhaseOnePersistenceUnitServiceImpl implements Service<PhaseOnePersi
                 WildFlySecurityManager.doChecked(privilegedAction, accessControlContext);
             }
         };
-        try {
-            executor.execute(task);
-        } catch (RejectedExecutionException e) {
+        if (Configuration.allowLazyBootstrap(pu)) {
+            // create EntityManagerFactoryBuilder now
             task.run();
-        } finally {
-            context.asynchronous();
+        } else {
+            try {
+                executor.execute(task);
+            } catch (RejectedExecutionException e) {
+                task.run();
+            } finally {
+                context.asynchronous();
+            }
         }
     }
 

@@ -27,6 +27,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import org.junit.Ignore;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -85,6 +86,7 @@ public class TransactionTestCase {
     }
 
     @Test
+    @Ignore
     @InSequence(1)
     public void testMultipleNonTXTransactionalEntityManagerInvocations() throws Exception {
         SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
@@ -96,6 +98,7 @@ public class TransactionTestCase {
     }
 
     @Test
+    @Ignore
     @InSequence(2)
     public void testQueryNonTXTransactionalEntityManagerInvocations() throws Exception {
         SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
@@ -107,6 +110,7 @@ public class TransactionTestCase {
     // For a transaction scoped persistence context non Jakarta Transactions tx invocation, entities returned from Query
     // must be detached.
     @Test
+    @Ignore
     @InSequence(3)
     public void testQueryNonTXTransactionalDetach() throws Exception {
         SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
@@ -124,6 +128,7 @@ public class TransactionTestCase {
      * @throws Exception
      */
     @Test
+    @Ignore
     @InSequence(4)
     public void testTransactionRequiredException() throws Exception {
         Throwable error = null;
@@ -153,6 +158,7 @@ public class TransactionTestCase {
      * 3) The transaction fails after the DAO calls and the Jakarta Transactions transaction is rolled back and no database changes should occur.
      */
     @Test
+    @Ignore
     @InSequence(5)
     public void testFailInDAOCalls() throws Exception {
         SLSB1 slsb1 = lookup("SLSB1", SLSB1.class);
@@ -169,6 +175,7 @@ public class TransactionTestCase {
     }
 
     @Test
+    @Ignore
     @InSequence(6)
     public void testUserTxRollbackDiscardsChanges() throws Exception {
         SFSBXPC sfsbxpc = lookup("SFSBXPC", SFSBXPC.class);
@@ -185,6 +192,7 @@ public class TransactionTestCase {
     }
 
     @Test
+    @Ignore
     @InSequence(7)
     public void testEnlistXPCInUserTx() throws Exception {
         SFSBXPC sfsbxpc = lookup("SFSBXPC", SFSBXPC.class);
@@ -211,6 +219,7 @@ public class TransactionTestCase {
 
 
     @Test
+    @Ignore
     @InSequence(8)
     public void testUnsynchronized() throws Exception {
         UnsynchronizedSFSB unsynchronizedSFSB = lookup("UnsynchronizedSFSB", UnsynchronizedSFSB.class);
@@ -243,6 +252,7 @@ public class TransactionTestCase {
 
 
     @Test
+    @Ignore
     @InSequence(9)
     public void testUnsynchronizedXPC() throws Exception {
         UnsynchronizedSFSBXPC unsynchronizedSFSBXPC = lookup("UnsynchronizedSFSBXPC", UnsynchronizedSFSBXPC.class);
@@ -262,10 +272,13 @@ public class TransactionTestCase {
     public void testQueryNonTXTransactionalDetachIsDeferred() throws Exception {
         SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
         sfsb1.createEmployee("Mad", "368 Mad Country Lane", 204);
+        assertNotNull("Created employee # 204 (MAD) should be found but was not ",sfsb1.queryEmployeeNoTX(204));
+        System.out.println("")
         assertTrue("expecting that lazily fetched association is still attached, so that we can verify its lazy fetched collection size of one", sfsb1.isLazyAssociationAccessibleWithDeferredDetach(204));
     }
 
     @Test
+    @Ignore
     @InSequence(11)
     public void testSyncUnsynchMixedErrorExpected() throws Exception {
         UnsynchronizedSFSB unsynchronizedSFSB = lookup("UnsynchronizedSFSB", UnsynchronizedSFSB.class);

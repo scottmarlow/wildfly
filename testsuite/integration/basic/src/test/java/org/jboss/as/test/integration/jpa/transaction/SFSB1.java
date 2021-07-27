@@ -138,7 +138,7 @@ public class SFSB1 {
     // return true if lazy associations are accessible as per the WFLY-3674 extension (jboss.as.jpa.deferdetach)
     public boolean isLazyAssociationAccessibleWithDeferredDetach(int id) {
         Company company = deferDetachEm.find(Company.class, id);
-        return company.getEmployees().size() == 1;
+        return company != null && company.getEmployees().size() == 1;
     }
 
 }

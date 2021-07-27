@@ -154,6 +154,8 @@ public class Configuration {
 
     private static final String JPA_ALLOW_APPLICATION_DEFINED_DATASOURCE = "wildfly.jpa.applicationdatasource";
 
+    public static final String JPA_LAZY_BOOTSTRAP = "wildfly.jpa.lazy";
+
     /**
      * set to false to ignore default data source (defaults to true)
      */
@@ -296,6 +298,12 @@ public class Configuration {
             result = Boolean.parseBoolean(pu.getProperties().getProperty(Configuration.JPA_ALLOW_TWO_PHASE_BOOTSTRAP));
         }
         return result;
+    }
+
+    public static boolean allowLazyBootstrap(PersistenceUnitMetadata pu) {
+        return true;  // hack to assume lazy bootstrapping for initial testing.
+//        return pu.getProperties().containsKey(Configuration.JPA_LAZY_BOOTSTRAP) &&
+//                        Boolean.parseBoolean(pu.getProperties().getProperty(Configuration.JPA_LAZY_BOOTSTRAP));
     }
 
     /**
