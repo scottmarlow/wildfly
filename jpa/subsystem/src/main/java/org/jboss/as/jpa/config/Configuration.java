@@ -289,6 +289,8 @@ public class Configuration {
      * @return
      */
     public static boolean allowTwoPhaseBootstrap(PersistenceUnitMetadata pu) {
+        return false; // hack to assume single phase
+        /*
         boolean result = true;
 
         if (EE_DEFAULT_DATASOURCE.equals(pu.getJtaDataSourceName())) {
@@ -298,6 +300,7 @@ public class Configuration {
             result = Boolean.parseBoolean(pu.getProperties().getProperty(Configuration.JPA_ALLOW_TWO_PHASE_BOOTSTRAP));
         }
         return result;
+         */
     }
 
     public static boolean allowLazyBootstrap(PersistenceUnitMetadata pu) {

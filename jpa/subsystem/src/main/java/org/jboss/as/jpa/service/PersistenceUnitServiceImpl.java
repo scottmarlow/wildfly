@@ -221,9 +221,14 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
 
         };
         if (Configuration.allowLazyBootstrap(pu)) {
-            // entityManagerFactory will lazily call task.run() on first use.
-            entityManagerFactory = new LazyEntityManagerFactory(task, this);
-                context.complete();
+            if (phaseOnePersistenceUnitServiceInjectedValue.getOptionalValue() != null) {
+                // handle phase 2 of 2
+                entityManagerFactory = new LazyEntityManagerFactory(task, this);
+            } else {
+                // handle phase 1 of 1 (entityManagerFactory will lazily call task.run() on first use).
+                entityManagerFactory = new LazyEntityManagerFactory(task, this);
+            }
+            context.complete();
         } else {
             try {
                 executor.execute(task);

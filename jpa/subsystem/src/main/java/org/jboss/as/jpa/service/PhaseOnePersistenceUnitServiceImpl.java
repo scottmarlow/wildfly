@@ -124,7 +124,9 @@ public class PhaseOnePersistenceUnitServiceImpl implements Service<PhaseOnePersi
 
                                     WritableServiceBasedNamingStore.pushOwner(deploymentUnitServiceName);
                                     entityManagerFactoryBuilder = createContainerEntityManagerFactoryBuilder();
-                                    context.complete();
+                                    if (!Configuration.allowLazyBootstrap(pu)) {
+                                        context.complete();
+                                    }
                                 } catch (Throwable t) {
                                     context.failed(new StartException(t));
                                 } finally {
@@ -139,8 +141,9 @@ public class PhaseOnePersistenceUnitServiceImpl implements Service<PhaseOnePersi
             }
         };
         if (Configuration.allowLazyBootstrap(pu)) {
-            // create EntityManagerFactoryBuilder now
+            // create EntityManagerFactoryBuilder now in current thread
             task.run();
+            context.complete();
         } else {
             try {
                 executor.execute(task);
