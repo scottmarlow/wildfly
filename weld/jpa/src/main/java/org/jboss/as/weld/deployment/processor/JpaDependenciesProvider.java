@@ -21,7 +21,6 @@
  */
 package org.jboss.as.weld.deployment.processor;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -29,7 +28,6 @@ import java.util.Set;
 
 import org.jboss.as.jpa.config.Configuration;
 import org.jboss.as.jpa.config.PersistenceUnitMetadataHolder;
-import org.jboss.as.jpa.config.PersistenceUnitsInApplication;
 import org.jboss.as.jpa.service.PersistenceUnitServiceImpl;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentUnit;
@@ -38,7 +36,6 @@ import org.jboss.as.server.deployment.SubDeploymentMarker;
 import org.jboss.as.server.deployment.module.ResourceRoot;
 import org.jboss.as.weld.spi.DeploymentUnitDependenciesProvider;
 import org.jboss.metadata.ear.spec.EarMetaData;
-import org.jboss.metadata.ear.spec.ModuleMetaData;
 import org.jboss.msc.service.ServiceName;
 import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
 
@@ -55,6 +52,8 @@ public class JpaDependenciesProvider implements DeploymentUnitDependenciesProvid
             // WFLY-14923 add persistence units defined in current (sub) deployment unit to EE components
             // also in current deployment unit.
             if (deploymentUnit.getParent() != null) {
+/**
+ * Do not add WeldStartService dependencies on persistence units contained in sub-deployments (modules).
                 List<PersistenceUnitMetadata> collectPersistenceUnitsForCurrentDeploymentUnit = new ArrayList<>();
                 final ResourceRoot deploymentRoot = deploymentUnit.getAttachment(org.jboss.as.server.deployment.Attachments.DEPLOYMENT_ROOT);
                 final ModuleMetaData moduleMetaData = deploymentRoot.getAttachment(org.jboss.as.ee.structure.Attachments.MODULE_META_DATA);
@@ -70,6 +69,7 @@ public class JpaDependenciesProvider implements DeploymentUnitDependenciesProvid
                         }
                     }
                 }
+ **/
             } else {
                 // WFLY-14923
                 // add Jakarta EE component dependencies on all persistence units in top level deployment unit.
