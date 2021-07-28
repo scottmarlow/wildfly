@@ -370,12 +370,20 @@ public class PersistenceUnitServiceHandler {
                     useDefaultDataSource = true;
                 }
                 else {
-                    builder.addDependency(ContextNames.bindInfoForEnvEntry(eeModuleDescription.getApplicationName(), eeModuleDescription.getModuleName(), eeModuleDescription.getModuleName(), false, jtaDataSource).getBinderServiceName(), ManagedReferenceFactory.class, new ManagedReferenceFactoryInjector(service.getJtaDataSourceInjector()));
+                    if(Configuration.allowLazyBootstrap(pu)) {
+                        builder.addDependency(ServiceBuilder.DependencyType.OPTIONAL, ContextNames.bindInfoForEnvEntry(eeModuleDescription.getApplicationName(), eeModuleDescription.getModuleName(), eeModuleDescription.getModuleName(), false, jtaDataSource).getBinderServiceName(), ManagedReferenceFactory.class, new ManagedReferenceFactoryInjector(service.getJtaDataSourceInjector()));
+                    } else {
+                        builder.addDependency(ContextNames.bindInfoForEnvEntry(eeModuleDescription.getApplicationName(), eeModuleDescription.getModuleName(), eeModuleDescription.getModuleName(), false, jtaDataSource).getBinderServiceName(), ManagedReferenceFactory.class, new ManagedReferenceFactoryInjector(service.getJtaDataSourceInjector()));
+                    }
                     useDefaultDataSource = false;
                 }
             }
             if (nonJtaDataSource != null && nonJtaDataSource.length() > 0) {
-                builder.addDependency(ContextNames.bindInfoForEnvEntry(eeModuleDescription.getApplicationName(), eeModuleDescription.getModuleName(), eeModuleDescription.getModuleName(), false, nonJtaDataSource).getBinderServiceName(), ManagedReferenceFactory.class, new ManagedReferenceFactoryInjector(service.getNonJtaDataSourceInjector()));
+                if(Configuration.allowLazyBootstrap(pu)) {
+                    builder.addDependency(ServiceBuilder.DependencyType.OPTIONAL, ContextNames.bindInfoForEnvEntry(eeModuleDescription.getApplicationName(), eeModuleDescription.getModuleName(), eeModuleDescription.getModuleName(), false, nonJtaDataSource).getBinderServiceName(), ManagedReferenceFactory.class, new ManagedReferenceFactoryInjector(service.getNonJtaDataSourceInjector()));
+                } else {
+                    builder.addDependency(ContextNames.bindInfoForEnvEntry(eeModuleDescription.getApplicationName(), eeModuleDescription.getModuleName(), eeModuleDescription.getModuleName(), false, nonJtaDataSource).getBinderServiceName(), ManagedReferenceFactory.class, new ManagedReferenceFactoryInjector(service.getNonJtaDataSourceInjector()));
+                }
                 useDefaultDataSource = false;
             }
             // JPA 2.0 8.2.1.5, container provides default Jakarta Transactions datasource
@@ -393,7 +401,11 @@ public class PersistenceUnitServiceHandler {
                 }
                 if (defaultJtaDataSource != null &&
                     !defaultJtaDataSource.isEmpty()) {
-                    builder.addDependency(ContextNames.bindInfoFor(defaultJtaDataSource).getBinderServiceName(), ManagedReferenceFactory.class, new ManagedReferenceFactoryInjector(service.getJtaDataSourceInjector()));
+                    if(Configuration.allowLazyBootstrap(pu)) {
+                        builder.addDependency(ServiceBuilder.DependencyType.OPTIONAL, ContextNames.bindInfoFor(defaultJtaDataSource).getBinderServiceName(), ManagedReferenceFactory.class, new ManagedReferenceFactoryInjector(service.getJtaDataSourceInjector()));
+                    } else {
+                        builder.addDependency(ContextNames.bindInfoFor(defaultJtaDataSource).getBinderServiceName(), ManagedReferenceFactory.class, new ManagedReferenceFactoryInjector(service.getJtaDataSourceInjector()));
+                    }
                     ROOT_LOGGER.tracef("%s is using the default data source '%s'", puServiceName, defaultJtaDataSource);
                 }
             }
@@ -425,8 +437,10 @@ public class PersistenceUnitServiceHandler {
              */
             entityManagerFactoryBind(eeModuleDescription, serviceTarget, pu, puServiceName);
 
-            // get async executor from Services.addServerExecutorDependency
-            addServerExecutorDependency(builder, service.getExecutorInjector());
+            if(!Configuration.allowLazyBootstrap(pu)) {
+                // get async executor from Services.addServerExecutorDependency
+                addServerExecutorDependency(builder, service.getExecutorInjector());
+            }
 
             builder.install();
 
