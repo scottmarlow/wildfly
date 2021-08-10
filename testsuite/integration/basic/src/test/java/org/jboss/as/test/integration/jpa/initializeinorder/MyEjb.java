@@ -4,7 +4,10 @@ import javax.annotation.PostConstruct;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceContext;
+import javax.persistence.PersistenceUnit;
+
 
 /**
  * @author Scott Marlow
@@ -12,6 +15,12 @@ import javax.persistence.PersistenceContext;
 @Singleton
 @Startup
 public class MyEjb {
+
+    @PersistenceUnit(unitName = "pu1")
+    EntityManagerFactory emf;
+
+    @PersistenceUnit(unitName = "pu2")
+    EntityManagerFactory emf2;
 
     @PersistenceContext(unitName = "pu1")
     EntityManager em;
@@ -21,6 +30,11 @@ public class MyEjb {
 
     @PostConstruct
     public void postConstruct() {
+        emf.isOpen();
+        emf2.isOpen();
+        em.isOpen();
+        em.isOpen();
+
         TestState.addInitOrder(MyEjb.class.getSimpleName());
     }
 
