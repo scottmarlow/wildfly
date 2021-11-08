@@ -41,8 +41,8 @@
         <preview.dist.product.slot>${full.dist.product.slot}</preview.dist.product.slot>
         <preview.dist.product.release.version>${full.dist.product.release.version}</preview.dist.product.release.version>
 
-	<!-- Version properties for dependency management items -->
-	<version.antlr>4.9.1</version.antlr>
+        <!-- Version properties for dependency management items -->
+        <version.antlr>4.9.1</version.antlr>
         <version.com.sun.faces>3.0.0.SP04</version.com.sun.faces>
         <version.com.sun.activation.jakarta.activation>2.0.0</version.com.sun.activation.jakarta.activation>
         <version.com.sun.istack>4.0.1</version.com.sun.istack>
@@ -128,10 +128,10 @@
                 </exclusions>
             </dependency>
 
-	    <dependency>
+            <dependency>
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-runtime</artifactId>
-		<version>${version.antlr}</version>
+                <version>${version.antlr}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>*</groupId>
@@ -640,10 +640,10 @@
                     </exclusion>
                 </exclusions>
             </dependency>
-	    <dependency>
+            <dependency>
                 <groupId>org.hibernate.common</groupId>
                 <artifactId>hibernate-commons-annotations</artifactId>
-		<version>${version.org.hibernate.commons.annotations}</version>
+                <version>${version.org.hibernate.commons.annotations}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>*</groupId>
@@ -655,8 +655,8 @@
             <dependency>
                 <groupId>org.hibernate.orm</groupId>
                 <artifactId>hibernate-core</artifactId>
-		<version>${version.org.hibernate}</version>
-		<scope>provided</scope>
+                <version>${version.org.hibernate}</version>
+                <scope>provided</scope>
                 <exclusions>
                     <exclusion>
                         <groupId>*</groupId>
@@ -668,8 +668,8 @@
             <dependency>
                 <groupId>org.hibernate.orm</groupId>
                 <artifactId>hibernate-envers</artifactId>
-		<version>${version.org.hibernate}</version>
-		<scope>provided</scope>
+                <version>${version.org.hibernate}</version>
+                <scope>provided</scope>
                 <exclusions>
                     <exclusion>
                         <groupId>*</groupId>
