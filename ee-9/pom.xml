@@ -79,7 +79,7 @@
 		     pom here so we detect if the base version changes there and we didn't do a -jbossorg of that version -->
         <version.org.glassfish.jaxb.jaxb-xjc>${version.sun.jaxb}-jbossorg-1</version.org.glassfish.jaxb.jaxb-xjc>
         <version.org.hibernate.commons.annotations>5.1.2.Final</version.org.hibernate.commons.annotations>
-        <version.org.hibernate>6.0.0.Beta1</version.org.hibernate>
+        <version.org.hibernate>6.0.0-SNAPSHOT</version.org.hibernate>
         <version.org.hibernate.validator>7.0.1.Final</version.org.hibernate.validator>
         <version.org.jberet>2.0.2.Final</version.org.jberet>
         <version.org.jboss.invocation>1.7.0.Final</version.org.jboss.invocation>
