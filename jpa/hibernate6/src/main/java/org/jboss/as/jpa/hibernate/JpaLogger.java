@@ -32,7 +32,7 @@ import org.jboss.logging.annotations.MessageLogger;
  * @author <a href="mailto:jperkins@redhat.com">James R. Perkins</a>
  * @author Scott Marlow
  */
-@MessageLogger(projectCode = "JIPIORMV53")
+@MessageLogger(projectCode = "JIPIORMV6")
 public interface JpaLogger extends BasicLogger {
 
     /**
@@ -46,7 +46,23 @@ public interface JpaLogger extends BasicLogger {
      * @param puUnitName the persistence unit name
      */
     @LogMessage(level = INFO)
-    @Message(id = 20253, value = "Second level cache enabled for %s")
+    @Message(id = 20260, value = "Second level cache enabled for %s")
     void secondLevelCacheIsEnabled(Object puUnitName);
+
+    /**
+     * Creates an exception indicating that Hibernate ORM did not register the expected LifeCycleListener
+     *
+     * @return an {@link IllegalStateException} for the error.
+     */
+    @Message(id = 20261, value = "Hibernate ORM did not register LifeCycleListener")
+    IllegalStateException HibernateORMDidNotRegisterLifeCycleListener();
+
+    /**
+     * Creates an exception indicating that Hibernate ORM did not register the expected LifeCycleListener
+     *
+     * @return an {@link IllegalStateException} for the error.
+     */
+    @Message(id = 20262, value = "Hibernate ORM already registered the LifeCycleListener")
+    IllegalStateException HibernateORMAlreadyRegisteredLifeCycleListener();
 
 }
