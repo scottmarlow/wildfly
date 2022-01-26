@@ -86,13 +86,13 @@ public class HibernateEntityCacheStatistics extends HibernateAbstractStatistics 
         return null;
     }
 
-    org.hibernate.stat.SecondLevelCacheStatistics getStatistics(EntityManagerFactoryAccess entityManagerFactoryaccess, PathAddress pathAddress) {
+    org.hibernate.stat.CacheRegionStatistics getStatistics(EntityManagerFactoryAccess entityManagerFactoryaccess, PathAddress pathAddress) {
         String scopedPersistenceUnitName = pathAddress.getValue(HibernateStatistics.PROVIDER_LABEL);
         SessionFactory sessionFactory = entityManagerFactoryaccess.entityManagerFactory(scopedPersistenceUnitName).unwrap(SessionFactory.class);
         if (sessionFactory != null) {
             // The entity class name is prefixed by the application scoped persistence unit name
 
-            return sessionFactory.getStatistics().getSecondLevelCacheStatistics(scopedPersistenceUnitName + "." +
+            return sessionFactory.getStatistics().getCacheRegionStatistics(scopedPersistenceUnitName + "." +
                     pathAddress.getValue(HibernateStatistics.ENTITYCACHE));
         }
         return null;
@@ -108,7 +108,7 @@ public class HibernateEntityCacheStatistics extends HibernateAbstractStatistics 
     private Operation entityCacheHitCount = new Operation() {
         @Override
         public Object invoke(Object... args) {
-            org.hibernate.stat.SecondLevelCacheStatistics statistics = getStatistics(getEntityManagerFactoryAccess(args),  getPathAddress(args));
+            org.hibernate.stat.CacheRegionStatistics statistics = getStatistics(getEntityManagerFactoryAccess(args),  getPathAddress(args));
             return Long.valueOf(statistics != null ? statistics.getHitCount() : 0);
         }
     };
@@ -116,7 +116,7 @@ public class HibernateEntityCacheStatistics extends HibernateAbstractStatistics 
     private Operation entityCacheMissCount = new Operation() {
         @Override
         public Object invoke(Object... args) {
-            org.hibernate.stat.SecondLevelCacheStatistics statistics = getStatistics(getEntityManagerFactoryAccess(args),  getPathAddress(args));
+            org.hibernate.stat.CacheRegionStatistics statistics = getStatistics(getEntityManagerFactoryAccess(args),  getPathAddress(args));
             return Long.valueOf(statistics != null ? statistics.getMissCount() : 0);
         }
     };
@@ -124,7 +124,7 @@ public class HibernateEntityCacheStatistics extends HibernateAbstractStatistics 
     private Operation entityCachePutCount = new Operation() {
         @Override
         public Object invoke(Object... args) {
-            org.hibernate.stat.SecondLevelCacheStatistics statistics = getStatistics(getEntityManagerFactoryAccess(args),  getPathAddress(args));
+            org.hibernate.stat.CacheRegionStatistics statistics = getStatistics(getEntityManagerFactoryAccess(args),  getPathAddress(args));
             return Long.valueOf(statistics != null ? statistics.getPutCount() : 0);
         }
     };
@@ -132,7 +132,7 @@ public class HibernateEntityCacheStatistics extends HibernateAbstractStatistics 
     private Operation entityCacheSizeInMemory = new Operation() {
         @Override
         public Object invoke(Object... args) {
-            org.hibernate.stat.SecondLevelCacheStatistics statistics = getStatistics(getEntityManagerFactoryAccess(args),  getPathAddress(args));
+            org.hibernate.stat.CacheRegionStatistics statistics = getStatistics(getEntityManagerFactoryAccess(args),  getPathAddress(args));
             return Long.valueOf(statistics != null ? statistics.getSizeInMemory() : 0);
         }
     };
@@ -140,7 +140,7 @@ public class HibernateEntityCacheStatistics extends HibernateAbstractStatistics 
     private Operation entityCacheCountInMemory = new Operation() {
         @Override
         public Object invoke(Object... args) {
-            org.hibernate.stat.SecondLevelCacheStatistics statistics = getStatistics(getEntityManagerFactoryAccess(args),  getPathAddress(args));
+            org.hibernate.stat.CacheRegionStatistics statistics = getStatistics(getEntityManagerFactoryAccess(args),  getPathAddress(args));
             return Long.valueOf(statistics != null ? statistics.getElementCountInMemory() : 0);
         }
     };

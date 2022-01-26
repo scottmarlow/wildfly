@@ -65,4 +65,15 @@ public interface JpaLogger extends BasicLogger {
     @Message(id = 20262, value = "Hibernate ORM already registered the LifeCycleListener")
     IllegalStateException HibernateORMAlreadyRegisteredLifeCycleListener();
 
+    /**
+     * Creates an exception indicating application is setting persistence unit property "hibernate.id.new_generator_mappings" to
+     * false which indicates that the old ID generator should be used, however Hibernate ORM 6 does not include the old ID generator.
+     *
+     * @return an {@link IllegalStateException} for the error.
+     */
+    @Message(id = 20263, value = "hibernate.id.new_generator_mappings set to false is not supported" +
+            ", remove the setting or set to true.  "+
+            "Refer to Hibernate ORM migration documentation for how to update the next id state in the application database.")
+    IllegalStateException failOnIncompatibleSetting();
+
 }

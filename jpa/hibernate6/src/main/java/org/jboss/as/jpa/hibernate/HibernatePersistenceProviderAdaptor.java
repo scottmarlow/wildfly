@@ -51,6 +51,10 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
     private static final String NONE = SharedCacheMode.NONE.name();
     private static final String UNSPECIFIED = SharedCacheMode.UNSPECIFIED.name();
 
+    // Hibernate ORM 5.3 setting which if false, the old IdentifierGenerator were used for AUTO, TABLE and SEQUENCE id generation.
+    // Hibernate ORM 6.0 does not support AvailableSettings.USE_NEW_ID_GENERATOR_MAPPINGS
+    private static final String USE_NEW_ID_GENERATOR_MAPPINGS = "hibernate.id.new_generator_mappings";
+
     @Override
     public void injectJtaManager(JtaManager jtaManager) {
         WildFlyCustomJtaPlatform.setTransactionSynchronizationRegistry(jtaManager.getSynchronizationRegistry());
@@ -67,7 +71,7 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
     @Override
     public void addProviderProperties(Map properties, PersistenceUnitMetadata pu) {
         putPropertyIfAbsent(pu, properties, AvailableSettings.JPAQL_STRICT_COMPLIANCE, "true"); // JIPI-24 ignore jpql aliases case
-        putPropertyIfAbsent(pu, properties, AvailableSettings.USE_NEW_ID_GENERATOR_MAPPINGS, "true");
+        failOnIncompatibleSetting(pu, properties);  // fail if
         putPropertyIfAbsent(pu, properties, AvailableSettings.KEYWORD_AUTO_QUOTING_ENABLED,"false");
         putPropertyIfAbsent(pu, properties, AvailableSettings.IMPLICIT_NAMING_STRATEGY, NAMING_STRATEGY_JPA_COMPLIANT_IMPL);
         putPropertyIfAbsent(pu, properties, AvailableSettings.SCANNER, HibernateArchiveScanner.class);
@@ -90,6 +94,12 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
 
         // Search hint
         putPropertyIfAbsent( pu, properties,"hibernate.search.index_uninverting_allowed", "true" );
+    }
+
+    private void failOnIncompatibleSetting(PersistenceUnitMetadata pu, Map properties) {
+        if ("false".equals(pu.getProperties().getProperty(USE_NEW_ID_GENERATOR_MAPPINGS))) {
+            throw JpaLogger.JPA_LOGGER.failOnIncompatibleSetting();
+        }
     }
 
     @Override
