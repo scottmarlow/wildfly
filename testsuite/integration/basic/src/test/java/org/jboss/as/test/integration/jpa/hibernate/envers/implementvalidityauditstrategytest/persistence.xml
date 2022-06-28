@@ -26,6 +26,10 @@
         <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
         <properties>
             <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="jboss.as.jpa.classtransformer" value="false" />
+            <property name="hibernate.enhancer.enableDirtyTracking" value="false" />
+            <property name="hibernate.enhancer.enableLazyInitialization" value="false" />
+            <property name="hibernate.enhancer.enableAssociationManagement" value="false" />
             <property name="org.hibernate.envers.audit_strategy" value="org.hibernate.envers.strategy.ValidityAuditStrategy"/>
             <property name="org.hibernate.envers.audit_strategy_validity_revend_timestamp_field_name" value="REVEND_VALIDITY"/>
         </properties>
