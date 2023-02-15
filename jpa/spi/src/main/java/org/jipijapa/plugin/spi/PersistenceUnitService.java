@@ -39,6 +39,12 @@ public interface PersistenceUnitService {
     EntityManagerFactory getEntityManagerFactory();
 
     /**
+     *
+     * @return true if the entity manager factory is available for use, false if it is not yet started.
+     */
+    boolean EntityManagerFactoryStarted();
+
+    /**
      * Gets the scoped name of this persistence unit.
      *
      * @return the name

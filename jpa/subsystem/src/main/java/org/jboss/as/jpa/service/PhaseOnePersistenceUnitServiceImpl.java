@@ -71,8 +71,6 @@ public class PhaseOnePersistenceUnitServiceImpl implements Service<PhaseOnePersi
     private final ClassLoader classLoader;
     private final ServiceName deploymentUnitServiceName;
     private final ProxyBeanManager proxyBeanManager;
-    private final Object wrapperBeanManagerLifeCycle;
-
     private volatile EntityManagerFactoryBuilder entityManagerFactoryBuilder;
 
     private volatile boolean secondPhaseStarted = false;
@@ -88,7 +86,6 @@ public class PhaseOnePersistenceUnitServiceImpl implements Service<PhaseOnePersi
         this.classLoader = classLoader;
         this.deploymentUnitServiceName = deploymentUnitServiceName;
         this.proxyBeanManager = proxyBeanManager;
-        this.wrapperBeanManagerLifeCycle = proxyBeanManager != null ? persistenceProviderAdaptor.beanManagerLifeCycle(proxyBeanManager): null;
     }
 
     @Override
@@ -114,13 +111,7 @@ public class PhaseOnePersistenceUnitServiceImpl implements Service<PhaseOnePersi
                                     pu.setNonJtaDataSource(nonJtaDataSource.getOptionalValue());
 
                                     if (proxyBeanManager != null) {
-                                        if (wrapperBeanManagerLifeCycle != null) {
-                                          // pass the wrapper object representing the bean manager life cycle object
-                                          properties.getValue().put(EE_NAMESPACE + CDI_BEAN_MANAGER, wrapperBeanManagerLifeCycle);
-                                        }
-                                        else {
-                                          properties.getValue().put(EE_NAMESPACE + CDI_BEAN_MANAGER, proxyBeanManager);
-                                        }
+                                      properties.getValue().put(EE_NAMESPACE + CDI_BEAN_MANAGER, proxyBeanManager);
                                     }
 
                                     WritableServiceBasedNamingStore.pushOwner(deploymentUnitServiceName);
@@ -238,10 +229,6 @@ public class PhaseOnePersistenceUnitServiceImpl implements Service<PhaseOnePersi
 
     public ProxyBeanManager getBeanManager() {
         return proxyBeanManager;
-    }
-
-    public Object getBeanManagerLifeCycle() {
-        return wrapperBeanManagerLifeCycle;
     }
 
     /**

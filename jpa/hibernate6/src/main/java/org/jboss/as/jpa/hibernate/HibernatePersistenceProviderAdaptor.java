@@ -21,7 +21,6 @@ package org.jboss.as.jpa.hibernate;
 import java.util.Map;
 import java.util.Properties;
 
-import jakarta.enterprise.inject.spi.BeanManager;
 import jakarta.persistence.SharedCacheMode;
 import jakarta.persistence.spi.PersistenceUnitInfo;
 
@@ -212,19 +211,6 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
     @Override
     public void cleanup(PersistenceUnitMetadata pu) {
 
-    }
-
-    @Override
-    public Object beanManagerLifeCycle(BeanManager beanManager) {
-        return new HibernateExtendedBeanManager(beanManager);
-    }
-
-    @Override
-    public void markPersistenceUnitAvailable(Object wrapperBeanManagerLifeCycle) {
-
-        HibernateExtendedBeanManager hibernateExtendedBeanManager = (HibernateExtendedBeanManager) wrapperBeanManagerLifeCycle;
-        // notify Hibernate ORM ExtendedBeanManager extension that the entity listener(s) can now be registered.
-        hibernateExtendedBeanManager.beanManagerIsAvailableForUse();
     }
 
     /* start of TwoPhaseBootstrapCapable methods */

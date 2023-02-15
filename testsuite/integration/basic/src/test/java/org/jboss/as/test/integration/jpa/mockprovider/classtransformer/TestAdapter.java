@@ -2,8 +2,6 @@ package org.jboss.as.test.integration.jpa.mockprovider.classtransformer;
 
 import java.util.Map;
 
-import jakarta.enterprise.inject.spi.BeanManager;
-
 import org.jipijapa.plugin.spi.JtaManager;
 import org.jipijapa.plugin.spi.ManagementAdaptor;
 import org.jipijapa.plugin.spi.PersistenceProviderAdaptor;
@@ -61,16 +59,6 @@ public class TestAdapter implements PersistenceProviderAdaptor {
 
     @Override
     public void cleanup(PersistenceUnitMetadata pu) {
-
-    }
-
-    @Override
-    public Object beanManagerLifeCycle(BeanManager beanManager) {
-        return null;
-    }
-
-    @Override
-    public void markPersistenceUnitAvailable(Object wrapperBeanManagerLifeCycle) {
 
     }
 

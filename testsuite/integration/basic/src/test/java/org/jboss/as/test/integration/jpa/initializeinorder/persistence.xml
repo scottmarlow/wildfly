@@ -21,4 +21,136 @@
             <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
         </properties>
     </persistence-unit>
+    <persistence-unit name="pu3">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <properties>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="PersistenceUnitName" value="pu2"/>
+            <property name="wildfly.jpa.default-unit" value="true"/>
+            <property name="hibernate.enhancer.enableDirtyTracking" value="true"/>
+            <property name="hibernate.enhancer.enableLazyInitialization" value="true"/>
+            <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="pu4">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <properties>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="PersistenceUnitName" value="pu2"/>
+            <property name="wildfly.jpa.default-unit" value="true"/>
+            <property name="hibernate.enhancer.enableDirtyTracking" value="true"/>
+            <property name="hibernate.enhancer.enableLazyInitialization" value="true"/>
+            <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
+        </properties>
+    </persistence-unit>
+        <persistence-unit name="pu5">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <properties>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="PersistenceUnitName" value="pu2"/>
+            <property name="wildfly.jpa.default-unit" value="true"/>
+            <property name="hibernate.enhancer.enableDirtyTracking" value="true"/>
+            <property name="hibernate.enhancer.enableLazyInitialization" value="true"/>
+            <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="pu6">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <properties>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="PersistenceUnitName" value="pu2"/>
+            <property name="wildfly.jpa.default-unit" value="true"/>
+            <property name="hibernate.enhancer.enableDirtyTracking" value="true"/>
+            <property name="hibernate.enhancer.enableLazyInitialization" value="true"/>
+            <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="pu7">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <properties>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="PersistenceUnitName" value="pu2"/>
+            <property name="wildfly.jpa.default-unit" value="true"/>
+            <property name="hibernate.enhancer.enableDirtyTracking" value="true"/>
+            <property name="hibernate.enhancer.enableLazyInitialization" value="true"/>
+            <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
+        </properties>
+    </persistence-unit>
+        <persistence-unit name="pu8">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <properties>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="PersistenceUnitName" value="pu2"/>
+            <property name="wildfly.jpa.default-unit" value="true"/>
+            <property name="hibernate.enhancer.enableDirtyTracking" value="true"/>
+            <property name="hibernate.enhancer.enableLazyInitialization" value="true"/>
+            <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="pu9">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <properties>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="PersistenceUnitName" value="pu2"/>
+            <property name="wildfly.jpa.default-unit" value="true"/>
+            <property name="hibernate.enhancer.enableDirtyTracking" value="true"/>
+            <property name="hibernate.enhancer.enableLazyInitialization" value="true"/>
+            <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="pu10">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <properties>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="PersistenceUnitName" value="pu2"/>
+            <property name="wildfly.jpa.default-unit" value="true"/>
+            <property name="hibernate.enhancer.enableDirtyTracking" value="true"/>
+            <property name="hibernate.enhancer.enableLazyInitialization" value="true"/>
+            <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
+        </properties>
+    </persistence-unit>
+        <persistence-unit name="pu11">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <properties>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="PersistenceUnitName" value="pu2"/>
+            <property name="wildfly.jpa.default-unit" value="true"/>
+            <property name="hibernate.enhancer.enableDirtyTracking" value="true"/>
+            <property name="hibernate.enhancer.enableLazyInitialization" value="true"/>
+            <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="pu12">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <properties>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="PersistenceUnitName" value="pu2"/>
+            <property name="wildfly.jpa.default-unit" value="true"/>
+            <property name="hibernate.enhancer.enableDirtyTracking" value="true"/>
+            <property name="hibernate.enhancer.enableLazyInitialization" value="true"/>
+            <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="pu13">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <properties>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="PersistenceUnitName" value="pu2"/>
+            <property name="wildfly.jpa.default-unit" value="true"/>
+            <property name="hibernate.enhancer.enableDirtyTracking" value="true"/>
+            <property name="hibernate.enhancer.enableLazyInitialization" value="true"/>
+            <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
+        </properties>
+    </persistence-unit>
+        <persistence-unit name="pu14">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <properties>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="PersistenceUnitName" value="pu2"/>
+            <property name="wildfly.jpa.default-unit" value="true"/>
+            <property name="hibernate.enhancer.enableDirtyTracking" value="true"/>
+            <property name="hibernate.enhancer.enableLazyInitialization" value="true"/>
+            <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
+        </properties>
+    </persistence-unit>
 </persistence>

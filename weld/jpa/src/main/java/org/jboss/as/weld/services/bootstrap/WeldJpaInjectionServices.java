@@ -80,7 +80,7 @@ public class WeldJpaInjectionServices implements JpaInjectionServices {
         //now we have the service controller, as this method is only called at runtime the service should
         //always be up
         final PersistenceUnitServiceImpl persistenceUnitService = (PersistenceUnitServiceImpl) serviceController.getValue();
-        if (persistenceUnitService.getEntityManagerFactory() != null) {
+        if (persistenceUnitService.EntityManagerFactoryStarted() && persistenceUnitService.getEntityManagerFactory() != null) {
             return new EntityManagerResourceReferenceFactory(scopedPuName, persistenceUnitService.getEntityManagerFactory(), context, deploymentUnit.getAttachment(JpaAttachments.TRANSACTION_SYNCHRONIZATION_REGISTRY), ContextTransactionManager.getInstance());
         } else {
             return new LazyFactory<EntityManager>(serviceController, scopedPuName, new Callable<EntityManager>() {
@@ -112,7 +112,7 @@ public class WeldJpaInjectionServices implements JpaInjectionServices {
         //now we have the service controller, as this method is only called at runtime the service should
         //always be up
         final PersistenceUnitServiceImpl persistenceUnitService = (PersistenceUnitServiceImpl) serviceController.getValue();
-        if (persistenceUnitService.getEntityManagerFactory() != null) {
+        if (persistenceUnitService.EntityManagerFactoryStarted() && persistenceUnitService.getEntityManagerFactory() != null) {
             return new ImmediateResourceReferenceFactory<EntityManagerFactory>(persistenceUnitService.getEntityManagerFactory());
         } else {
             return new LazyFactory<EntityManagerFactory>(serviceController, scopedPuName, new Callable<EntityManagerFactory>() {

@@ -31,8 +31,6 @@ import jakarta.enterprise.inject.spi.AfterDeploymentValidation;
 import jakarta.enterprise.inject.spi.BeanManager;
 import jakarta.enterprise.inject.spi.Extension;
 
-import org.jipijapa.plugin.spi.PersistenceProviderAdaptor;
-
 /**
  * BeanManagerAfterDeploymentValidation
  *
@@ -48,39 +46,49 @@ public class BeanManagerAfterDeploymentValidation implements Extension {
     }
 
     void afterDeploymentValidation(@Observes AfterDeploymentValidation event, BeanManager manager) {
-        markPersistenceUnitAvailable();
-    }
-
-    private boolean afterDeploymentValidation = false;
-    private final ArrayList<DeferredCall> deferredCalls = new ArrayList();
-
-    public synchronized void register(final PersistenceProviderAdaptor persistenceProviderAdaptor, final Object wrapperBeanManagerLifeCycle) {
-        if (afterDeploymentValidation) {
-            persistenceProviderAdaptor.markPersistenceUnitAvailable(wrapperBeanManagerLifeCycle);
-        } else {
-            deferredCalls.add(new DeferredCall(persistenceProviderAdaptor, wrapperBeanManagerLifeCycle));
+        this.cdiBeanManager = manager;
+        try {
+            runNow();
+        } catch (Throwable throwable) {
+            event.addDeploymentProblem(throwable);
         }
     }
 
-    public synchronized void markPersistenceUnitAvailable() {
+    private synchronized void runNow() {
         afterDeploymentValidation = true;
         for(DeferredCall deferredCall: deferredCalls) {
-            deferredCall.markPersistenceUnitAvailable();
+            deferredCall.runNow(cdiBeanManager);
         }
         deferredCalls.clear();
     }
 
-    private static class DeferredCall {
-        private final PersistenceProviderAdaptor persistenceProviderAdaptor;
-        private final Object wrapperBeanManagerLifeCycle;
+    private boolean afterDeploymentValidation = false;
+    private final  ArrayList<DeferredCall> deferredCalls = new ArrayList();
+    private volatile BeanManager cdiBeanManager;
 
-        DeferredCall(final PersistenceProviderAdaptor persistenceProviderAdaptor, final Object wrapperBeanManagerLifeCycle) {
-            this.persistenceProviderAdaptor = persistenceProviderAdaptor;
-            this.wrapperBeanManagerLifeCycle = wrapperBeanManagerLifeCycle;
+    public synchronized void register(Runnable afterDeploymentValidationTask, ProxyBeanManager proxyBeanManager) {
+        if (afterDeploymentValidation) {
+            DeferredCall deferredCall = new DeferredCall(afterDeploymentValidationTask, proxyBeanManager);
+            deferredCall.runNow(cdiBeanManager);
+        } else {
+            deferredCalls.add(new DeferredCall(afterDeploymentValidationTask, proxyBeanManager));
+        }
+    }
+
+    private static class DeferredCall {
+        private final Runnable afterDeploymentValidationTask;
+        private final ProxyBeanManager beanManager;
+
+        DeferredCall(final Runnable afterDeploymentValidationTask, final ProxyBeanManager beanManager) {
+            this.afterDeploymentValidationTask = afterDeploymentValidationTask;
+            this.beanManager = beanManager;
         }
 
-        void markPersistenceUnitAvailable() {
-            persistenceProviderAdaptor.markPersistenceUnitAvailable(wrapperBeanManagerLifeCycle);
+        void runNow(BeanManager cdiBeanManager) {
+            if (afterDeploymentValidationTask != null && beanManager != null) {
+                beanManager.setDelegate(cdiBeanManager);
+                afterDeploymentValidationTask.run();
+            }
         }
     }
 

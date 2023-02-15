@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 
-import jakarta.enterprise.inject.spi.BeanManager;
 import jakarta.persistence.spi.PersistenceProvider;
 
 import org.jboss.as.jpa.messages.JpaLogger;
@@ -95,15 +94,6 @@ public class PersistenceProviderAdaptorLoader {
         public void cleanup(PersistenceUnitMetadata pu) {
         }
 
-        @Override
-        public Object beanManagerLifeCycle(BeanManager beanManager) {
-            return null;
-        }
-
-        @Override
-        public void markPersistenceUnitAvailable(Object wrapperBeanManagerLifeCycle) {
-
-        }
     };
 
     /**
