@@ -78,6 +78,9 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
                                                     // correctly in the database to match what the application is changed to instead use when inserting
                                                     // new database table rows.
 
+        putPropertyIfAbsent(pu, properties, "hibernate.type.wrapper_array_handling","legacy");
+
+
         putPropertyIfAbsent(pu, properties, AvailableSettings.KEYWORD_AUTO_QUOTING_ENABLED,"false");
         putPropertyIfAbsent(pu, properties, AvailableSettings.IMPLICIT_NAMING_STRATEGY, NAMING_STRATEGY_JPA_COMPLIANT_IMPL);
         putPropertyIfAbsent(pu, properties, AvailableSettings.SCANNER, HibernateArchiveScanner.class);
