@@ -24,7 +24,13 @@ package org.jboss.as.jpa.processor;
 
 import static org.jboss.as.jpa.messages.JpaLogger.ROOT_LOGGER;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -44,7 +50,7 @@ import org.wildfly.security.manager.action.GetAccessControlContextAction;
  */
 class JPADelegatingClassFileTransformer implements ClassTransformer {
     private final PersistenceUnitMetadata persistenceUnitMetadata;
-
+    private static final Object lock = new Object();
     public JPADelegatingClassFileTransformer(PersistenceUnitMetadata pu) {
         persistenceUnitMetadata = pu;
     }
@@ -59,27 +65,49 @@ class JPADelegatingClassFileTransformer implements ClassTransformer {
                     // run as security privileged action
                     @Override
                     public ByteBuffer run() {
-
                         byte[] transformedBuffer = getBytes(classBytes);
                         boolean transformed = false;
-                        for (jakarta.persistence.spi.ClassTransformer transformer : persistenceUnitMetadata.getTransformers()) {
-                            if (ROOT_LOGGER.isTraceEnabled())
-                                ROOT_LOGGER.tracef("rewrite entity class '%s' using transformer '%s' for '%s'", className,
-                                        transformer.getClass().getName(),
-                                        persistenceUnitMetadata.getScopedPersistenceUnitName());
-                            byte[] result;
-                            try {
-                                // parameter classBeingRedefined is always passed as null
-                                // because we won't ever be called to transform already loaded classes.
-                                result = transformer.transform(classLoader, className, null, protectionDomain, transformedBuffer);
-                            } catch (Exception e) {
-                                throw JpaLogger.ROOT_LOGGER.invalidClassFormat(e, className);
-                            }
-                            if (result != null) {
-                                transformedBuffer = result;
-                                transformed = true;
+                        synchronized(lock) {
+
+                            for (jakarta.persistence.spi.ClassTransformer transformer : persistenceUnitMetadata.getTransformers()) {
                                 if (ROOT_LOGGER.isTraceEnabled())
-                                    ROOT_LOGGER.tracef("entity class '%s' was rewritten", className);
+                                    ROOT_LOGGER.tracef("rewrite entity class '%s' using transformer '%s' for '%s'", className,
+                                            transformer.getClass().getName(),
+                                            persistenceUnitMetadata.getScopedPersistenceUnitName());
+                                byte[] result;
+                                try {
+                                    // parameter classBeingRedefined is always passed as null
+                                    // because we won't ever be called to transform already loaded classes.
+                                    result = transformer.transform(classLoader, className, null, protectionDomain, transformedBuffer);
+                                } catch (Exception e) {
+                                    throw JpaLogger.ROOT_LOGGER.invalidClassFormat(e, className);
+                                }
+                                if (result != null) {
+                                    transformedBuffer = result;
+                                    transformed = true;
+                                    if (ROOT_LOGGER.isTraceEnabled()) {
+                                        ROOT_LOGGER.tracef("entity class '%s' was rewritten", className);
+                                        File jpaFolder = new File("/tmp/jpa/");
+                                        if (!jpaFolder.exists()) {
+                                            jpaFolder.mkdirs();
+                                        }
+                                        int startoff = className.lastIndexOf("/") + 1;
+                                        Path path = Paths.get(jpaFolder.getPath(), className.substring(0, startoff));
+                                        File targetFolder = path.toFile();
+                                        if (!targetFolder.exists()) {
+                                            targetFolder.mkdirs();
+                                        }
+
+                                        String nameOnly = className.substring(startoff);
+                                        path = Paths.get(targetFolder.getPath(), nameOnly + ".class");
+                                        ROOT_LOGGER.tracef("save entity class '%s' to %s", className, path.toFile().getPath());
+                                        try {
+                                            Files.write(path, result, StandardOpenOption.APPEND, StandardOpenOption.CREATE);
+                                        } catch (IOException ignore) {
+                                            ignore.printStackTrace();
+                                        }
+                                    }
+                                }
                             }
                         }
                         return transformed ? ByteBuffer.wrap(transformedBuffer) : null;
