@@ -90,6 +90,9 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
 
         putPropertyIfAbsent( pu, properties, AvailableSettings.ENABLE_LAZY_LOAD_NO_TRANS, false );
 
+        // Disable inline dirty checking as workaround for https://hibernate.atlassian.net/browse/HHH-16572
+        putPropertyIfAbsent( pu, properties, AvailableSettings.ENHANCER_ENABLE_DIRTY_TRACKING, false );
+
         // Enable JPA Compliance mode
         putPropertyIfAbsent( pu, properties, AvailableSettings.JPA_COMPLIANCE, true);
     }
