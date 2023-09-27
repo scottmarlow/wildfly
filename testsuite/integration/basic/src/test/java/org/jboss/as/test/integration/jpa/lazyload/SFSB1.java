@@ -69,32 +69,20 @@ public class SFSB1 {
     }
 
     public Employee getEmployee(int id) throws IOException, ClassNotFoundException {
-        UserTransaction tx1 = sessionContext.getUserTransaction();
-        try {
-            tx1.begin();
-            em.joinTransaction();
 
-            Employee emp = em.find(Employee.class, id);
-            // System.out.printf("emp company = " + emp.getCompany()); // uncomment to hack around failure
-            // serialize the loaded employee
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            ObjectOutput out = new ObjectOutputStream(stream);
-            out.writeObject(emp);
-            out.close();
+        Employee emp = em.find(Employee.class, id);
+        // serialize the loaded employee
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        ObjectOutput out = new ObjectOutputStream(stream);
+        out.writeObject(emp);
+        out.close();
 
-            byte[] serialized = stream.toByteArray();
-            stream.close();
-            ByteArrayInputStream byteIn = new ByteArrayInputStream(serialized);
-            ObjectInputStream in = new ObjectInputStream(byteIn);
-            Employee emp2 = (Employee) in.readObject();
-            // the following line fails unless previous call to getCompany is uncommented.
-            // failure is  org.hibernate.LazyInitializationException: could not initialize proxy [org.jboss.as.test.integration.jpa.lazyload.Company#10001] - no Session
-            System.out.printf("emp2 company = " + emp2.getCompany()); // this line fails with
-            tx1.commit();
-            return emp2;
-        } catch (Exception e) {
-            throw new RuntimeException("getEmployee couldn't start tx", e);
-    }
+        byte[] serialized = stream.toByteArray();
+        stream.close();
+        ByteArrayInputStream byteIn = new ByteArrayInputStream(serialized);
+        ObjectInputStream in = new ObjectInputStream(byteIn);
+        Employee emp2 = (Employee) in.readObject();
 
+        return emp2;
     }
 }
