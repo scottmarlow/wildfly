@@ -30,6 +30,7 @@ import jakarta.ejb.TransactionManagement;
 import jakarta.ejb.TransactionManagementType;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.PersistenceContextType;
 import jakarta.transaction.UserTransaction;
 
 /**
@@ -40,8 +41,12 @@ import jakarta.transaction.UserTransaction;
 @Stateful
 @TransactionManagement(TransactionManagementType.BEAN)
 public class SFSB1 {
-    @PersistenceContext
-    EntityManager em;
+    @PersistenceContext(unitName="pu_clusternode1")
+    EntityManager em_clusternode1;
+
+    @PersistenceContext(unitName="pu_clusternode2", type = PersistenceContextType.EXTENDED)
+    EntityManager em_clusternode2;
+
 
     @Resource
     SessionContext sessionContext;
@@ -59,9 +64,9 @@ public class SFSB1 {
         UserTransaction tx1 = sessionContext.getUserTransaction();
         try {
             tx1.begin();
-            em.joinTransaction();
-            em.persist(emp);
-            em.persist(company);
+            em_clusternode1.joinTransaction();
+            em_clusternode1.persist(emp);
+            em_clusternode1.persist(company);
             tx1.commit();
         } catch (Exception e) {
             throw new RuntimeException("createEmployee couldn't start tx", e);
@@ -70,7 +75,7 @@ public class SFSB1 {
 
     public Employee getEmployee(int id) throws IOException, ClassNotFoundException {
 
-        Employee emp = em.find(Employee.class, id);
+        Employee emp = em_clusternode1.find(Employee.class, id);
         // serialize the loaded employee
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         ObjectOutput out = new ObjectOutputStream(stream);
@@ -83,6 +88,7 @@ public class SFSB1 {
         ObjectInputStream in = new ObjectInputStream(byteIn);
         Employee emp2 = (Employee) in.readObject();
 
-        return emp2;
+        return em_clusternode2.merge(emp2);
+
     }
 }
