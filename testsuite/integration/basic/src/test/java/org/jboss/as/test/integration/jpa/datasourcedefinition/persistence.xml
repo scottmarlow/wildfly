@@ -6,7 +6,7 @@
 
 <persistence xmlns="http://java.sun.com/xml/ns/persistence" version="1.0">
     <persistence-unit name="mypc">
-        <jta-data-source>java:app/DataSource</jta-data-source>
+        <jta-data-source>java:app/deneme2DS</jta-data-source>
         <properties>
             <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
             <property name="wildfly.jpa.twophasebootstrap" value="true"/>

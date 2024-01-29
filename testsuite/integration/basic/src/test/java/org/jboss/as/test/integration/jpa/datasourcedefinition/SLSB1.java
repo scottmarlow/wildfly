@@ -8,7 +8,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.Arrays;
 import jakarta.annotation.Resource;
-import jakarta.annotation.sql.DataSourceDefinition;
 import jakarta.ejb.Stateless;
 import jakarta.ejb.TransactionAttribute;
 import jakarta.ejb.TransactionAttributeType;
@@ -25,14 +24,6 @@ import jakarta.transaction.UserTransaction;
 /**
  * @author Zbynek Roubalik
  */
-@DataSourceDefinition(
-        name = "java:app/DataSource",
-        user = "sa",
-        password = "sa",
-        className = "org.h2.jdbcx.JdbcDataSource",
-        url = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
-
-)
 @Stateless
 @TransactionManagement(TransactionManagementType.BEAN)
 public class SLSB1 {
