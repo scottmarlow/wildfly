@@ -59,28 +59,29 @@ public class SimpleServlet extends HttpServlet {
 
         int entityCount = 0;
         try {
-            int timeoutSeconds = 5;
+            int timeoutSeconds = 20;
             userTransaction.setTransactionTimeout(timeoutSeconds);
             userTransaction.begin();
             EntityManager entityManager = entityManagerFactory.createEntityManager();
             System.out.println("entityManager.isJoinedToTransaction() == " + entityManager.isJoinedToTransaction());
             entityManager.joinTransaction();
-            System.out.println("entityManager.isJoinedToTransaction() == " + entityManager.isJoinedToTransaction());
+            System.out.println("entityManager.isJoinedToTransaction() == " + entityManager.isJoinedToTransaction() + " tx status == " + userTransaction.getStatus());
             Employee employee=null;
             boolean notRolledBackException = false;
-            while (!notRolledBackException) {
+            while (!notRolledBackException && userTransaction.getStatus() == Status.STATUS_ACTIVE) {
                 try {
-                    Thread.sleep(10 * 1000);
-                    int transactionStatus = userTransaction.getStatus();
-                    System.out.println("after ten second sleep (tx should of rolled back by now), application transaction status = " + transactionStatus );
-                    if ( transactionStatus == Status.STATUS_ROLLEDBACK) {
+                    entityCount++;
+                    System.out.println("employee id for new Employee to create = " + entityCount + " loop again while waiting for tx rollback, application transaction status = " + userTransaction.getStatus() );
+                    createEmployee(entityManager, "name" + entityCount, "address" + entityCount, entityCount);
+                    System.out.println(entityCount + " loop again while waiting for tx rollback, application transaction status = " + userTransaction.getStatus() );
+                    if ( userTransaction.getStatus() == Status.STATUS_ROLLEDBACK ) {
                         /**
                          * Simulate race condition that could happen if background transaction rollback (and persistence provider clearing of
                          * persistence context) occurs before the application thread is about to add an entity (after the transaction rolled back in the background).
                          * What should the application expect to happen in this case?
                          */
                         entityCount++;
-                        createEmployee(entityManager, "name" + entityCount, "address" + entityCount, entityCount);
+                        System.out.println("transaction rolled back " + userTransaction.getStatus()  + ", will check if persistence context still hasn't been cleared");
                         if ((employee = getEmployee(entityManager, entityCount)) != null) {
                             System.out.println("persistence context contains invalid state, as last written entity was not detached. Employee = " + employee + ".  entityCount = " + entityCount );
                             writer.write("failed as entity " + entityCount + ", was added after background transaction rollback simulation");
