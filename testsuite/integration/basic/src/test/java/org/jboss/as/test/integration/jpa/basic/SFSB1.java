@@ -30,6 +30,7 @@ public class SFSB1 {
     SessionContext sessionContext;
 
 
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
     public void createEmployee(String name, String address, int id) {
 
 
@@ -38,6 +39,19 @@ public class SFSB1 {
         emp.setAddress(address);
         emp.setName(name);
         em.persist(emp);
+        em.flush();
+        em.find(Employee.class, id);
+
+        emp = new Employee();
+        emp.setId(id + 4000);
+        emp.setAddress(address + "flushbug" );
+        emp.setName(name + "flushbug");
+        em.persist(emp);
+        em.flush();
+
+        em.find(Employee.class, id+ 4000);
+
+
     }
 
     // always throws a TransactionRequiredException
