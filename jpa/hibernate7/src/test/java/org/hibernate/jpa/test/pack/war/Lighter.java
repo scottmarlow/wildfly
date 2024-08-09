@@ -1,0 +1,13 @@
+/*
+ * Copyright The WildFly Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+package org.hibernate.jpa.test.pack.war;
+
+/**
+ * @author Emmanuel Bernard
+ */
+public class Lighter {
+    public String name;
+    public String power;
+}
