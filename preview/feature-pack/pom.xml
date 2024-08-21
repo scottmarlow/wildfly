@@ -34,7 +34,8 @@
 
         <!-- WildFly Preview modules -->
         <galleon.local.resources.directory>${basedir}/../galleon-local/src/main/resources</galleon.local.resources.directory>
-
+        <version.org.hibernate.commons.annotations>7.0.1.Final</version.org.hibernate.commons.annotations>
+        <version.org.hibernate>7.0.0.Beta1</version.org.hibernate>
     </properties>
 
     <build>
