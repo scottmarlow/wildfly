@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<persistence xmlns="http://java.sun.com/xml/ns/persistence" version="2.0">
+    <persistence-unit name="mainPu" transaction-type="JTA">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.AbstractPersonnel</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Department</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Employee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.PartTimeEmployee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Project</class>
+        <properties>
+            <property name="jboss.as.jpa.classtransformer" value="true" />
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="mainPu2" transaction-type="JTA">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.AbstractPersonnel</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Department</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Employee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.PartTimeEmployee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Project</class>
+        <properties>
+            <property name="jboss.as.jpa.classtransformer" value="true" />
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="mainNonTXPu" transaction-type="RESOURCE_LOCAL">
+        <class>org.jboss.as.test.integration.jpa.hhh18901.AbstractPersonnel</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Department</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Employee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.PartTimeEmployee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Project</class>
+        <non-jta-data-source>java:jboss/datasources/ExampleDS</non-jta-data-source>
+        <properties>
+            <property name="jboss.as.jpa.classtransformer" value="true" />
+        </properties>
+    </persistence-unit>
+
+    <persistence-unit name="mainPu-2" transaction-type="JTA">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.AbstractPersonnel</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Department</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Employee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.PartTimeEmployee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Project</class>
+        <properties>
+            <property name="jboss.as.jpa.classtransformer" value="true" />
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="mainPu2-2" transaction-type="JTA">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.AbstractPersonnel</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Department</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Employee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.PartTimeEmployee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Project</class>
+        <properties>
+            <property name="jboss.as.jpa.classtransformer" value="true" />
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="mainNonTXPu-2" transaction-type="RESOURCE_LOCAL">
+        <class>org.jboss.as.test.integration.jpa.hhh18901.AbstractPersonnel</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Department</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Employee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.PartTimeEmployee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Project</class>
+        <non-jta-data-source>java:jboss/datasources/ExampleDS</non-jta-data-source>
+        <properties>
+            <property name="jboss.as.jpa.classtransformer" value="true" />
+        </properties>
+    </persistence-unit>
+
+    <persistence-unit name="mainPu-3" transaction-type="JTA">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.AbstractPersonnel</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Department</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Employee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.PartTimeEmployee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Project</class>
+        <properties>
+            <property name="jboss.as.jpa.classtransformer" value="true" />
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="mainPu2-3" transaction-type="JTA">
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.AbstractPersonnel</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Department</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Employee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.PartTimeEmployee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Project</class>
+        <properties>
+            <property name="jboss.as.jpa.classtransformer" value="true" />
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="mainNonTXPu-3" transaction-type="RESOURCE_LOCAL">
+        <class>org.jboss.as.test.integration.jpa.hhh18901.AbstractPersonnel</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Department</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Employee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.PartTimeEmployee</class>
+        <class>org.jboss.as.test.integration.jpa.hhh18901.Project</class>
+        <non-jta-data-source>java:jboss/datasources/ExampleDS</non-jta-data-source>
+        <properties>
+            <property name="jboss.as.jpa.classtransformer" value="true" />
+        </properties>
+    </persistence-unit>
+
+</persistence>

@@ -293,6 +293,11 @@
             <groupId>org.wildfly.security</groupId>
             <artifactId>wildfly-elytron-x500</artifactId>
         </dependency>
+        <dependency>
+            <groupId>jakarta.persistence</groupId>
+            <artifactId>jakarta.persistence-api</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>
