@@ -13,9 +13,13 @@ import javax.naming.NamingException;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.as.test.integration.common.HttpRequest;
+import org.jboss.as.test.integration.jpa.jarfile.JarFileEntity;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -28,19 +32,43 @@ public class JpaJarFileTestCase {
 
     @Deployment
     public static Archive<?> deploy() {
+        EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, "hhh18901.ear");
 
+        JavaArchive jar = ShrinkWrap.create(JavaArchive.class, "jarfile.jar");
+        jar.addClass(JarFileEntity.class);
+        jar.addClass(Employee.class);
+        jar.addClass(Project.class);
+        jar.addClass(PartTimeEmployee.class);
+        jar.addClass(Department.class);
+        jar.addClass(AbstractPersonnel.class);
+        jar.addClass(MainArchiveEntity.class);
+        // jar.addAsManifestResource(JpaJarFileTestCase.class.getPackage(), "persistence.xml", "persistence.xml");
+        ear.addAsLibrary(jar);
 
-        JavaArchive ejbModule = ShrinkWrap.create(JavaArchive.class, "my-ejb-module.jar");
-        ejbModule.addClasses(JpaJarFileTestCase.class, JpaTestSlsb.class);
-        ejbModule.addClass(Employee.class);
-        ejbModule.addClass(Project.class);
-        ejbModule.addClass(PartTimeEmployee.class);
-        ejbModule.addClass(Department.class);
-        ejbModule.addClass(AbstractPersonnel.class);
-        ejbModule.addClass(MainArchiveEntity.class);
+        for (int looper = 1 ; looper < 4; looper++ ) {
+            JavaArchive clientModule = ShrinkWrap.create(JavaArchive.class,looper + "-notappclientcontainer.jar");
+            clientModule.addClasses(JpaJarFileTestCase.class, JpaTestSlsb.class);
+            clientModule.addAsManifestResource( JpaJarFileTestCase.class.getPackage(), "application-client.xml","META-INF/application-client.xml");
+            clientModule.addAsManifestResource(JpaJarFileTestCase.class.getPackage(), "persistence.xml", "persistence.xml");
+            ear.addAsModule(clientModule);
+        }
 
-        ejbModule.addAsManifestResource(JpaJarFileTestCase.class.getPackage(), "persistence.xml", "persistence.xml");
-        return ejbModule;
+        for (int looper = 1 ; looper < 5; looper++ ) {
+            JavaArchive ejbModule = ShrinkWrap.create(JavaArchive.class,looper + "-ejb-module.jar");
+            ejbModule.addClasses(JpaJarFileTestCase.class, JpaTestSlsb.class);
+            ejbModule.addAsManifestResource(JpaJarFileTestCase.class.getPackage(), "persistence.xml", "persistence.xml");
+            ear.addAsModule(ejbModule);
+        }
+
+        for (int looper = 1 ; looper < 5; looper++ ) {
+            WebArchive war = ShrinkWrap.create(WebArchive.class, looper + "-NonTransactionalEmTestCase.war");
+            war.addClasses(HttpRequest.class, SimpleServlet.class);
+            // war.addAsResource(JpaJarFileTestCase.class.getPackage(), "persistence.xml", "META-INF/persistence.xml");
+            war.addAsWebInfResource(JpaJarFileTestCase.class.getPackage(), "web.xml", "web.xml");
+            war.addAsManifestResource(JpaJarFileTestCase.class.getPackage(), "persistence.xml", "persistence.xml");
+            ear.addAsModule(war);
+        }
+        return ear;
     }
 
     public java.sql.Date getSQLDate(final String sDate) {
