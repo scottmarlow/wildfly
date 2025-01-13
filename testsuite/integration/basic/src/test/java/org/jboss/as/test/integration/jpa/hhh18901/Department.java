@@ -20,10 +20,6 @@ import jakarta.persistence.AccessType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 
-/*
- * Department
- */
-
 @Entity
 @Access(AccessType.PROPERTY)
 public class Department implements java.io.Serializable {

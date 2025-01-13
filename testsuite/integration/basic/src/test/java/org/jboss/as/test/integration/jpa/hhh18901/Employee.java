@@ -16,11 +16,6 @@
 
 package org.jboss.as.test.integration.jpa.hhh18901;
 
-/**
- * Employee
- *
- * @author Scott Marlow
- */
 import java.sql.Date;
 
 import jakarta.persistence.Access;

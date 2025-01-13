@@ -15,11 +15,6 @@
  */
 package org.jboss.as.test.integration.jpa.hhh18901;
 
-/**
- * AbstractPersonnel
- *
- * @author Scott Marlow
- */
 import jakarta.persistence.Access;
 import jakarta.persistence.AccessType;
 

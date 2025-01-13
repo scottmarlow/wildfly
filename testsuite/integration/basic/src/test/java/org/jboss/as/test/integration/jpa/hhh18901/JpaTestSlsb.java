@@ -12,9 +12,6 @@ import jakarta.persistence.PersistenceUnit;
 import jakarta.persistence.metamodel.EntityType;
 import org.junit.Assert;
 
-/**
- * @author Stuart Douglas
- */
 @Stateless
 public class JpaTestSlsb {
 

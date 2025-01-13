@@ -19,7 +19,7 @@ import org.junit.runner.RunWith;
 
 /**
  * Reproducer for https://hibernate.atlassian.net/browse/HHH-18901 based on TCK test classes currently.
- * TODO: after reproducing eliminate the used TCK Entity classes by replacing with bare minimum needed classes.
+ * TODO: after reproducing eliminate the used TCK Entity classes by replacing with bare minimum needed classes before creating pull request.
  */
 @RunWith(Arquillian.class)
 public class JpaJarFileTestCase {
@@ -41,7 +41,7 @@ public class JpaJarFileTestCase {
 
         // With change to only loop twice through this code, the failure doesn't occur on first run but always on second run.
         // For more consistent failures we can probably loop a bit more.
-        for (int looper = 1 ; looper < 3; looper++ ) {
+        for (int looper = 1 ; looper < 4; looper++ ) {
             JavaArchive clientModule = ShrinkWrap.create(JavaArchive.class,looper + "-notappclientcontainer.jar");
             clientModule.addClasses(JpaJarFileTestCase.class, JpaTestSlsb.class);
             clientModule.addAsManifestResource( JpaJarFileTestCase.class.getPackage(), "application-client.xml","META-INF/application-client.xml");

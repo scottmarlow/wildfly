@@ -8,9 +8,6 @@ package org.jboss.as.test.integration.jpa.hhh18901;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 
-/**
- * @author Scott Marlow
- */
 @Entity
 public class MainArchiveEntity {
 

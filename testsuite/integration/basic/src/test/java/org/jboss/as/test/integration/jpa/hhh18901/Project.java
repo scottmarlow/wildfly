@@ -19,7 +19,6 @@ package org.jboss.as.test.integration.jpa.hhh18901;
 /**
  * Project
  *
- * @author Scott Marlow
  */
 import java.math.BigDecimal;
 
@@ -27,10 +26,6 @@ import jakarta.persistence.Access;
 import jakarta.persistence.AccessType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-
-/*
- * Project
- */
 
 @Entity
 @Access(AccessType.PROPERTY)
