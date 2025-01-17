@@ -12,6 +12,8 @@ import jakarta.enterprise.inject.spi.BeanManager;
 import jakarta.persistence.SharedCacheMode;
 import jakarta.persistence.spi.PersistenceUnitInfo;
 
+import org.hibernate.bytecode.internal.BytecodeProviderInitiator;
+import org.hibernate.bytecode.spi.BytecodeProvider;
 import org.hibernate.cfg.AvailableSettings;
 import org.jboss.as.jpa.hibernate.management.HibernateManagementAdaptor;
 import org.jboss.as.jpa.hibernate.service.WildFlyCustomJtaPlatform;
@@ -25,6 +27,8 @@ import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
 import org.jipijapa.plugin.spi.Platform;
 import org.jipijapa.plugin.spi.TwoPhaseBootstrapCapable;
 
+import static org.hibernate.cfg.BytecodeSettings.BYTECODE_PROVIDER_INSTANCE;
+
 /**
  * Implements the PersistenceProviderAdaptor for Hibernate
  *
@@ -37,6 +41,10 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
     private static final String SHARED_CACHE_MODE = "jakarta.persistence.sharedCache.mode";
     private static final String NONE = SharedCacheMode.NONE.name();
     private static final String UNSPECIFIED = SharedCacheMode.UNSPECIFIED.name();
+
+    //Cache this: more efficient to reuse the same instance across all PUs rather than having Hibernate have to create
+    //a new instance during each bootstrap.
+    private static final BytecodeProvider BYTECODE_PROVIDER = BytecodeProviderInitiator.buildDefaultBytecodeProvider();
 
     // Hibernate ORM 5.3 setting which if false, the old IdentifierGenerator were used for AUTO, TABLE and SEQUENCE id generation.
     // Hibernate ORM 6.0 does not support AvailableSettings.USE_NEW_ID_GENERATOR_MAPPINGS
@@ -79,6 +87,9 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
 
         // Enable JPA Compliance mode
         putPropertyIfAbsent( pu, properties, AvailableSettings.JPA_COMPLIANCE, true);
+
+        //Enforce this:
+        properties.put( BYTECODE_PROVIDER_INSTANCE, BYTECODE_PROVIDER );
     }
 
     private void failOnIncompatibleSetting(PersistenceUnitMetadata pu, Map properties) {
