@@ -79,6 +79,7 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
 
         // Enable JPA Compliance mode
         putPropertyIfAbsent( pu, properties, AvailableSettings.JPA_COMPLIANCE, true);
+        properties.put( BYTECODE_PROVIDER_INSTANCE, BytecodeProviderInitiator.buildDefaultBytecodeProvider() );
     }
 
     private void failOnIncompatibleSetting(PersistenceUnitMetadata pu, Map properties) {
