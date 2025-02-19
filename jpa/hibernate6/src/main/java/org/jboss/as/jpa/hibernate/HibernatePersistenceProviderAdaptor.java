@@ -13,7 +13,6 @@ import jakarta.persistence.SharedCacheMode;
 import jakarta.persistence.spi.PersistenceUnitInfo;
 
 import org.hibernate.bytecode.internal.BytecodeProviderInitiator;
-import org.hibernate.bytecode.spi.BytecodeProvider;
 import org.hibernate.cfg.AvailableSettings;
 import org.jboss.as.jpa.hibernate.management.HibernateManagementAdaptor;
 import org.jboss.as.jpa.hibernate.service.WildFlyCustomJtaPlatform;
@@ -44,7 +43,6 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
 
     //Cache this: more efficient to reuse the same instance across all PUs rather than having Hibernate have to create
     //a new instance during each bootstrap.
-    private static final BytecodeProvider BYTECODE_PROVIDER = BytecodeProviderInitiator.buildDefaultBytecodeProvider();
 
     // Hibernate ORM 5.3 setting which if false, the old IdentifierGenerator were used for AUTO, TABLE and SEQUENCE id generation.
     // Hibernate ORM 6.0 does not support AvailableSettings.USE_NEW_ID_GENERATOR_MAPPINGS
@@ -89,7 +87,7 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
         putPropertyIfAbsent( pu, properties, AvailableSettings.JPA_COMPLIANCE, true);
 
         //Enforce this:
-        properties.put( BYTECODE_PROVIDER_INSTANCE, BYTECODE_PROVIDER );
+        properties.put( BYTECODE_PROVIDER_INSTANCE, BytecodeProviderInitiator.buildDefaultBytecodeProvider() );
     }
 
     private void failOnIncompatibleSetting(PersistenceUnitMetadata pu, Map properties) {
