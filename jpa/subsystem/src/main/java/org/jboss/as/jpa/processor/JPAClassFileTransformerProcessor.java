@@ -64,11 +64,13 @@ public class JPAClassFileTransformerProcessor implements DeploymentUnitProcessor
             }
 
             if (notEnhancedPersistenceUnits.size() > 0 && enhancedPersistenceUnitsCount > 0 ) {
-                // WFLY-20394 Log warning if applications have a mix of some persistence units with "jboss.as.jpa.classtransformer" set to false and some set to true
+                // WFLY-20394 Log if applications have a mix of some persistence units with "jboss.as.jpa.classtransformer" set to false and some set to true
                 String persistenceUnitsConfiguredNotEnhanced = notEnhancedPersistenceUnits.
                         stream().map(PersistenceUnitMetadata::getScopedPersistenceUnitName).
                         collect(Collectors.joining(", "));
-                ROOT_LOGGER.mixedEnhancedAndNotEnhanced(persistenceUnitsConfiguredNotEnhanced);
+                ROOT_LOGGER.tracef("Some persistence units are configured to be bytecode enhanced but persistence unit(s) { %s } " +
+                        "are configured to disable bytecode enhancement.  Bytecode enhancement will be performed.  " +
+                        "Consider making all of the persistence units use bytecode enhancement.",persistenceUnitsConfiguredNotEnhanced);
             }
        }
     }
