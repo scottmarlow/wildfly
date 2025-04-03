@@ -95,6 +95,7 @@ class JPASubSystemAdd extends AbstractBoottimeAddStepHandler {
                 processorTarget.addDeploymentProcessor(JPAExtension.SUBSYSTEM_NAME, Phase.FIRST_MODULE_USE, Phase.FIRST_MODULE_USE_PERSISTENCE_PREPARE, new PersistenceBeginInstallProcessor(platform));
 
                 // handles persistence unit / context references from deployment descriptors
+                // TODO consider moving PersistenceRefProcessor to Phase.INSTALL
                 processorTarget.addDeploymentProcessor(JPAExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_PERSISTENCE_REF, new PersistenceRefProcessor());
 
                 // handles pu deployment (completes pu service installation)
