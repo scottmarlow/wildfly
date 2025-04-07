@@ -379,6 +379,11 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
 
     @Override
     public void addTransformer(ClassTransformer classTransformer) {
+        // Do not add Hibernate ORM 6.x/7.x bytecode enhancement class transformers
+        // (e.g. org.hibernate.jpa.internal.enhance.EnhancingClassTransformerImpl)
+        if(classTransformer.getClass().getName().startsWith("org.hibernate")) {
+            return;
+        }
         transformers.add(classTransformer);
         if (ROOT_LOGGER.isTraceEnabled()) {
             ROOT_LOGGER.tracef("added entity class transformer '%s' for '%s'",
