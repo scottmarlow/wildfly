@@ -65,6 +65,13 @@ public class JpaJarFileTestCase {
         for (int looper = 1 ; looper < 5; looper++ ) {
             WebArchive war = ShrinkWrap.create(WebArchive.class, looper + "-NonTransactionalEmTestCase.war");
             war.addClasses(HttpRequest.class, SimpleServlet.class);
+            war.addClass(Employee.class);
+            war.addClass(Project.class);
+            war.addClass(PartTimeEmployee.class);
+            war.addClass(Department.class);
+            war.addClass(AbstractPersonnel.class);
+            war.addClass(MainArchiveEntity.class);
+
             // war.addAsResource(PersistenceUnitInAppClientArchiveInServerTestCase.class.getPackage(), "persistence.xml", "META-INF/persistence.xml");
             war.addAsWebInfResource(JpaJarFileTestCase.class.getPackage(), "web.xml", "web.xml");
             war.addAsManifestResource(JpaJarFileTestCase.class.getPackage(), "persistence.xml", "persistence.xml");
