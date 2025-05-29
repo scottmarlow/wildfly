@@ -24,12 +24,13 @@
         </properties>
     </persistence-unit>
     <persistence-unit name="mainNonTXPu" transaction-type="RESOURCE_LOCAL">
+        <non-jta-data-source>java:jboss/datasources/ExampleDS</non-jta-data-source>
         <class>org.jboss.as.test.integration.jpa.hhh18901.DataTypes</class>
         <class>org.jboss.as.test.integration.jpa.hhh18901.DataTypes2</class>
         <class>org.jboss.as.test.integration.jpa.hhh18901.Grade</class>
-        <non-jta-data-source>java:jboss/datasources/ExampleDS</non-jta-data-source>
         <properties>
             <property name="jboss.as.jpa.classtransformer" value="false" />
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
         </properties>
     </persistence-unit>
 
