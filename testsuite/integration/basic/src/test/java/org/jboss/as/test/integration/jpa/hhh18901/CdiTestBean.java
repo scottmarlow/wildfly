@@ -5,7 +5,6 @@ import java.util.Calendar;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceUnit;
 import jakarta.persistence.EntityManagerFactory;
-import jakarta.transaction.Transactional;
 
 /**
  * CdiTestBean
@@ -36,7 +35,7 @@ public class CdiTestBean {
         return newCal.getTime();
     }
 
-    @Transactional
+
     public void createTestData() {
 
         logTrace("createTestData");
