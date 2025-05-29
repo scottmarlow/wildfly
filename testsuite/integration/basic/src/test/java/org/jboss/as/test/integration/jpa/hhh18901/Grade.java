@@ -1,5 +1,7 @@
+package org.jboss.as.test.integration.jpa.hhh18901;
+
 /*
- * Copyright (c) 2017, 2020 Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007, 2018 Oracle and/or its affiliates. All rights reserved.
  *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License v. 2.0, which is available at
@@ -13,23 +15,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  */
-package org.jboss.as.test.integration.jpa.hhh18901;
-
-import jakarta.persistence.Access;
-import jakarta.persistence.AccessType;
 
 /*
- * AbstractPersonnel
+ * $Id$
  */
 
-@Access(AccessType.FIELD)
-public abstract class AbstractPersonnel {
-
-  public String getFullTimeRep() {
-    return "Mabel Murray";
-  }
-
-  public String getPartTimeRep() {
-    return "John Cleveland";
-  }
-}
+public enum Grade {
+  A, B, C, D, F, INCOMPLETE
+};
