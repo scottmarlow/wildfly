@@ -45,9 +45,7 @@ public class JpaJarFileTestCase {
         jar.addAsManifestResource(JpaJarFileTestCase.class.getPackage(), "persistence.xml", "persistence.xml");
         ear.addAsLibrary(jar);
 
-        // With change to only loop twice through this code, the failure doesn't occur on first run but always on second run.
-        // For more consistent failures we can probably loop a bit more.
-        for (int looper = 1 ; looper < 4; looper++ ) {
+        for (int looper = 1 ; looper < 10; looper++ ) {
             JavaArchive clientModule = ShrinkWrap.create(JavaArchive.class,looper + "-notappclientcontainer.jar");
             clientModule.addClasses(JpaJarFileTestCase.class, DataTypes.class, DataTypes.class, Grade.class);
 
@@ -64,7 +62,7 @@ public class JpaJarFileTestCase {
             ear.addAsModule(ejbModule);
         }
 
-        for (int looper = 1 ; looper < 5; looper++ ) {
+        for (int looper = 1 ; looper < 10; looper++ ) {
             WebArchive war = ShrinkWrap.create(WebArchive.class, looper + "-NonTransactionalEmTestCase.war");
             war.addClasses(JpaJarFileTestCase.class,  DataTypes.class, DataTypes.class, Grade.class);
             war.addAsManifestResource(JpaJarFileTestCase.class.getPackage(), "persistence.xml", "persistence.xml");
