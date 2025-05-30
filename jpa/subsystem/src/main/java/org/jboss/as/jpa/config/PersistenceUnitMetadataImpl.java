@@ -93,6 +93,8 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
 
     private volatile ClassLoader classloader;
 
+    private volatile ArrayList<ClassLoader> classLoaders;
+
     private volatile TempClassLoaderFactory tempClassLoaderFactory;
 
     private volatile ClassLoader cachedTempClassLoader;
@@ -306,6 +308,16 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
                 sb.append("\t\t").append(elt.getKey()).append(": ").append(elt.getValue()).append("\n");
             }
         }
+        if (classloader != null) {
+            sb.append("\t]\n").append("\tclassloader[" + classloader.getName());
+        }
+
+        if (containingModuleName != null && containingModuleName.size() > 0) {
+            sb.append("\t]\n").append("\tmodules[");
+            for (String moduleName : containingModuleName) {
+                sb.append("\t\t").append(moduleName).append("\n");
+            }
+        }
         sb.append("\t]").append("]");
 
         return sb.toString();
@@ -415,5 +427,15 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
     @Override
     public void setSharedCacheMode(SharedCacheMode sharedCacheMode) {
         this.sharedCacheMode = sharedCacheMode;
+    }
+
+    @Override
+    public ArrayList<ClassLoader> getClassLoaders() {
+        return classLoaders;
+    }
+
+    @Override
+    public void setClassLoaders(ArrayList<ClassLoader> classLoaders) {
+        this.classLoaders = classLoaders;
     }
 }

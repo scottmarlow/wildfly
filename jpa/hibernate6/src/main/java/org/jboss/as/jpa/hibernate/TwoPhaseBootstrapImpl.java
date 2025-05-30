@@ -10,8 +10,12 @@ import java.util.Map;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.spi.PersistenceUnitInfo;
 
+import org.hibernate.boot.registry.classloading.internal.ClassLoaderServiceImpl;
+import org.hibernate.boot.registry.classloading.internal.TcclLookupPrecedence;
+import org.hibernate.boot.registry.classloading.spi.ClassLoaderService;
 import org.hibernate.jpa.boot.spi.Bootstrap;
 import org.jipijapa.plugin.spi.EntityManagerFactoryBuilder;
+import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
 
 /**
  * TwoPhaseBootstrapImpl
@@ -24,7 +28,12 @@ public class TwoPhaseBootstrapImpl implements EntityManagerFactoryBuilder {
 
     public TwoPhaseBootstrapImpl(final PersistenceUnitInfo info, final Map map) {
         entityManagerFactoryBuilder =
-                    Bootstrap.getEntityManagerFactoryBuilder(info, map);
+                    Bootstrap.getEntityManagerFactoryBuilder(info, map, getClassLoaderService(info));
+    }
+
+    private ClassLoaderService getClassLoaderService(PersistenceUnitInfo info) {
+        PersistenceUnitMetadata persistenceUnitMetadata = (PersistenceUnitMetadata) info;
+        return new ClassLoaderServiceImpl(persistenceUnitMetadata.getClassLoaders(), TcclLookupPrecedence.AFTER);
     }
 
     @Override

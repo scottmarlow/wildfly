@@ -473,6 +473,7 @@ public class PersistenceUnitServiceHandler {
 
             // add persistence provider specific properties
             adaptor.addProviderProperties(properties, pu);
+            pu.setClassLoaders(getClassLoaders(deploymentUnit));
 
             // add persistence provider integrator specific properties
             for (PersistenceProviderIntegratorAdaptor integratorAdaptor : integratorAdaptors) {
@@ -546,6 +547,19 @@ public class PersistenceUnitServiceHandler {
         } catch (ServiceRegistryException e) {
             throw JpaLogger.ROOT_LOGGER.failedToAddPersistenceUnit(e, pu.getPersistenceUnitName());
         }
+    }
+
+    // The application deployment could be an EAR that contains sub modules or just a standalone module.
+    // Return one of { EAR, WAR } pair or { EAR, JAR } or { WAR } or { JAR }
+    private static ArrayList<ClassLoader> getClassLoaders(DeploymentUnit deploymentUnit) {
+        final DeploymentUnit parentdeploymentUnit = deploymentUnit.getParent();
+        final ArrayList<ClassLoader> classLoadersList = new ArrayList();
+        if (parentdeploymentUnit != null) {
+            // parentdeploymentUnit should be EAR and deploymentUnit is a sub deployment (EJB/WAR...)
+            classLoadersList.add(parentdeploymentUnit.getAttachment(Attachments.MODULE).getClassLoader());
+        }
+        classLoadersList.add(deploymentUnit.getAttachment(Attachments.MODULE).getClassLoader());
+        return classLoadersList;
     }
 
     /**

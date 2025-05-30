@@ -85,4 +85,8 @@ public interface PersistenceUnitMetadata extends PersistenceUnitInfo {
 
     boolean needsJPADelegatingClassFileTransformer();
 
+    ArrayList<ClassLoader> getClassLoaders();
+
+    void setClassLoaders(ArrayList<ClassLoader> classLoaders);
+
 }

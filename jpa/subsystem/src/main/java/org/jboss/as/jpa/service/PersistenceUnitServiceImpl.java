@@ -139,6 +139,7 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                                     // handle phase 2 of 2 of bootstrapping the persistence unit
                                     if (phaseOnePersistenceUnitService != null) {
                                         ROOT_LOGGER.startingPersistenceUnitService(2, pu.getScopedPersistenceUnitName());
+                                        ROOT_LOGGER.info(pu.toString());
                                         // indicate that the second phase of bootstrapping the persistence unit has started
                                         phaseOnePersistenceUnitService.setSecondPhaseStarted(true);
                                         if (beanManagerInjector.getOptionalValue() != null) {
