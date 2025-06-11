@@ -10,6 +10,8 @@ import static org.junit.Assert.assertTrue;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+
+import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 
@@ -39,7 +41,7 @@ public class EntityManagerFactoryTestCase {
 
         JavaArchive jar = ShrinkWrap.create(JavaArchive.class, ARCHIVE_NAME + ".jar");
         jar.addClasses(EntityManagerFactoryTestCase.class,
-                SFSB1.class, Employee.class);
+                SFSB1.class, Employee.class, TestBeanClass.class);
         jar.addAsManifestResource(EntityManagerFactoryTestCase.class.getPackage(), "persistence.xml", "persistence.xml");
         return jar;
     }
@@ -60,6 +62,16 @@ public class EntityManagerFactoryTestCase {
         }
     }
 
+    @Inject
+    TestBeanClass beanClass;
+    @Test
+    public void testBeanClass() throws Exception {
+        assertNotNull("beanClass was not injected", beanClass);
+        EntityManagerFactory entityManagerFactory = beanClass.entityManagerFactory();
+        assertNotNull("beanClass EntityManagerFactory is not available", entityManagerFactory);
+
+    }
+
     /**
      * Test that EntityManagerFactory can be bind to specified JNDI name
      */
@@ -68,7 +80,7 @@ public class EntityManagerFactoryTestCase {
         SFSB1 sfsb1 = lookup("SFSB1", SFSB1.class);
         sfsb1.createEmployee("Sally", "1 home street", 1);
 
-        EntityManagerFactory emf = rawLookup("myEMF", EntityManagerFactory.class);
+        EntityManagerFactory emf = rawLookup("java:/sampleEMF", EntityManagerFactory.class);
         assertNotNull("JNDI lookup of jboss.entity.manager.factory.jndi.name should return EntityManagerFactory", emf);
 
         EntityManager em = emf.createEntityManager();
@@ -92,5 +104,6 @@ public class EntityManagerFactoryTestCase {
         assertTrue("Name read from EntityManager is Sharon", "Sharon".equals(emp.getName()));
 
     }
+
 
 }
