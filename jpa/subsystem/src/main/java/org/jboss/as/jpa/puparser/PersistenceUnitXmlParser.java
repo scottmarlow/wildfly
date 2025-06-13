@@ -6,6 +6,7 @@
 package org.jboss.as.jpa.puparser;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -37,11 +38,15 @@ public class PersistenceUnitXmlParser extends MetaDataElementParser {
     static {
         Version defaultVersion;
         try {
-            // Try and load a jakarta namespace Jakarta Persistence API class to see if we're EE 8 or a later EE
-            PersistenceUnitXmlParser.class.getClassLoader().loadClass("jakarta.persistence.SharedCacheMode");
-            defaultVersion = Version.JPA_3_0;
+            // Try and load a jakarta namespace Jakarta Persistence API class method that is only in EE 11 to see if we're using EE 11+ (e.g. WildFly Preview).
+            if (Arrays.stream(PersistenceUnitXmlParser.class.getClassLoader().loadClass("jakarta.persistence.spi.PersistenceUnitInfo").
+                    getMethods()).anyMatch( method -> method.getName().equals("getScopeAnnotationName"))) {
+                defaultVersion = Version.JPA_3_2;
+            } else {
+                defaultVersion = Version.JPA_3_0;
+            }
         } catch (Throwable t) {
-            defaultVersion = Version.JPA_2_2;
+            defaultVersion = Version.JPA_3_0;
         }
         DEFAULT_VERSION = defaultVersion;
     }
