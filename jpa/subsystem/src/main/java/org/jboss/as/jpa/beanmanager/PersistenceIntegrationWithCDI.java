@@ -37,7 +37,7 @@ import jakarta.enterprise.inject.spi.Extension;
 public class PersistenceIntegrationWithCDI implements Extension {
 
     public PersistenceIntegrationWithCDI(@Observes AfterBeanDiscovery afterBeanDiscovery, BeanManager manager) {
-
+        afterBeanDiscovery.addBean()
     }
 
 
