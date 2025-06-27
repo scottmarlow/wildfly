@@ -98,8 +98,8 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
     private volatile ClassLoader cachedTempClassLoader;
 
     private final AtomicBoolean onlyCheckIfClassFileTransformerIsNeededOnce = new AtomicBoolean(false);
-    private volatile String scopeAnnotationName;
-    private volatile List<String> qualifierAnnotationNames = new ArrayList<>(0);
+    private volatile String scopeAnnotationName="";
+    private volatile List<String> qualifierAnnotationNames = List.of();
     @Override
     public void setPersistenceUnitName(String name) {
         this.name = name;
@@ -425,7 +425,7 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
 
     @Override
     public String getScopeAnnotationName() {
-        return "";
+        return scopeAnnotationName;
     }
 
     @Override
@@ -435,7 +435,7 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
 
     @Override
     public List<String> getQualifierAnnotationNames() {
-        return List.of();
+        return qualifierAnnotationNames;
     }
 
 }

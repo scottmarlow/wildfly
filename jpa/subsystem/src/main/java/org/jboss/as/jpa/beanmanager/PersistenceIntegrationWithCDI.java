@@ -1,9 +1,15 @@
 package org.jboss.as.jpa.beanmanager;
 
-import jakarta.enterprise.event.Observes;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.enterprise.inject.spi.AfterBeanDiscovery;
+import jakarta.enterprise.inject.spi.AnnotatedType;
+import jakarta.enterprise.inject.spi.BeanAttributes;
 import jakarta.enterprise.inject.spi.BeanManager;
-import jakarta.enterprise.inject.spi.Extension;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
 
 /**
  * PersistenceIntegrationWithCDI will setup Persistence/CDI integration as mentioned in jakarta.ee/specifications/platform/11/jakarta-platform-spec-11.0#a441
@@ -30,16 +36,54 @@ import jakarta.enterprise.inject.spi.Extension;
  *    - the qualifiers specified by qualifier XML elements in persistence.xml, or jakarta.enterprise.inject.Default, if no qualifiers are explicitly specified,
  *    - scope jakarta.enterprise.context.ApplicationScoped,
  *    - bean name given by the name of the persistence unit,
+ *    - no interceptor bindings,
+ *    - a bean implementation which satisfies the requirements of the Persistence specification for a container-managed entity manager factory.
  *
+ * Furthermore, the container must make available five beans with:
+ *    - bean types CriteriaBuilder, PersistenceUnitUtil, Cache, SchemaManager, and Metamodel, respectively,
+ *    - the qualifiers specified by qualifier XML elements in persistence.xml, or jakarta.enterprise.inject.Default, if no qualifiers are explicitly specified,
+ *    - scope jakarta.enterprise.context.Dependent,
+ *    - no interceptor bindings,
+ *    - a bean implementation which simply obtains the instance of the bean type by calling the appropriate getter method of the EntityManagerFactory bean.
+ *    - To access these bean types (CriteriaBuilder, PersistenceUnitUtil, Cache, SchemaManager, and Metamodel) from callsites that use @Resource or JNDI lookup,
+ *      users must first obtain the EntityManagerFactory and then use the appropriate getter methods.
  *
  * @author Scott Marlow
  */
-public class PersistenceIntegrationWithCDI implements Extension {
+public class PersistenceIntegrationWithCDI {
 
-    public PersistenceIntegrationWithCDI(@Observes AfterBeanDiscovery afterBeanDiscovery, BeanManager manager) {
-        afterBeanDiscovery.addBean()
+    private static final List<String> defaultQualifier = new ArrayList<String>();
+    private static final String transactionScoped = "jakarta.transaction.TransactionScoped";
+    private static final String applicationScoped = "jakarta.enterprise.context.ApplicationScoped";
+    private static final String dependentScoped = "jakarta.enterprise.context.Dependent";
+
+    static  {
+        defaultQualifier.add("jakarta.enterprise.inject.Default");
     }
 
+
+    public static void addBeans(AfterBeanDiscovery afterBeanDiscovery, BeanManager beanManager, PersistenceUnitMetadata persistenceUnitMetadata) {
+
+        // determine the qualifiers to use for creating each bean
+        List<String> qualifiers;
+        if ( persistenceUnitMetadata.getQualifierAnnotationNames().size() > 0 ) {
+            qualifiers = persistenceUnitMetadata.getQualifierAnnotationNames();
+        } else {
+            qualifiers = defaultQualifier;
+        }
+
+        entityManager(afterBeanDiscovery, beanManager, persistenceUnitMetadata, qualifiers);
+
+        AnnotatedType<EntityManagerFactory> entityManagerFactoryAnnotatedType = beanManager.createAnnotatedType(EntityManagerFactory.class);
+        BeanAttributes<EntityManagerFactory> entityManagerFactoryBeanAttributes = beanManager.createBeanAttributes(entityManagerFactoryAnnotatedType);
+
+    }
+
+    private static void entityManager(AfterBeanDiscovery afterBeanDiscovery, BeanManager beanManager, PersistenceUnitMetadata persistenceUnitMetadata, List<String> qualifiers) {
+        AnnotatedType<EntityManager> entityManagerAnnotatedType = beanManager.createAnnotatedType(EntityManager.class);
+        BeanAttributes<EntityManager> entityManagerBeanAttributes = beanManager.createBeanAttributes(entityManagerAnnotatedType);
+
+    }
 
 
 }
