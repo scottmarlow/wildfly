@@ -1,15 +1,23 @@
 package org.jboss.as.jpa.beanmanager;
 
+import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import jakarta.enterprise.inject.spi.AfterBeanDiscovery;
 import jakarta.enterprise.inject.spi.AnnotatedType;
 import jakarta.enterprise.inject.spi.BeanAttributes;
 import jakarta.enterprise.inject.spi.BeanManager;
+import jakarta.enterprise.inject.spi.configurator.BeanConfigurator;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.SynchronizationType;
+import jakarta.transaction.TransactionSynchronizationRegistry;
+import org.jboss.as.jpa.container.TransactionScopedEntityManager;
+import org.jboss.as.jpa.processor.JpaAttachments;
 import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
+import org.wildfly.transaction.client.ContextTransactionManager;
 
 /**
  * PersistenceIntegrationWithCDI will setup Persistence/CDI integration as mentioned in jakarta.ee/specifications/platform/11/jakarta-platform-spec-11.0#a441
@@ -79,11 +87,40 @@ public class PersistenceIntegrationWithCDI {
 
     }
 
-    private static void entityManager(AfterBeanDiscovery afterBeanDiscovery, BeanManager beanManager, PersistenceUnitMetadata persistenceUnitMetadata, List<String> qualifiers) {
+    private static void entityManager(
+            AfterBeanDiscovery afterBeanDiscovery,
+            BeanManager beanManager,
+            PersistenceUnitMetadata persistenceUnitMetadata,
+            List<String> qualifiers) {
+        String scope = persistenceUnitMetadata.getScopeAnnotationName() != null? persistenceUnitMetadata.getScopeAnnotationName(): transactionScoped;
         AnnotatedType<EntityManager> entityManagerAnnotatedType = beanManager.createAnnotatedType(EntityManager.class);
         BeanAttributes<EntityManager> entityManagerBeanAttributes = beanManager.createBeanAttributes(entityManagerAnnotatedType);
-
+        BeanConfigurator beanConfigurator = afterBeanDiscovery.addBean().addType(EntityManager.class);
+        for (String qualifier : qualifiers) {
+            Class<Annotation> annotationClass = null;
+            try {
+                annotationClass = (Class<Annotation>) Thread.currentThread().getContextClassLoader().loadClass(qualifier);
+                beanConfigurator.addQualifier(annotationClass.newInstance());
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            } catch (InstantiationException e) {
+                throw new RuntimeException(e);
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
+
+    EntityManager entityManager(PersistenceUnitMetadata persistenceUnitMetadata) {
+
+    return new TransactionScopedEntityManager(
+            persistenceUnitMetadata.getScopeAnnotationName(),
+            new Properties(),
+            getEntityManagerFactory(persistenceUnitMetadata),
+            SynchronizationType.SYNCHRONIZED,
+            TransactionSynchronizationRegistry,
+            transactionManager);
+}
 
 
 }

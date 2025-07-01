@@ -656,6 +656,7 @@ public class PersistenceUnitServiceHandler {
             final CapabilityServiceSupport support = deploymentUnit.getAttachment(Attachments.CAPABILITY_SERVICE_SUPPORT);
             if (support.hasCapability(WELD_CAPABILITY_NAME)) {
                 support.getOptionalCapabilityRuntimeAPI(WELD_CAPABILITY_NAME, WeldCapability.class).get()
+
                         .addBeanManagerService(deploymentUnit, builder, service.getBeanManagerInjector());
             }
 
@@ -693,6 +694,7 @@ public class PersistenceUnitServiceHandler {
     }
 
     private static void entityManagerBind(EEModuleDescription eeModuleDescription, ServiceTarget serviceTarget, final PersistenceUnitMetadata pu, ServiceName puServiceName, TransactionManager transactionManager, TransactionSynchronizationRegistry transactionSynchronizationRegistry) {
+
         if (pu.getProperties().containsKey(ENTITYMANAGER_JNDI_PROPERTY)) {
             String jndiName = pu.getProperties().get(ENTITYMANAGER_JNDI_PROPERTY).toString();
             final ContextNames.BindInfo bindingInfo;
