@@ -21,6 +21,7 @@ import javax.sql.DataSource;
 import jakarta.validation.ValidatorFactory;
 
 import org.jboss.as.jpa.beanmanager.BeanManagerAfterDeploymentValidation;
+import org.jboss.as.jpa.beanmanager.PersistenceIntegrationWithCDI;
 import org.jboss.as.jpa.beanmanager.ProxyBeanManager;
 import org.jboss.as.jpa.classloader.TempClassLoaderFactoryImpl;
 import org.jboss.as.jpa.spi.PersistenceUnitService;
@@ -182,7 +183,7 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                                         beanManagerAfterDeploymentValidation.register(persistenceProviderAdaptor, wrapperBeanManagerLifeCycle);
                                     }
                                     if (proxyBeanManager != null && proxyBeanManager.delegate() != null) {
-                                        createCDIBeansForPersistence(proxyBeanManager.delegate(), entityManagerFactory, pu);
+                                        createCDIBeansForPersistence(proxyBeanManager.delegate(), entityManagerFactory, pu, classLoader);
                                     } else if (proxyBeanManager != null) {
                                         throw new IllegalStateException("ProxyBeanManager.delegate() is null"); // Don't merge this change.
                                     }
@@ -202,8 +203,8 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
                                 return null;
                             }
 
-                            private void createCDIBeansForPersistence(BeanManager beanManager, EntityManagerFactory entityManagerFactory, PersistenceUnitMetadata pu) {
-
+                            private void createCDIBeansForPersistence(BeanManager beanManager, EntityManagerFactory entityManagerFactory, PersistenceUnitMetadata pu, ClassLoader classLoader) {
+                                PersistenceIntegrationWithCDI.addBeans(beanManager, entityManagerFactory, pu, classLoader);
                             }
 
                         };
