@@ -18,6 +18,7 @@ import jakarta.enterprise.inject.spi.BeanManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.spi.PersistenceProvider;
 import javax.sql.DataSource;
+
 import jakarta.validation.ValidatorFactory;
 
 import org.jboss.as.jpa.beanmanager.BeanManagerAfterDeploymentValidation;
@@ -78,6 +79,8 @@ public class PersistenceUnitServiceImpl implements Service<PersistenceUnitServic
     private volatile EntityManagerFactory entityManagerFactory;
     private volatile ProxyBeanManager proxyBeanManager;
     private final SetupAction javaNamespaceSetup;
+//    private final TransactionSynchronizationRegistry transactionSynchronizationRegistry;
+//    private final TransactionManager transactionManager;
 
     public PersistenceUnitServiceImpl(
             final Map properties,
