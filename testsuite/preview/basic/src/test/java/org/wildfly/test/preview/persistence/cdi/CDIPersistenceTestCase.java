@@ -2,7 +2,7 @@
  * Copyright The WildFly Authors
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.jboss.as.test.integration.jpa.cdi;
+package org.wildfly.test.preview.persistence.cdi;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -13,6 +13,7 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.metamodel.Metamodel;
 import jakarta.persistence.PersistenceUnitUtil;
+import jakarta.persistence.SchemaManager;
 import jakarta.inject.Inject;
 
 
@@ -93,6 +94,12 @@ public class CDIPersistenceTestCase {
     public void TestMetamodel() throws Exception {
         Metamodel metamodel = cmtBean.testMetamodel();
         assertNotNull("Metamodel should of been returned", metamodel);
+    }
+
+    @Test
+    public void TestSchemaManager() throws Exception {
+        SchemaManager schemaManager = cmtBean.testSchemaManager();
+        assertNotNull("SchemaManager should of been returned", schemaManager);
 
     }
 
