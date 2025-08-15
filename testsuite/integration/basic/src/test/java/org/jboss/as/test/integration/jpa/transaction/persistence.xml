@@ -15,6 +15,9 @@
             <property name="hibernate.enhancer.enableDirtyTracking" value="true"/>
             <property name="hibernate.enhancer.enableLazyInitialization" value="true"/>
             <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
+            <property name="hibernate.query.plan_cache_max_size" value="100"/>
+            <property name="hibernate.query.plan_cache_enabled" value="true"/>
+
         </properties>
     </persistence-unit>
     <persistence-unit name="mypc">
@@ -26,6 +29,9 @@
             <property name="hibernate.enhancer.enableDirtyTracking" value="true"/>
             <property name="hibernate.enhancer.enableLazyInitialization" value="true"/>
             <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
+            <property name="hibernate.query.plan_cache_max_size" value="100"/>
+            <property name="hibernate.query.plan_cache_enabled" value="true"/>
+
         </properties>
     </persistence-unit>
     <persistence-unit name="unsynchronized">
@@ -37,6 +43,9 @@
             <property name="hibernate.enhancer.enableDirtyTracking" value="true"/>
             <property name="hibernate.enhancer.enableLazyInitialization" value="true"/>
             <property name="hibernate.enhancer.enableAssociationManagement" value="true"/>
+            <property name="hibernate.query.plan_cache_max_size" value="100"/>
+            <property name="hibernate.query.plan_cache_enabled" value="true"/>
+
         </properties>
     </persistence-unit>
 </persistence>
