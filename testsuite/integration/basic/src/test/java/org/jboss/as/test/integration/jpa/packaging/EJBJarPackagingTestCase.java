@@ -6,6 +6,7 @@
 package org.jboss.as.test.integration.jpa.packaging;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import javax.naming.InitialContext;
 
@@ -35,10 +36,11 @@ public class EJBJarPackagingTestCase {
         JavaArchive ejbjar = ShrinkWrap.create(JavaArchive.class, "ejbjar.jar");
         ejbjar.addAsManifestResource(emptyEjbJar(), "ejb-jar.xml");
         ejbjar.addClasses(EmployeeBean.class, EJBJarPackagingTestCase.class);
+        ejbjar.addClasses(Employee.class);
         ear.addAsModule(ejbjar);        // add ejbjar to root of ear
 
         JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "lib.jar");
-        lib.addClasses(Employee.class);
+        lib.addClasses(Organisation.class);
         ear.addAsLibrary(lib);          // add entity jar to ear/lib
 
         // add persistence.xml to ear/META-INF
@@ -59,6 +61,12 @@ public class EJBJarPackagingTestCase {
         Class sessionClass = bean.getPersistenceProviderClass("org.hibernate.Session");
         assertNotNull("was able to load 'org.hibernate.Session' class from persistence provider", sessionClass);
     }
+
+    @Test
+    public void testEntityByteCodeIsEnhanced() throws Exception {
+            EmployeeBean bean = (EmployeeBean) iniCtx.lookup("java:app/ejbjar/EmployeeBean");
+            assertTrue("Employee entity class needs to be bytecode enhanced", bean.isEmployeeClassByteCodeEnhanced());
+        }
 
     private static StringAsset emptyEjbJar() {
         return new StringAsset(

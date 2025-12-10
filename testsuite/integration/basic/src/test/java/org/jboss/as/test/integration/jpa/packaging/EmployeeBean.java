@@ -5,9 +5,13 @@
 
 package org.jboss.as.test.integration.jpa.packaging;
 
+import java.lang.annotation.Annotation;
+
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.PersistenceUnit;
+
+import org.hibernate.bytecode.enhance.spi.EnhancementInfo;
 
 /**
  * stateful session bean
@@ -43,5 +47,13 @@ public class EmployeeBean {
             return null;
         }
         return result;
+    }
+
+    public boolean isEmployeeClassByteCodeEnhanced() {
+        for(Annotation annotation: Employee.class.getDeclaredAnnotations())
+            if(annotation instanceof EnhancementInfo) {
+                return true;
+            }
+        return false;
     }
 }
