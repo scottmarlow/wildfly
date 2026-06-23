@@ -5,8 +5,6 @@
 
 package org.jboss.as.jpa.beanmanager;
 
-import jakarta.enterprise.inject.spi.BeanManager;
-
 import jakarta.enterprise.inject.spi.el.ELAwareBeanManager;
 import org.jboss.weld.util.ForwardingBeanManager;
 
