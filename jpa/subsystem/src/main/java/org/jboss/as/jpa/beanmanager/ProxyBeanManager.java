@@ -7,6 +7,7 @@ package org.jboss.as.jpa.beanmanager;
 
 import jakarta.enterprise.inject.spi.BeanManager;
 
+import jakarta.enterprise.inject.spi.el.ELAwareBeanManager;
 import org.jboss.weld.util.ForwardingBeanManager;
 
 /**
@@ -16,14 +17,14 @@ import org.jboss.weld.util.ForwardingBeanManager;
  */
 public class ProxyBeanManager extends ForwardingBeanManager {
 
-    private volatile BeanManager delegate;
+    private volatile ELAwareBeanManager delegate;
 
     @Override
-    public BeanManager delegate() {
+    public ELAwareBeanManager delegate() {
         return delegate;
     }
 
-    public void setDelegate(BeanManager delegate) {
+    public void setDelegate(ELAwareBeanManager delegate) {
         this.delegate = delegate;
     }
 }
