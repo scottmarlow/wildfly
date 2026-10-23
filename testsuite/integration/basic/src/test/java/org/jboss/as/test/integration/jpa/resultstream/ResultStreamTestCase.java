@@ -18,9 +18,11 @@ import javax.naming.NamingException;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.as.test.shared.util.AssumeTestGroupUtil;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -38,6 +40,27 @@ import org.junit.runner.RunWith;
 public class ResultStreamTestCase {
 
     private static final String ARCHIVE_NAME = "jpa_resultstreamtest";
+
+    /**
+     * Disabled on WildFly Preview (Hibernate ORM 8 / Jakarta Persistence 4).
+     * <p>
+     * This test obtains a lazily-evaluated {@link Stream} from {@code Query#getResultStream()} in a
+     * non-transactional ({@code TransactionAttribute(NEVER)}) bean method and consumes it in the client after the
+     * method returns, without closing the stream. Under Hibernate ORM 8 the JDBC connection backing the
+     * {@code ScrollableResults} is no longer associated with a managed connection by the time the client iterates
+     * (the connection is reclaimed at the non-transactional invocation boundary while the stream, held open by
+     * Hibernate, is never closed within the invocation), so iterating it fails with
+     * "IJ031040: Connection is not associated with a managed connection".
+     * <p>
+     * This was verified to fail identically on both Hibernate ORM 8.0.0.Beta1 and 8.0.0-SNAPSHOT, so it is not
+     * addressed by HHH-20551 ("Release jdbc resources after scrollable result stream is closed when no
+     * transaction is active"); consuming a lazy result stream after a non-transactional invocation returns is
+     * not supported under ORM 8. Standard/legacy runs on ORM 7 are unaffected.
+     */
+    @BeforeClass
+    public static void beforeClass() {
+        AssumeTestGroupUtil.assumeNotWildFlyPreview();
+    }
 
     @ArquillianResource
     private InitialContext iniCtx;
