@@ -51,6 +51,8 @@
         <module name="org.wildfly.security.elytron-private"/>
         <module name="org.jboss.as.server"/>
         <module name="org.jboss.as.transactions"/>
+        <!-- Persistence CDI producers require the transaction context in consuming deployments. -->
+        <module name="org.jboss.jts" export="true" services="export"/>
         <module name="org.jboss.jboss-transaction-spi"/>
         <module name="org.jboss.invocation"/>
         <module name="io.smallrye.jandex"/>
