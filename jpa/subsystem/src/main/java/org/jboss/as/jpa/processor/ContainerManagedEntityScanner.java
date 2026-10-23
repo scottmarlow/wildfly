@@ -39,13 +39,14 @@ import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
  * <p>
  * This is required for persistence providers that no longer scan the persistence unit archive during
  * container-managed bootstrap (Jakarta Persistence 4 / Hibernate ORM 8), which instead rely on
- * {@link jakarta.persistence.spi.PersistenceUnitInfo#getManagedClassNames()}. It is only invoked when the
+ * {@code PersistenceUnitInfo.getAllClassNames()}. It is only invoked when the
  * provider adaptor reports {@code containerManagedEntityScanning() == true}; providers that scan the archive
  * themselves (Hibernate ORM 7, EclipseLink) are unaffected.
  * <p>
  * Scanning is scoped to the archives that make up the persistence unit &mdash; the persistence unit root plus
  * any {@code <jar-file>} references &mdash; by matching their URLs to the deployment's resource roots and using
  * each root's annotation index. Unindexed archives are indexed locally, without scanning unrelated deployments.
+ * Explicit mapping files are also resolved through the persistence unit classloader.
  *
  * @author Scott Marlow
  */
@@ -121,6 +122,17 @@ final class ContainerManagedEntityScanner {
         }
         // XML mappings apply even when annotation discovery is excluded.
         Set<String> mappings = new LinkedHashSet<>(pu.getMappingFileNames());
+        // Listed resources may live in classpath-visible libraries outside the unit's archives.
+        // Only explicit mappings use the classloader; implicit orm.xml discovery stays archive-scoped.
+        for (String mapping : mappings) {
+            try (InputStream stream = pu.getClassLoader().getResourceAsStream(mapping)) {
+                if (stream != null) {
+                    addXmlClasses(stream, classes);
+                }
+            } catch (IOException | XMLStreamException e) {
+                throw new IllegalStateException("Cannot read persistence mapping " + mapping + " from the persistence unit classloader", e);
+            }
+        }
         mappings.add("META-INF/orm.xml");
         for (String mapping : mappings) {
             Set<VirtualFile> mappingArchives = persistenceUnitArchives(pu);

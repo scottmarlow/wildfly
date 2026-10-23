@@ -8,6 +8,8 @@ import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Proxy;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -77,6 +79,64 @@ public class ContainerDiscoveryTestCase {
         } finally {
             deleteTree(root);
             deleteTree(listed);
+        }
+    }
+
+    @Test
+    public void listedMappingFromClasspathLibrary() throws Exception {
+        classpathMapping("META-INF/external.xml");
+    }
+
+    @Test
+    public void explicitlyListedOrmXmlFromClasspathLibrary() throws Exception {
+        classpathMapping("META-INF/orm.xml");
+    }
+
+    private void classpathMapping(String mapping) throws Exception {
+        Path root = Files.createTempDirectory("pu-root");
+        Path library = Files.createTempDirectory("pu-library");
+        try {
+            Files.createDirectories(root.resolve("META-INF"));
+            Files.writeString(root.resolve("META-INF/orm.xml"),
+                    "<entity-mappings><entity class=\"root.XmlEntity\"/></entity-mappings>");
+            Path jar = library.resolve("external.jar");
+            try (java.util.jar.JarOutputStream output = new java.util.jar.JarOutputStream(Files.newOutputStream(jar))) {
+                output.putNextEntry(new java.util.jar.JarEntry(mapping));
+                output.write(("<entity-mappings><package>external</package><entity class=\"XmlEntity\"/>"
+                        + "<embeddable class=\"XmlEmbeddable\"/><mapped-superclass class=\"XmlSuperclass\"/>"
+                        + "<converter class=\"XmlConverter\"/></entity-mappings>").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                output.closeEntry();
+                if (!mapping.equals("META-INF/orm.xml")) {
+                    output.putNextEntry(new java.util.jar.JarEntry("META-INF/orm.xml"));
+                    output.write("<entity-mappings><entity class=\"unrelated.XmlEntity\"/></entity-mappings>"
+                            .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    output.closeEntry();
+                }
+            }
+            // This library is visible to the unit, but is neither its root nor a listed JAR.
+            try (URLClassLoader loader = new URLClassLoader(new URL[]{jar.toUri().toURL()}, getClass().getClassLoader())) {
+                PersistenceUnitMetadataImpl metadata = new PersistenceUnitMetadataImpl();
+                metadata.setClassLoader(loader);
+                metadata.setPersistenceUnitRootUrl(root.toUri().toURL());
+                metadata.setManagedClassNames(List.of("explicit.Type"));
+                DeploymentUnit deployment = (DeploymentUnit) Proxy.newProxyInstance(DeploymentUnit.class.getClassLoader(),
+                        new Class<?>[]{DeploymentUnit.class}, (proxy, method, args) ->
+                                method.getName().equals("getAttachmentList") ? List.of() : null);
+                ContainerManagedEntityScanner.addManagedClassNames(metadata, deployment);
+                assertEquals(List.of("explicit.Type", "root.XmlEntity"), metadata.getAllClassNames());
+                metadata.setMappingFiles(List.of(mapping));
+                for (boolean exclude : new boolean[]{false, true}) {
+                    metadata.setExcludeUnlistedClasses(exclude);
+                    ContainerManagedEntityScanner.addManagedClassNames(metadata, deployment);
+                    assertTrue(metadata.getAllClassNames().containsAll(List.of("explicit.Type", "root.XmlEntity",
+                            "external.XmlEntity", "external.XmlEmbeddable", "external.XmlSuperclass", "external.XmlConverter")));
+                    assertEquals(6, metadata.getAllClassNames().size());
+                    assertEquals(List.of("explicit.Type"), metadata.getManagedClassNames());
+                }
+            }
+        } finally {
+            deleteTree(root);
+            deleteTree(library);
         }
     }
 
