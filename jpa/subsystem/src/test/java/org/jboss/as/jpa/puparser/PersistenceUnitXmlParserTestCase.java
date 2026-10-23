@@ -8,7 +8,7 @@ import java.io.StringReader;
 
 import jakarta.persistence.SharedCacheMode;
 import jakarta.persistence.ValidationMode;
-import jakarta.persistence.spi.PersistenceUnitTransactionType;
+import jakarta.persistence.PersistenceUnitTransactionType;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -97,7 +97,7 @@ public class PersistenceUnitXmlParserTestCase {
         assertEquals("org.foo.Provider", metadata.getPersistenceProviderClassName());
         assertEquals(SharedCacheMode.DISABLE_SELECTIVE, metadata.getSharedCacheMode());
         assertEquals(ValidationMode.CALLBACK, metadata.getValidationMode());
-        assertEquals(PersistenceUnitTransactionType.RESOURCE_LOCAL, metadata.getTransactionType());
+        assertEquals(PersistenceUnitTransactionType.RESOURCE_LOCAL, metadata.getPersistenceUnitTransactionType());
 
     }
 }

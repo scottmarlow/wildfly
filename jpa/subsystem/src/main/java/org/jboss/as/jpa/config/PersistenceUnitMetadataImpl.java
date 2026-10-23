@@ -16,8 +16,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import jakarta.persistence.SharedCacheMode;
 import jakarta.persistence.ValidationMode;
+import jakarta.persistence.PersistenceUnitTransactionType;
 import jakarta.persistence.spi.ClassTransformer;
-import jakarta.persistence.spi.PersistenceUnitTransactionType;
 import javax.sql.DataSource;
 
 import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
@@ -146,7 +146,16 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
     }
 
     @Override
-    public PersistenceUnitTransactionType getTransactionType() {
+    public jakarta.persistence.spi.PersistenceUnitTransactionType getTransactionType() {
+        // Jakarta Persistence 3.2 variant: PersistenceUnitInfo.getTransactionType() returns the deprecated
+        // spi enum. We store the version-neutral jakarta.persistence enum, so convert here.
+        return transactionType == null
+                ? null
+                : jakarta.persistence.spi.PersistenceUnitTransactionType.valueOf(transactionType.name());
+    }
+
+    @Override
+    public PersistenceUnitTransactionType getPersistenceUnitTransactionType() {
         return transactionType;
     }
 
