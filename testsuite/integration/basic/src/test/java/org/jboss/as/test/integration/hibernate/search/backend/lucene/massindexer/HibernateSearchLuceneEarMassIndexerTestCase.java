@@ -83,7 +83,8 @@ public class HibernateSearchLuceneEarMassIndexerTestCase {
                 .createProperty().name("hibernate.search.backend.type").value("lucene").up()
                 .createProperty().name("hibernate.search.backend.lucene_version").value("LUCENE_CURRENT").up()
                 .createProperty().name("hibernate.search.backend.directory.type").value("local-heap").up()
-                .createProperty().name("hibernate.search.automatic_indexing.enabled").value("false").up()
+                .createProperty().name(AssumeTestGroupUtil.isWildFlyPreview()
+                        ? "hibernate.search.indexing.listeners.enabled" : "hibernate.search.automatic_indexing.enabled").value("false").up()
                 .up().up()
                 .exportAsString();
         return new StringAsset(persistenceXml);
