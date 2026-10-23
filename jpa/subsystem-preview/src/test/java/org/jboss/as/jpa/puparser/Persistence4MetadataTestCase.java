@@ -28,6 +28,8 @@ public class Persistence4MetadataTestCase {
             PersistenceUnitMetadataImpl metadata = (PersistenceUnitMetadataImpl) PersistenceUnitXmlParser
                     .parse(reader, PropertyReplacers.noop()).getPersistenceUnits().get(0);
             assertEquals("4.0", metadata.getPersistenceXMLSchemaVersion());
+            assertEquals(org.jipijapa.plugin.spi.PersistenceUnitMetadata.TransactionType.JTA, metadata.getPersistenceUnitTransactionType());
+            assertEquals(jakarta.persistence.PersistenceUnitTransactionType.JTA, metadata.getTransactionType());
             assertEquals(FetchType.LAZY, metadata.getDefaultToOneFetchType());
             assertEquals(List.of("example"), metadata.getManagedPackageDescriptors());
             assertEquals(List.of("example.module"), metadata.getManagedModuleDescriptors());

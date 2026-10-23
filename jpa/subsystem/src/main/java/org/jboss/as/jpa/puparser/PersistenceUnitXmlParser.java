@@ -11,7 +11,7 @@ import java.util.Properties;
 
 import jakarta.persistence.SharedCacheMode;
 import jakarta.persistence.ValidationMode;
-import jakarta.persistence.PersistenceUnitTransactionType;
+import org.jipijapa.plugin.spi.PersistenceUnitMetadata.TransactionType;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
@@ -150,7 +150,7 @@ public class PersistenceUnitXmlParser extends MetaDataElementParser {
         Properties properties = new Properties();
 
         // set defaults
-        pu.setTransactionType(PersistenceUnitTransactionType.JTA);
+        pu.setTransactionType(TransactionType.JTA);
         pu.setValidationMode(ValidationMode.AUTO);
         pu.setSharedCacheMode(SharedCacheMode.UNSPECIFIED);
         pu.setPersistenceProviderClassName(Configuration.PROVIDER_CLASS_DEFAULT);
@@ -173,7 +173,7 @@ public class PersistenceUnitXmlParser extends MetaDataElementParser {
                     break;
                 case TRANSACTIONTYPE:
                     if (value.equalsIgnoreCase("RESOURCE_LOCAL"))
-                        pu.setTransactionType(PersistenceUnitTransactionType.RESOURCE_LOCAL);
+                        pu.setTransactionType(TransactionType.RESOURCE_LOCAL);
                     break;
                 default:
                     throw unexpectedAttribute(reader, i);

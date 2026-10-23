@@ -16,7 +16,7 @@ import jakarta.persistence.PersistenceContexts;
 import jakarta.persistence.PersistenceUnit;
 import jakarta.persistence.PersistenceUnits;
 import jakarta.persistence.SynchronizationType;
-import jakarta.persistence.PersistenceUnitTransactionType;
+import org.jipijapa.plugin.spi.PersistenceUnitMetadata.TransactionType;
 
 import org.jboss.as.ee.component.Attachments;
 import org.jboss.as.ee.component.BindingConfiguration;
@@ -296,7 +296,7 @@ public class JPAAnnotationProcessor implements DeploymentUnitProcessor {
         String scopedPuName = pu.getScopedPersistenceUnitName();
         ServiceName puServiceName = getPuServiceName(scopedPuName);
         if (annotation.name().equals(PERSISTENCE_AGENT)) {
-            if (pu.getPersistenceUnitTransactionType() == PersistenceUnitTransactionType.RESOURCE_LOCAL) {
+            if (pu.getPersistenceUnitTransactionType() == TransactionType.RESOURCE_LOCAL) {
                 classDescription.setInvalid(JpaLogger.ROOT_LOGGER.cannotInjectResourceLocalEntityManager());
                 return null;
             }
@@ -313,7 +313,7 @@ public class JPAAnnotationProcessor implements DeploymentUnitProcessor {
             return new PersistenceAgentInjectionSource(puServiceName, deploymentUnit.getServiceRegistry(), pu, properties);
         }
         if (isPersistenceContext(annotation)) {
-            if (pu.getPersistenceUnitTransactionType() == PersistenceUnitTransactionType.RESOURCE_LOCAL) {
+            if (pu.getPersistenceUnitTransactionType() == TransactionType.RESOURCE_LOCAL) {
                 classDescription.setInvalid(JpaLogger.ROOT_LOGGER.cannotInjectResourceLocalEntityManager());
                 return null;
             }

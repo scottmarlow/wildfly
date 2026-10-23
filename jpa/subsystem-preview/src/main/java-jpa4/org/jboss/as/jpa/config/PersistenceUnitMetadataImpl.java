@@ -18,6 +18,7 @@ import jakarta.persistence.SharedCacheMode;
 import jakarta.persistence.ValidationMode;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.PersistenceUnitTransactionType;
+import org.jipijapa.plugin.spi.PersistenceUnitMetadata.TransactionType;
 import jakarta.persistence.spi.ClassTransformer;
 import javax.sql.DataSource;
 
@@ -60,7 +61,7 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
     private volatile String provider;
 
     // optional: specifies if EntityManagers will be JTA (default) or RESOURCE_LOCAL
-    private volatile PersistenceUnitTransactionType transactionType;
+    private volatile TransactionType transactionType;
 
     // optional: collection of individually named managed entity classes
     private volatile List<String> classes = new ArrayList<String>(1);
@@ -151,13 +152,12 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
 
     @Override
     public PersistenceUnitTransactionType getTransactionType() {
-        // Jakarta Persistence 4.0 variant: PersistenceUnitInfo.getTransactionType() returns the
-        // jakarta.persistence enum, which is exactly what we store.
-        return transactionType;
+        // Jakarta Persistence 4.0 uses the API enum; shared metadata stores the container enum.
+        return transactionType == null ? null : PersistenceUnitTransactionType.valueOf(transactionType.name());
     }
 
     @Override
-    public PersistenceUnitTransactionType getPersistenceUnitTransactionType() {
+    public TransactionType getPersistenceUnitTransactionType() {
         return transactionType;
     }
 
@@ -297,7 +297,7 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
     }
 
     @Override
-    public void setTransactionType(PersistenceUnitTransactionType transactionType) {
+    public void setTransactionType(TransactionType transactionType) {
         this.transactionType = transactionType;
     }
 

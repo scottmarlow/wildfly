@@ -14,7 +14,6 @@ import jakarta.persistence.SharedCacheMode;
 import jakarta.persistence.ValidationMode;
 import jakarta.persistence.spi.ClassTransformer;
 import jakarta.persistence.spi.PersistenceUnitInfo;
-import jakarta.persistence.PersistenceUnitTransactionType;
 import javax.sql.DataSource;
 
 /**
@@ -87,19 +86,21 @@ public interface PersistenceUnitMetadata extends PersistenceUnitInfo {
 
     void setExcludeUnlistedClasses(boolean excludeUnlistedClasses);
 
-    void setTransactionType(PersistenceUnitTransactionType transactionType);
+    /** Container transaction types, converted to the provider's enum by its metadata implementation. */
+    enum TransactionType {
+        JTA, RESOURCE_LOCAL
+    }
+
+    void setTransactionType(TransactionType transactionType);
 
     /**
-     * WildFly-owned accessor for the persistence unit transaction type, expressed with the
-     * {@link jakarta.persistence.PersistenceUnitTransactionType} enum that exists in both Jakarta
-     * Persistence 3.2 and 4.0. Callers should use this instead of the version-sensitive
-     * {@link jakarta.persistence.spi.PersistenceUnitInfo#getTransactionType()}, whose return type
-     * changed between those versions (spi enum removed in 4.0), so that shared subsystem code can be
-     * compiled once and run against either API.
+     * Transaction type independent of the Jakarta Persistence API version. Shared subsystem code
+     * uses this accessor because PersistenceUnitInfo.getTransactionType() changes enum packages
+     * between Jakarta Persistence 3.x and 4.0.
      *
      * @return the transaction type, or {@code null} if unspecified
      */
-    PersistenceUnitTransactionType getPersistenceUnitTransactionType();
+    TransactionType getPersistenceUnitTransactionType();
 
     void setMappingFiles(List<String> mappingFiles);
 
