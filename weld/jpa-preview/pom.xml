@@ -114,6 +114,11 @@
    </dependencies>
 
    <build>
+      <resources>
+         <resource>
+            <directory>${project.basedir}/../jpa/src/main/resources</directory>
+         </resource>
+      </resources>
       <plugins>
          <!--
             Reuse the version-neutral wildfly-weld-jpa sources by reference and compile them together with the

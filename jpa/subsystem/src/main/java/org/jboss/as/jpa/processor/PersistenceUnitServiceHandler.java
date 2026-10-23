@@ -279,6 +279,7 @@ public class PersistenceUnitServiceHandler {
                         // managed class names. Discover them from the deployment index before the persistence unit
                         // metadata is consumed (idempotent across the two-phase bootstrap calls).
                         if (adaptor.containerManagedEntityScanning()) {
+                            pu.setClassLoader(classLoader);
                             ContainerManagedEntityScanner.addManagedClassNames(pu, deploymentUnit);
                         }
 

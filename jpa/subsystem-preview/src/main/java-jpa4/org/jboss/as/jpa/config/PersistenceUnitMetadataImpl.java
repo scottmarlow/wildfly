@@ -37,6 +37,12 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
     // required: name of the persistent unit scoped to deployment file
     private volatile String scopedName;
 
+    private volatile List<String> allClasses;
+    private volatile List<String> packages = new ArrayList<>();
+    private volatile List<String> modules = new ArrayList<>();
+    private volatile List<String> allPackages;
+    private volatile List<String> allModules;
+    private volatile FetchType defaultToOneFetchType = FetchType.EAGER;
     private volatile ArrayList<String> containingModuleName;
 
     // optional: jndi name of non-jta datasource
@@ -58,9 +64,6 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
 
     // optional: collection of individually named managed entity classes
     private volatile List<String> classes = new ArrayList<String>(1);
-
-    // optional:
-    private final List<String> packages = new ArrayList<String>(1);
 
     // optional:  collection of jar file names that contain entity classes
     private volatile List<String> jarFiles = new ArrayList<String>(1);
@@ -160,9 +163,7 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
 
     @Override
     public FetchType getDefaultToOneFetchType() {
-        // Jakarta Persistence 4.0 added this to PersistenceUnitInfo. The specification default for
-        // to-one associations is EAGER, matching pre-4.0 behavior.
-        return FetchType.EAGER;
+        return defaultToOneFetchType;
     }
 
     @Override
@@ -222,15 +223,67 @@ public class PersistenceUnitMetadataImpl implements PersistenceUnitMetadata {
 
     @Override
     public List<String> getAllClassNames() {
-        // Jakarta Persistence 4.0 added this to PersistenceUnitInfo. WildFly resolves the complete set of
-        // managed classes (explicitly listed plus those discovered by scanning) into the managed class
-        // names during deployment, so that list is the full set.
-        return classes;
+        return allClasses == null ? classes : allClasses;
+    }
+
+    @Override
+    public void setAllClassNames(List<String> classes) {
+        this.allClasses = classes;
+    }
+
+    @Override
+    public List<String> getManagedPackageDescriptors() {
+        return packages;
+    }
+
+    @Override
+    public List<String> getManagedModuleDescriptors() {
+        return modules;
+    }
+
+    @Override
+    public List<String> getAllPackageDescriptors() {
+        return allPackages == null ? packages : allPackages;
+    }
+
+    @Override
+    public List<String> getAllModuleDescriptors() {
+        return allModules == null ? modules : allModules;
+    }
+
+    @Override
+    public void setManagedPackageDescriptors(List<String> packages) {
+        this.packages = packages;
+    }
+
+    @Override
+    public void setManagedModuleDescriptors(List<String> modules) {
+        this.modules = modules;
+    }
+
+    @Override
+    public void setAllPackageDescriptors(List<String> packages) {
+        this.allPackages = packages;
+    }
+
+    @Override
+    public void setAllModuleDescriptors(List<String> modules) {
+        this.allModules = modules;
+    }
+
+    @Override
+    public void setDefaultToOneFetchType(FetchType fetchType) {
+        this.defaultToOneFetchType = fetchType;
     }
 
     @Override
     public void setManagedClassNames(List<String> classes) {
         this.classes = classes;
+    }
+
+    @Override
+    public Object createContainerManagedEntityAgent(jakarta.persistence.EntityManagerFactory factory, java.util.Map<String, String> properties) {
+        return org.jboss.as.jpa.container.TransactionScopedEntityAgent.create(scopedName, factory, properties);
     }
 
     @Override

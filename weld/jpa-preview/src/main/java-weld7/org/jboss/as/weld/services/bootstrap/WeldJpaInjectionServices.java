@@ -128,18 +128,22 @@ public class WeldJpaInjectionServices implements JpaInjectionServices {
         if (agent == null) {
             throw WeldLogger.ROOT_LOGGER.annotationNotFound(PersistenceAgent.class, injectionPoint.getMember());
         }
+        final java.util.Map<String, String> properties = new java.util.HashMap<>();
+        for (jakarta.persistence.PersistenceProperty property : agent.properties()) {
+            properties.put(property.name(), property.value());
+        }
         final String scopedPuName = getScopedPUName(deploymentUnit, agent.unitName(), injectionPoint.getMember());
         final ServiceName persistenceUnitServiceName = PersistenceUnitServiceImpl.getPUServiceName(scopedPuName);
 
         final ServiceController<?> serviceController = deploymentUnit.getServiceRegistry().getRequiredService(persistenceUnitServiceName);
         final PersistenceUnitServiceImpl persistenceUnitService = (PersistenceUnitServiceImpl) serviceController.getValue();
         if (persistenceUnitService.getEntityManagerFactory() != null) {
-            return new EntityAgentResourceReferenceFactory(scopedPuName, persistenceUnitService.getEntityManagerFactory());
+            return new EntityAgentResourceReferenceFactory(scopedPuName, persistenceUnitService.getEntityManagerFactory(), properties);
         } else {
             return new LazyFactory<EntityAgent>(serviceController, scopedPuName, new Callable<EntityAgent>() {
                 @Override
                 public EntityAgent call() throws Exception {
-                    return TransactionScopedEntityAgent.create(scopedPuName, persistenceUnitService.getEntityManagerFactory());
+                    return TransactionScopedEntityAgent.create(scopedPuName, persistenceUnitService.getEntityManagerFactory(), properties);
                 }
             });
         }
@@ -195,14 +199,17 @@ public class WeldJpaInjectionServices implements JpaInjectionServices {
         private final String scopedPuName;
         private final EntityManagerFactory entityManagerFactory;
 
-        EntityAgentResourceReferenceFactory(String scopedPuName, EntityManagerFactory entityManagerFactory) {
+        private final java.util.Map<String, String> properties;
+
+        EntityAgentResourceReferenceFactory(String scopedPuName, EntityManagerFactory entityManagerFactory, java.util.Map<String, String> properties) {
+            this.properties = new java.util.HashMap<>(properties);
             this.scopedPuName = scopedPuName;
             this.entityManagerFactory = entityManagerFactory;
         }
 
         @Override
         public ResourceReference<EntityAgent> createResource() {
-            return new SimpleResourceReference<>(TransactionScopedEntityAgent.create(scopedPuName, entityManagerFactory));
+            return new SimpleResourceReference<>(TransactionScopedEntityAgent.create(scopedPuName, entityManagerFactory, properties));
         }
     }
 

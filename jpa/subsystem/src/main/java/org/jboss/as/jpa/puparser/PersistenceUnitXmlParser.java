@@ -141,6 +141,8 @@ public class PersistenceUnitXmlParser extends MetaDataElementParser {
      */
     private static PersistenceUnitMetadata parsePU(XMLStreamReader reader, Version version, final PropertyReplacer propertyReplacer) throws XMLStreamException {
         PersistenceUnitMetadata pu = new PersistenceUnitMetadataImpl();
+        List<String> packages = new ArrayList<>();
+        List<String> modules = new ArrayList<>();
         List<String> classes = new ArrayList<String>(1);
         List<String> jarFiles = new ArrayList<String>(1);
         List<String> mappingFiles = new ArrayList<String>(1);
@@ -185,6 +187,15 @@ public class PersistenceUnitXmlParser extends MetaDataElementParser {
                 ROOT_LOGGER.tracef("parse persistence.xml: element=%s", element.getLocalName());
             }
             switch (element) {
+                case PACKAGEDESCRIPTOR:
+                    packages.add(getElement(reader, propertyReplacer));
+                    break;
+                case MODULEDESCRIPTOR:
+                    modules.add(getElement(reader, propertyReplacer));
+                    break;
+                case DEFAULTTOONEFETCHTYPE:
+                    pu.setDefaultToOneFetchType(jakarta.persistence.FetchType.valueOf(getElement(reader, propertyReplacer)));
+                    break;
                 case CLASS:
                     classes.add(getElement(reader, propertyReplacer));
                     break;
@@ -256,6 +267,8 @@ public class PersistenceUnitXmlParser extends MetaDataElementParser {
             ROOT_LOGGER.trace("parse persistence.xml: reached ending persistence-unit tag");
         }
         pu.setManagedClassNames(classes);
+        pu.setManagedPackageDescriptors(packages);
+        pu.setManagedModuleDescriptors(modules);
         pu.setJarFiles(jarFiles);
         pu.setMappingFiles(mappingFiles);
         pu.setProperties(properties);

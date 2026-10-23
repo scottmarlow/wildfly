@@ -18,6 +18,9 @@ public enum Element {
     UNKNOWN(null),
     // followed by all entries in sorted order
     CLASS("class"),
+    DEFAULTTOONEFETCHTYPE("default-to-one-fetch-type"),
+    PACKAGEDESCRIPTOR("package-descriptor"),
+    MODULEDESCRIPTOR("module-descriptor"),
     DESCRIPTION("description"),
     EXCLUDEUNLISTEDCLASSES("exclude-unlisted-classes"),
     JARFILE("jar-file"),

@@ -5,10 +5,17 @@
 
 package org.jboss.as.jpa.processor;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.stream.XMLStreamException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -17,10 +24,9 @@ import org.jboss.as.jpa.messages.JpaLogger;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUtils;
-import org.jboss.as.server.deployment.annotation.CompositeIndex;
+import org.jboss.jandex.ClassInfo;
+import org.jboss.jandex.Indexer;
 import org.jboss.as.server.deployment.module.ResourceRoot;
-import org.jboss.jandex.AnnotationInstance;
-import org.jboss.jandex.AnnotationTarget;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.Index;
 import org.jboss.vfs.VFS;
@@ -39,71 +45,187 @@ import org.jipijapa.plugin.spi.PersistenceUnitMetadata;
  * <p>
  * Scanning is scoped to the archives that make up the persistence unit &mdash; the persistence unit root plus
  * any {@code <jar-file>} references &mdash; by matching their URLs to the deployment's resource roots and using
- * each root's annotation index. If those archives cannot be resolved to indexed resource roots, the whole
- * deployment's composite annotation index is used as a fallback.
+ * each root's annotation index. Unindexed archives are indexed locally, without scanning unrelated deployments.
  *
  * @author Scott Marlow
  */
 final class ContainerManagedEntityScanner {
 
-    private static final DotName[] MANAGED_CLASS_ANNOTATIONS = {
-            DotName.createSimple("jakarta.persistence.Entity"),
-            DotName.createSimple("jakarta.persistence.Embeddable"),
-            DotName.createSimple("jakarta.persistence.MappedSuperclass"),
-            DotName.createSimple("jakarta.persistence.Converter"),
-    };
-
     private ContainerManagedEntityScanner() {
     }
 
     /**
-     * Adds the managed class names discovered in the persistence unit's archives to the persistence unit, unless
-     * it opted out of scanning via {@code <exclude-unlisted-classes>true</exclude-unlisted-classes>}. Any classes
+     * Adds the managed class names discovered in the persistence unit's archives to the complete inventory.
+     * Exclusion suppresses root discovery while listed JARs are still scanned. Any classes
      * already listed (for example via {@code <class>} elements) are preserved.
      *
      * @param pu             the persistence unit metadata to augment
      * @param deploymentUnit the deployment unit the persistence unit belongs to
      */
     static void addManagedClassNames(PersistenceUnitMetadata pu, DeploymentUnit deploymentUnit) {
-        if (pu.excludeUnlistedClasses()) {
-            return;
-        }
-
-        // preserve any explicitly listed classes and keep a stable, de-duplicated ordering
-        final Set<String> managedClassNames = new LinkedHashSet<>(pu.getManagedClassNames());
-
-        // the archives that make up the persistence unit: its root plus any <jar-file> references
-        final Set<VirtualFile> persistenceUnitArchives = persistenceUnitArchives(pu);
-
-        boolean scannedResourceRoot = false;
-        if (!persistenceUnitArchives.isEmpty()) {
-            for (ResourceRoot resourceRoot : resourceRoots(deploymentUnit)) {
-                if (persistenceUnitArchives.contains(resourceRoot.getRoot())) {
-                    final Index index = resourceRoot.getAttachment(Attachments.ANNOTATION_INDEX);
-                    if (index != null) {
-                        for (DotName annotation : MANAGED_CLASS_ANNOTATIONS) {
-                            addClassTargets(index.getAnnotations(annotation), managedClassNames);
+        final Set<String> classes = new LinkedHashSet<>(pu.getManagedClassNames());
+        final Set<String> packages = new LinkedHashSet<>(pu.getManagedPackageDescriptors());
+        final Set<String> modules = new LinkedHashSet<>(pu.getManagedModuleDescriptors());
+        final Map<DotName, Boolean> discoverable = new HashMap<>();
+        for (VirtualFile archive : persistenceUnitArchives(pu)) {
+            Index index = null;
+            for (ResourceRoot root : resourceRoots(deploymentUnit)) {
+                if (archive.equals(root.getRoot())) {
+                    index = root.getAttachment(Attachments.ANNOTATION_INDEX);
+                    break;
+                }
+            }
+            try {
+                if (index == null) {
+                    Indexer indexer = new Indexer();
+                    if (archive.isFile()) {
+                        try (java.util.jar.JarInputStream stream = new java.util.jar.JarInputStream(archive.openStream())) {
+                            java.util.jar.JarEntry entry;
+                            while ((entry = stream.getNextJarEntry()) != null) {
+                                if (!entry.isDirectory() && entry.getName().endsWith(".class")) {
+                                    indexer.index(stream);
+                                }
+                            }
                         }
-                        scannedResourceRoot = true;
+                    } else {
+                        for (VirtualFile file : archive.getChildrenRecursively(file -> file.isFile() && file.getName().endsWith(".class"))) {
+                            try (InputStream stream = file.openStream()) {
+                                indexer.index(stream);
+                            }
+                        }
+                    }
+                    index = indexer.complete();
+                }
+                for (org.jboss.jandex.ModuleInfo module : index.getKnownModules()) {
+                    if (module.annotations().stream().anyMatch(annotation ->
+                            isDiscoverable(annotation.name(), pu.getClassLoader(), discoverable))) {
+                        modules.add(module.name().toString());
+                    }
+                }
+                for (ClassInfo type : index.getKnownClasses()) {
+                    if (type.declaredAnnotations().stream().anyMatch(annotation ->
+                            isDiscoverable(annotation.name(), pu.getClassLoader(), discoverable))) {
+                        String name = type.name().toString();
+                        if (type.module() != null) {
+                            modules.add(type.module().name().toString());
+                        } else if (name.endsWith(".package-info")) {
+                            packages.add(name.substring(0, name.length() - ".package-info".length()));
+                        } else if (!name.equals("module-info")) {
+                            classes.add(name);
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                throw new IllegalStateException("Cannot index persistence unit archive " + archive, e);
+            }
+        }
+        // XML mappings apply even when annotation discovery is excluded.
+        Set<String> mappings = new LinkedHashSet<>(pu.getMappingFileNames());
+        mappings.add("META-INF/orm.xml");
+        for (String mapping : mappings) {
+            Set<VirtualFile> mappingArchives = persistenceUnitArchives(pu);
+            addArchive(mappingArchives, pu.getPersistenceUnitRootUrl());
+            for (VirtualFile archive : mappingArchives) {
+                try (InputStream stream = mappingStream(archive, mapping)) {
+                    if (stream != null) {
+                        addXmlClasses(stream, classes);
+                    }
+                } catch (IOException | XMLStreamException e) {
+                    throw new IllegalStateException("Cannot read persistence mapping " + mapping + " in " + archive, e);
+                }
+            }
+        }
+        pu.setAllClassNames(new ArrayList<>(classes));
+        pu.setAllPackageDescriptors(new ArrayList<>(packages));
+        pu.setAllModuleDescriptors(new ArrayList<>(modules));
+        JpaLogger.ROOT_LOGGER.tracef("container discovered %d managed class(es) for persistence unit '%s'",
+                classes.size(), pu.getScopedPersistenceUnitName());
+    }
+
+    private static InputStream mappingStream(VirtualFile archive, String mapping) throws IOException {
+        if (archive.isFile()) {
+            try (java.util.jar.JarInputStream stream = new java.util.jar.JarInputStream(archive.openStream())) {
+                java.util.jar.JarEntry entry;
+                while ((entry = stream.getNextJarEntry()) != null) {
+                    if (entry.getName().equals(mapping)) {
+                        return new java.io.ByteArrayInputStream(stream.readAllBytes());
                     }
                 }
             }
+            return null;
         }
+        VirtualFile file = archive.getChild(mapping);
+        return file.exists() ? file.openStream() : null;
+    }
 
-        // Fallback for the common single-archive cases where the persistence unit archives could not be matched
-        // to indexed resource roots: scan the whole deployment's composite annotation index.
-        if (!scannedResourceRoot) {
-            final CompositeIndex compositeIndex = deploymentUnit.getAttachment(Attachments.COMPOSITE_ANNOTATION_INDEX);
-            if (compositeIndex != null) {
-                for (DotName annotation : MANAGED_CLASS_ANNOTATIONS) {
-                    addClassTargets(compositeIndex.getAnnotations(annotation), managedClassNames);
+    private static boolean isDiscoverable(DotName name, ClassLoader loader, Map<DotName, Boolean> cache) {
+        Boolean result = cache.get(name);
+        if (result != null) {
+            return result;
+        }
+        // Seed before inspecting repeatable containers to break recursive definitions.
+        cache.put(name, false);
+        boolean discovered = name.toString().equals("jakarta.data.repository.Repository");
+        try (InputStream stream = loader.getResourceAsStream(name.toString().replace('.', '/') + ".class")) {
+            if (stream != null) {
+                Indexer indexer = new Indexer();
+                indexer.index(stream);
+                ClassInfo annotation = indexer.complete().getClassByName(name);
+                discovered |= annotation.hasDeclaredAnnotation(DotName.createSimple("jakarta.persistence.spi.Discoverable"));
+                // A repeatable container's value() returns the discoverable annotation array.
+                for (org.jboss.jandex.MethodInfo method : annotation.methods()) {
+                    if (method.name().equals("value") && method.returnType().kind() == org.jboss.jandex.Type.Kind.ARRAY) {
+                        DotName component = method.returnType().asArrayType().component().name();
+                        try (InputStream componentStream = loader.getResourceAsStream(component.toString().replace('.', '/') + ".class")) {
+                            if (componentStream != null) {
+                                Indexer componentIndexer = new Indexer();
+                                componentIndexer.index(componentStream);
+                                ClassInfo componentType = componentIndexer.complete().getClassByName(component);
+                                org.jboss.jandex.AnnotationInstance repeatable = componentType.declaredAnnotation(
+                                        DotName.createSimple("java.lang.annotation.Repeatable"));
+                                if (repeatable != null && repeatable.value().asClass().name().equals(name)) {
+                                    discovered |= isDiscoverable(component, loader, cache);
+                                }
+                            }
+                        }
+                    }
                 }
             }
+        } catch (IOException e) {
+            throw new IllegalStateException("Cannot read annotation " + name, e);
         }
+        cache.put(name, discovered);
+        return discovered;
+    }
 
-        pu.setManagedClassNames(new ArrayList<>(managedClassNames));
-        JpaLogger.ROOT_LOGGER.tracef("container discovered %d managed class(es) for persistence unit '%s'",
-                managedClassNames.size(), pu.getScopedPersistenceUnitName());
+    private static void addXmlClasses(InputStream stream, Set<String> classes) throws XMLStreamException {
+        XMLInputFactory factory = XMLInputFactory.newFactory();
+        factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+        factory.setProperty("javax.xml.stream.isSupportingExternalEntities", false);
+        XMLStreamReader reader = factory.createXMLStreamReader(stream);
+        String packageName = "";
+        List<String> names = new ArrayList<>();
+        try {
+            while (reader.hasNext()) {
+                if (reader.next() == XMLStreamConstants.START_ELEMENT) {
+                    String element = reader.getLocalName();
+                    if (element.equals("package")) {
+                        packageName = reader.getElementText().trim();
+                    } else if (element.equals("entity") || element.equals("embeddable")
+                            || element.equals("mapped-superclass") || element.equals("converter")) {
+                        String name = reader.getAttributeValue(null, "class");
+                        if (name != null) {
+                            names.add(name);
+                        }
+                    }
+                }
+            }
+            for (String name : names) {
+                classes.add(name.contains(".") || packageName.isEmpty() ? name : packageName + "." + name);
+            }
+        } finally {
+            reader.close();
+        }
     }
 
     /**
@@ -111,7 +233,9 @@ final class ContainerManagedEntityScanner {
      */
     private static Set<VirtualFile> persistenceUnitArchives(PersistenceUnitMetadata pu) {
         final Set<VirtualFile> archives = new LinkedHashSet<>();
-        addArchive(archives, pu.getPersistenceUnitRootUrl());
+        if (!pu.excludeUnlistedClasses()) {
+            addArchive(archives, pu.getPersistenceUnitRootUrl());
+        }
         if (pu.getJarFileUrls() != null) {
             for (URL jarFileUrl : pu.getJarFileUrls()) {
                 addArchive(archives, jarFileUrl);
@@ -127,8 +251,7 @@ final class ContainerManagedEntityScanner {
         try {
             archives.add(VFS.getChild(url.toURI()));
         } catch (URISyntaxException e) {
-            // ignore an archive we cannot resolve; the composite-index fallback still applies
-            JpaLogger.ROOT_LOGGER.tracef("unable to resolve persistence unit archive URL %s for scanning", url);
+            throw new IllegalArgumentException("Cannot resolve persistence unit archive URL " + url, e);
         }
     }
 
@@ -145,14 +268,4 @@ final class ContainerManagedEntityScanner {
         return resourceRoots;
     }
 
-    private static void addClassTargets(Collection<AnnotationInstance> annotations, Set<String> managedClassNames) {
-        if (annotations == null) {
-            return;
-        }
-        for (AnnotationInstance annotationInstance : annotations) {
-            if (annotationInstance.target().kind() == AnnotationTarget.Kind.CLASS) {
-                managedClassNames.add(annotationInstance.target().asClass().name().toString());
-            }
-        }
-    }
 }
