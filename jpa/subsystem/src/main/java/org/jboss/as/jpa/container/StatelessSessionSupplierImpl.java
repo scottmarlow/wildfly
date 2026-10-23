@@ -29,6 +29,7 @@ public final class StatelessSessionSupplierImpl implements ScopedStatelessSessio
 
     private final String puScopedName;          // Scoped name of the persistent unit
 
+    private final String scopeKey;
     private final Function<EntityManagerFactory, AutoCloseable> sessionFactory;
     private transient EntityManagerFactory emf;
     private transient TransactionSynchronizationRegistry transactionSynchronizationRegistry;
@@ -36,6 +37,12 @@ public final class StatelessSessionSupplierImpl implements ScopedStatelessSessio
 
     public StatelessSessionSupplierImpl(EntityManagerFactory emf, Function<EntityManagerFactory, AutoCloseable> sessionFactory,
                                     String puScopedName) {
+        this(emf, sessionFactory, puScopedName, puScopedName);
+    }
+
+    public StatelessSessionSupplierImpl(EntityManagerFactory emf, Function<EntityManagerFactory, AutoCloseable> sessionFactory,
+                                       String puScopedName, String scopeKey) {
+        this.scopeKey = scopeKey;
         this.emf = emf;
         this.sessionFactory = sessionFactory;
         this.puScopedName = puScopedName;
@@ -57,10 +64,10 @@ public final class StatelessSessionSupplierImpl implements ScopedStatelessSessio
         if (isInTx) {
             statelessSession = getOrCreateTransactionScopedStatelessSession();
         } else {
-            statelessSession = NonTxEmCloser.get(AutoCloseable.class, puScopedName);
+            statelessSession = NonTxEmCloser.get(AutoCloseable.class, scopeKey);
             if (statelessSession == null) {
                 statelessSession = sessionFactory.apply(emf);
-                NonTxEmCloser.add(puScopedName, statelessSession);
+                NonTxEmCloser.add(scopeKey, statelessSession);
             }
         }
         return statelessSession;
@@ -73,15 +80,24 @@ public final class StatelessSessionSupplierImpl implements ScopedStatelessSessio
      * @return the StatelessSession
      */
     private AutoCloseable getOrCreateTransactionScopedStatelessSession() {
-        AutoCloseable statelessSession = TransactionUtil.getScopedObjectInTransactionRegistry(AutoCloseable.class, puScopedName, transactionSynchronizationRegistry);
+        AutoCloseable statelessSession = TransactionUtil.getScopedObjectInTransactionRegistry(AutoCloseable.class, scopeKey, transactionSynchronizationRegistry);
         if (statelessSession == null) {
             statelessSession = sessionFactory.apply(emf);
             if (ROOT_LOGGER.isDebugEnabled()) {
                 ROOT_LOGGER.debugf("%s: created entity manager session %s", TransactionUtil.getTransactionScopedObjectDetails(statelessSession, puScopedName),
                         TransactionUtil.getTransaction(transactionManager).toString());
             }
-            TransactionUtil.registerSynchronization(statelessSession, puScopedName, transactionSynchronizationRegistry, transactionManager);
-            TransactionUtil.putScopedObjectInTransactionRegistry(puScopedName, statelessSession, transactionSynchronizationRegistry);
+            try {
+                TransactionUtil.registerSynchronization(statelessSession, scopeKey, transactionSynchronizationRegistry, transactionManager);
+                TransactionUtil.putScopedObjectInTransactionRegistry(scopeKey, statelessSession, transactionSynchronizationRegistry);
+            } catch (RuntimeException | Error failure) {
+                try {
+                    statelessSession.close();
+                } catch (Exception closeFailure) {
+                    failure.addSuppressed(closeFailure);
+                }
+                throw failure;
+            }
         }
         return statelessSession;
     }
@@ -90,10 +106,15 @@ public final class StatelessSessionSupplierImpl implements ScopedStatelessSessio
         // read all non-transient fields
         in.defaultReadObject();
         final ServiceController<?> controller = currentServiceContainer().getService(JPAServiceNames.getPUServiceName(puScopedName));
+        if (controller == null || controller.getState() != ServiceController.State.UP) {
+            throw new java.io.InvalidObjectException("Persistence unit is unavailable: " + puScopedName);
+        }
         final PersistenceUnitServiceImpl persistenceUnitService = (PersistenceUnitServiceImpl) controller.getService();
         initTransactionFields();
-
         emf = persistenceUnitService.getEntityManagerFactory();
+        if (emf == null || !emf.isOpen()) {
+            throw new java.io.InvalidObjectException("Persistence unit is not initialized: " + puScopedName);
+        }
     }
 
     private static ServiceContainer currentServiceContainer() {

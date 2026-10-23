@@ -50,6 +50,41 @@ public interface PersistenceUnitMetadata extends PersistenceUnitInfo {
 
     void setManagedClassNames(List<String> classes);
 
+    /** Complete inventories default to the provider-scanned metadata used before Persistence 4. */
+    default List<String> getAllClassNames() {
+        return getManagedClassNames();
+    }
+
+    default void setAllClassNames(List<String> classes) {
+        setManagedClassNames(classes);
+    }
+
+    default List<String> getManagedPackageDescriptors() {
+        return java.util.Collections.emptyList();
+    }
+
+    default List<String> getManagedModuleDescriptors() {
+        return java.util.Collections.emptyList();
+    }
+
+    default List<String> getAllPackageDescriptors() {
+        return getManagedPackageDescriptors();
+    }
+
+    default List<String> getAllModuleDescriptors() {
+        return getManagedModuleDescriptors();
+    }
+
+    default void setManagedPackageDescriptors(List<String> packages) { }
+    default void setManagedModuleDescriptors(List<String> modules) { }
+    default void setAllPackageDescriptors(List<String> packages) { }
+    default void setAllModuleDescriptors(List<String> modules) { }
+    default void setDefaultToOneFetchType(jakarta.persistence.FetchType fetchType) { }
+
+    default Object createContainerManagedEntityAgent(jakarta.persistence.EntityManagerFactory factory, java.util.Map<String, String> properties) {
+        throw new UnsupportedOperationException("Persistence agents require Jakarta Persistence 4");
+    }
+
     void setExcludeUnlistedClasses(boolean excludeUnlistedClasses);
 
     void setTransactionType(PersistenceUnitTransactionType transactionType);

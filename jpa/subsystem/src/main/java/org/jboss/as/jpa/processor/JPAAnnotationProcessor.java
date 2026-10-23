@@ -33,6 +33,7 @@ import org.jboss.as.ee.structure.SpecDescriptorPropertyReplacement;
 import org.jboss.as.jpa.config.JPADeploymentSettings;
 import org.jboss.as.jpa.container.PersistenceUnitSearch;
 import org.jboss.as.jpa.injectors.PersistenceContextInjectionSource;
+import org.jboss.as.jpa.injectors.PersistenceAgentInjectionSource;
 import org.jboss.as.jpa.injectors.PersistenceUnitInjectionSource;
 import org.jboss.as.jpa.messages.JpaLogger;
 import org.jboss.as.jpa.service.PersistenceUnitServiceImpl;
@@ -68,6 +69,9 @@ public class JPAAnnotationProcessor implements DeploymentUnitProcessor {
     private static final DotName PERSISTENCE_UNIT_ANNOTATION_NAME = DotName.createSimple(PersistenceUnit.class.getName());
     private static final DotName PERSISTENCE_UNITS_ANNOTATION_NAME = DotName.createSimple(PersistenceUnits.class.getName());
 
+    private static final DotName PERSISTENCE_AGENT = DotName.createSimple("jakarta.persistence.PersistenceAgent");
+    private static final DotName PERSISTENCE_AGENTS = DotName.createSimple("jakarta.persistence.PersistenceAgents");
+    private static final String ENTITY_AGENT_CLASS = "jakarta.persistence.EntityAgent";
     private static final String ENTITY_MANAGER_CLASS = "jakarta.persistence.EntityManager";
     private static final String ENTITY_MANAGERFACTORY_CLASS = "jakarta.persistence.EntityManagerFactory";
 
@@ -96,6 +100,19 @@ public class JPAAnnotationProcessor implements DeploymentUnitProcessor {
         List<AnnotationInstance> persistenceUnits = index.getAnnotations(PERSISTENCE_UNIT_ANNOTATION_NAME);
         // create binding and injection configurations out of the @PersistenceUnit annotations
         this.processPersistenceAnnotations(deploymentUnit, eeModuleDescription, persistenceUnits, applicationClasses);
+
+        List<AnnotationInstance> agents = index.getAnnotations(PERSISTENCE_AGENT);
+        processPersistenceAnnotations(deploymentUnit, eeModuleDescription, agents, applicationClasses);
+        List<AnnotationInstance> agentGroups = index.getAnnotations(PERSISTENCE_AGENTS);
+        for (AnnotationInstance group : agentGroups) {
+            for (AnnotationInstance agent : group.value("value").asNestedArray()) {
+                processPersistenceAnnotations(deploymentUnit, eeModuleDescription,
+                        java.util.Collections.singletonList(AnnotationInstance.create(agent.name(), group.target(), agent.values())), applicationClasses);
+            }
+        }
+        if (!agents.isEmpty() || !agentGroups.isEmpty()) {
+            JPADeploymentMarker.mark(deploymentUnit);
+        }
 
         // if we found any @PersistenceContext or @PersistenceUnit annotations then mark this as a Jakarta Persistence deployment
         if (!persistenceContexts.isEmpty() || !persistenceUnits.isEmpty() ||
@@ -209,7 +226,7 @@ public class JPAAnnotationProcessor implements DeploymentUnitProcessor {
 
         // handle PersistenceContext and PersistenceUnit annotations
         if (isPersistenceContext(annotation) ||
-                isPersistenceUnit(annotation)) {
+                isPersistenceUnit(annotation) || annotation.name().equals(PERSISTENCE_AGENT)) {
             String injectionTypeName = getClassLevelInjectionType(annotation);
             InjectionSource injectionSource = getBindingSource(deploymentUnit, annotation, injectionTypeName, classDescription);
             if (injectionSource != null) {
@@ -278,6 +295,23 @@ public class JPAAnnotationProcessor implements DeploymentUnitProcessor {
         }
         String scopedPuName = pu.getScopedPersistenceUnitName();
         ServiceName puServiceName = getPuServiceName(scopedPuName);
+        if (annotation.name().equals(PERSISTENCE_AGENT)) {
+            if (pu.getPersistenceUnitTransactionType() == PersistenceUnitTransactionType.RESOURCE_LOCAL) {
+                classDescription.setInvalid(JpaLogger.ROOT_LOGGER.cannotInjectResourceLocalEntityManager());
+                return null;
+            }
+            if (!ENTITY_AGENT_CLASS.equals(injectionTypeName)) {
+                throw new DeploymentUnitProcessingException("PersistenceAgent injection requires EntityAgent: " + injectionTypeName);
+            }
+            Map<String, String> properties = new HashMap<>();
+            AnnotationValue value = annotation.value("properties");
+            if (value != null) {
+                for (AnnotationInstance property : value.asNestedArray()) {
+                    properties.put(property.value("name").asString(), property.value("value").asString());
+                }
+            }
+            return new PersistenceAgentInjectionSource(puServiceName, deploymentUnit.getServiceRegistry(), pu, properties);
+        }
         if (isPersistenceContext(annotation)) {
             if (pu.getPersistenceUnitTransactionType() == PersistenceUnitTransactionType.RESOURCE_LOCAL) {
                 classDescription.setInvalid(JpaLogger.ROOT_LOGGER.cannotInjectResourceLocalEntityManager());
@@ -331,6 +365,10 @@ public class JPAAnnotationProcessor implements DeploymentUnitProcessor {
      * @return
      */
     private String getClassLevelInjectionType(final AnnotationInstance annotation) {
+        if (annotation.name().equals(PERSISTENCE_AGENT)) {
+            return ENTITY_AGENT_CLASS;
+        }
+
         boolean isPC = annotation.name().local().equals("PersistenceContext");
         return isPC ? ENTITY_MANAGER_CLASS : ENTITY_MANAGERFACTORY_CLASS;
     }
