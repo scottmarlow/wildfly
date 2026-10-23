@@ -276,6 +276,18 @@
             </dependency>
 
             <dependency>
+                <groupId>${ee.maven.groupId}</groupId>
+                <artifactId>wildfly-jpa-preview</artifactId>
+                <version>${ee.maven.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
                 <groupId>org.hibernate.models</groupId>
                 <artifactId>hibernate-models</artifactId>
                 <version>${preview.version.org.hibernate.models}</version>

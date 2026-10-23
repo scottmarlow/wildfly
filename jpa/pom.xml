@@ -45,6 +45,7 @@
         <module>persistence32</module>
         <module>persistence4</module>
         <module>subsystem</module>
+        <module>subsystem-preview</module>
         <module>spi</module>
         <module>eclipselink</module>
     </modules>
