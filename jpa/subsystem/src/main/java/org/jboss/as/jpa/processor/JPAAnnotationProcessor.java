@@ -16,7 +16,7 @@ import jakarta.persistence.PersistenceContexts;
 import jakarta.persistence.PersistenceUnit;
 import jakarta.persistence.PersistenceUnits;
 import jakarta.persistence.SynchronizationType;
-import jakarta.persistence.spi.PersistenceUnitTransactionType;
+import jakarta.persistence.PersistenceUnitTransactionType;
 
 import org.jboss.as.ee.component.Attachments;
 import org.jboss.as.ee.component.BindingConfiguration;
@@ -279,7 +279,7 @@ public class JPAAnnotationProcessor implements DeploymentUnitProcessor {
         String scopedPuName = pu.getScopedPersistenceUnitName();
         ServiceName puServiceName = getPuServiceName(scopedPuName);
         if (isPersistenceContext(annotation)) {
-            if (pu.getTransactionType() == PersistenceUnitTransactionType.RESOURCE_LOCAL) {
+            if (pu.getPersistenceUnitTransactionType() == PersistenceUnitTransactionType.RESOURCE_LOCAL) {
                 classDescription.setInvalid(JpaLogger.ROOT_LOGGER.cannotInjectResourceLocalEntityManager());
                 return null;
             }

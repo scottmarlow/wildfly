@@ -245,7 +245,7 @@ public interface JpaLogger extends BasicLogger {
 
     /**
      * A message indicating the inability to inject a
-     * {@link jakarta.persistence.spi.PersistenceUnitTransactionType#RESOURCE_LOCAL} container managed EntityManager
+     * {@link jakarta.persistence.PersistenceUnitTransactionType#RESOURCE_LOCAL} container managed EntityManager
      * using the {@link jakarta.persistence.PersistenceContext} annotation.
      *
      * @return the message.
@@ -255,7 +255,7 @@ public interface JpaLogger extends BasicLogger {
 
 //    /**
 //     * Creates an exception indicating the inability to inject a
-//     * {@link jakarta.persistence.spi.PersistenceUnitTransactionType#RESOURCE_LOCAL} entity manager, represented by the
+//     * {@link jakarta.persistence.PersistenceUnitTransactionType#RESOURCE_LOCAL} entity manager, represented by the
 //     * {@code unitName} parameter, using the {@code <persistence-context-ref>}.
 //     *
 //     * @param unitName the unit name.
