@@ -39,6 +39,7 @@
 
     <modules>
         <module>hibernate7</module>
+        <module>hibernate8</module>
         <module>hibernatesearch</module>
         <module>persistence-cdi-extension</module>
         <module>persistence32</module>
