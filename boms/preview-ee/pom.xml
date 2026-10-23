@@ -36,6 +36,15 @@
         <version.org.eclipse.yasson>3.1.0-M2</version.org.eclipse.yasson>
         <version.org.jboss.weld.weld>7.0.0.Final</version.org.jboss.weld.weld>
         <version.org.jboss.weld.weld-api>7.0.Final</version.org.jboss.weld.weld-api>
+        <!--
+            WildFly Preview tracks the next Hibernate ORM major and its Jakarta Persistence version, ahead of the
+            standard/legacy distributions. These override the values inherited from wildfly-standard-preview-ee-bom.
+            The Hibernate ORM version itself is declared in the root pom (preview.version.org.hibernate) so it can
+            also be referenced from maven plugin configuration.
+        -->
+        <preview.version.jakarta.persistence>4.0.0-M6</preview.version.jakarta.persistence>
+        <preview.version.org.hibernate.models>1.2.0</preview.version.org.hibernate.models>
+        <preview.version.org.hibernate.search>9.0.0-SNAPSHOT</preview.version.org.hibernate.search>
     </properties>
 
     <dependencyManagement>
@@ -223,6 +232,193 @@
                 <groupId>org.wildfly.deployment</groupId>
                 <artifactId>transformer</artifactId>
                 <version>${preview.version.org.wildfly.wildfly-ee-9-deployment-transformer}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <!--
+                Hibernate ORM 8 / Jakarta Persistence 4 / Hibernate Search 9 overrides for WildFly Preview.
+                Declared before the wildfly-standard-preview-ee-bom import below so they take precedence over the
+                Hibernate ORM 7 / Jakarta Persistence 3.2 versions inherited from there.
+             -->
+            <dependency>
+                <groupId>jakarta.persistence</groupId>
+                <artifactId>jakarta.persistence-api</artifactId>
+                <version>${preview.version.jakarta.persistence}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.wildfly</groupId>
+                <artifactId>jipijapa-hibernate8</artifactId>
+                <version>${ee.maven.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hibernate.models</groupId>
+                <artifactId>hibernate-models</artifactId>
+                <version>${preview.version.org.hibernate.models}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.models</groupId>
+                <artifactId>hibernate-models-jandex</artifactId>
+                <version>${preview.version.org.hibernate.models}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hibernate.orm</groupId>
+                <artifactId>hibernate-core</artifactId>
+                <version>${preview.version.org.hibernate}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.orm</groupId>
+                <artifactId>hibernate-envers</artifactId>
+                <version>${preview.version.org.hibernate}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.orm</groupId>
+                <artifactId>hibernate-scan-jandex</artifactId>
+                <version>${preview.version.org.hibernate}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hibernate.search</groupId>
+                <artifactId>hibernate-search-backend-elasticsearch</artifactId>
+                <version>${preview.version.org.hibernate.search}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.search</groupId>
+                <artifactId>hibernate-search-backend-elasticsearch-client-rest4</artifactId>
+                <version>${preview.version.org.hibernate.search}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.search</groupId>
+                <artifactId>hibernate-search-backend-lucene</artifactId>
+                <version>${preview.version.org.hibernate.search}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.search</groupId>
+                <artifactId>hibernate-search-engine</artifactId>
+                <version>${preview.version.org.hibernate.search}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.search</groupId>
+                <artifactId>hibernate-search-mapper-orm</artifactId>
+                <version>${preview.version.org.hibernate.search}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.search</groupId>
+                <artifactId>hibernate-search-mapper-orm-outbox-polling</artifactId>
+                <version>${preview.version.org.hibernate.search}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.search</groupId>
+                <artifactId>hibernate-search-mapper-pojo-base</artifactId>
+                <version>${preview.version.org.hibernate.search}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.search</groupId>
+                <artifactId>hibernate-search-util-common</artifactId>
+                <version>${preview.version.org.hibernate.search}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.search</groupId>
+                <artifactId>hibernate-search-v5migrationhelper-engine</artifactId>
+                <version>${preview.version.org.hibernate.search}</version>
+                <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.search</groupId>
+                <artifactId>hibernate-search-v5migrationhelper-orm</artifactId>
+                <version>${preview.version.org.hibernate.search}</version>
+                <scope>test</scope>
                 <exclusions>
                     <exclusion>
                         <groupId>*</groupId>

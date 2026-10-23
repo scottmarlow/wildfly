@@ -512,6 +512,9 @@
         <!-- We need to use this value in configuring maven plugins, so simply overriding version.org.hibernate
              in boms/standard-preview-ee is inadequate. So we'll declare the value here and reference it in boms/standard-preview-ee. -->
         <standard.version.org.hibernate>7.4.13.Final</standard.version.org.hibernate>
+        <!-- WildFly Preview tracks the next Hibernate ORM major (ORM 8 / Jakarta Persistence 4). Declared here for the
+             same reason as the legacy/standard values above, and referenced from boms/preview-ee. -->
+        <preview.version.org.hibernate>8.0.0.Beta1</preview.version.org.hibernate>
         <version.org.hibernate.models>1.1.2</version.org.hibernate.models>
         <version.org.hornetq>2.4.11.Final</version.org.hornetq>
         <version.org.infinispan>16.3.1</version.org.infinispan>
