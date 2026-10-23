@@ -76,6 +76,17 @@ public abstract class AbstractTestPersistenceProvider implements PersistenceProv
     }
 
     @Override
+    // Jakarta Persistence 4.0 added getClassTransformer to PersistenceProvider; this mock does not use one.
+    // Declared without @Override so the mock still compiles against Jakarta Persistence 3.2 (standard).
+    public jakarta.persistence.spi.ClassTransformer getClassTransformer(PersistenceUnitInfo info, Map<?, ?> map) {
+        return null;
+    }
+
+    // Jakarta Persistence 4.0 added generateSchema(PersistenceConfiguration) to PersistenceProvider.
+    public boolean generateSchema(jakarta.persistence.PersistenceConfiguration configuration) {
+        return false;
+    }
+
     public ProviderUtil getProviderUtil() {
         return null;
     }
