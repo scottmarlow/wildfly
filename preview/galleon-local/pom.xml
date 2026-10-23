@@ -115,6 +115,11 @@
         </dependency>
 
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>wildfly-weld-jpa-preview</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.wildfly.deployment</groupId>
             <artifactId>wildfly-ee-9-deployment-transformer</artifactId>
         </dependency>

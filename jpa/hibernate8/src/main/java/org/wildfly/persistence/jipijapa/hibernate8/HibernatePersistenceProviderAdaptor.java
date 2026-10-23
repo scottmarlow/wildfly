@@ -240,4 +240,3 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
 
     /* end of TwoPhaseBootstrapCapable methods */
 }
-
