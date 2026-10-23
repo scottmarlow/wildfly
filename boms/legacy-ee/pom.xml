@@ -43,6 +43,7 @@
         <version.jakarta.enterprise>4.0.1</version.jakarta.enterprise>
         <version.jakarta.faces.jakarta-faces-api>4.0.1</version.jakarta.faces.jakarta-faces-api>
         <version.jakarta.interceptor.jakarta-interceptor-api>2.1.0</version.jakarta.interceptor.jakarta-interceptor-api>
+        <version.jakarta.json.bind.api>3.0.3</version.jakarta.json.bind.api>
         <version.jakarta.persistence>3.1.0</version.jakarta.persistence>
         <version.jakarta.security.enterprise>3.0.0</version.jakarta.security.enterprise>
         <version.jakarta.servlet.jakarta-servlet-api>6.0.0</version.jakarta.servlet.jakarta-servlet-api>
@@ -53,6 +54,7 @@
         <version.org.antlr>4.13.2</version.org.antlr>
         <version.org.apache.lucene>9.11.1</version.org.apache.lucene>
         <version.org.bytebuddy>1.17.8</version.org.bytebuddy>
+        <version.org.eclipse.yasson>3.0.5</version.org.eclipse.yasson>
         <version.org.elasticsearch.client.rest-client>8.15.4</version.org.elasticsearch.client.rest-client>
         <version.org.glassfish.expressly>5.0.0</version.org.glassfish.expressly>
         <version.org.glassfish.jakarta.enterprise.concurrent>3.0.2</version.org.glassfish.jakarta.enterprise.concurrent>
@@ -213,6 +215,18 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+            <dependency>
+                <groupId>jakarta.json.bind</groupId>
+                <artifactId>jakarta.json.bind-api</artifactId>
+                <version>${version.jakarta.json.bind.api}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
             <dependency>
                 <groupId>jakarta.persistence</groupId>
                 <artifactId>jakarta.persistence-api</artifactId>
@@ -402,6 +416,23 @@
                     <exclusion>
                         <groupId>*</groupId>
                         <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.eclipse.yasson</groupId>
+                <artifactId>yasson</artifactId>
+                <version>${version.org.eclipse.yasson}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                    <!-- This seems to require an explicit exclusion for yasson 1.0.4 -->
+                    <exclusion>
+                        <groupId>org.glassfish</groupId>
+                        <artifactId>jakarta.json</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
