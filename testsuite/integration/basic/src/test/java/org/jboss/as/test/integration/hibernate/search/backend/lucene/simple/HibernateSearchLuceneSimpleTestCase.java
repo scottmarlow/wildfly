@@ -5,6 +5,7 @@
 package org.jboss.as.test.integration.hibernate.search.backend.lucene.simple;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 
 import jakarta.inject.Inject;
 import org.jboss.arquillian.container.test.api.Deployment;
@@ -46,6 +47,15 @@ public class HibernateSearchLuceneSimpleTestCase {
     }
 
     @Test
+    public void testAccessorClassIdentity() throws Exception {
+        if (getClass().getClassLoader().getResource("preview-orm.marker") != null) {
+            String name = "org.hibernate.accessor.AccessorFactory";
+            assertSame(Class.forName(name, false, org.hibernate.Session.class.getClassLoader()),
+                    Class.forName(name, false, org.hibernate.search.mapper.orm.Search.class.getClassLoader()));
+        }
+    }
+
+    @Test
     public void testFullTextQuery() {
         searchBean.storeNewBook("Hello");
         searchBean.storeNewBook("Hello world");
@@ -77,6 +87,9 @@ public class HibernateSearchLuceneSimpleTestCase {
         }
 
         JavaArchive jar = ShrinkWrap.create(JavaArchive.class, JAR_ARCHIVE_NAME);
+        if (AssumeTestGroupUtil.isWildFlyPreview()) {
+            jar.addAsResource(org.jboss.shrinkwrap.api.asset.EmptyAsset.INSTANCE, "preview-orm.marker");
+        }
         // add Jakarta Persistence configuration
         jar.addAsManifestResource(HibernateSearchLuceneSimpleTestCase.class.getPackage(), "persistence.xml", "persistence.xml");
         // add testing Bean and entities

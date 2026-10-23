@@ -9,6 +9,98 @@ ifdef::env-github[]
 :warning-caption: :warning:
 endif::[]
 
+[[preview_persistence_4]]
+== Jakarta Persistence 4 in WildFly Preview
+
+WildFly Preview integrates Jakarta Persistence `4.0.0-M7`, Hibernate ORM
+`8.0.0.Beta3`, Hibernate Search `9.0.0.Beta1`, Hibernate Models `1.3.4`,
+Hibernate Accessor `0.1.0.Alpha6` (including the Byte Buddy implementation),
+and Byte Buddy `1.18.14`. These are Preview dependencies; the standard and
+legacy feature packs retain their respective providers and dependency versions.
+This milestone integration does not claim final Jakarta Persistence 4 certification.
+
+Persistence descriptors may use version `4.0`, `package-descriptor`,
+`module-descriptor`, and `default-to-one-fetch-type`. The default fetch type
+remains `EAGER`. The container supplies separate explicit and complete
+inventories to the provider. Discovery includes types identified by standard
+or custom `@Discoverable` annotations, repeatable annotations, Jakarta Data
+repositories, and XML mappings. Discovery is scoped to the persistence unit
+root and listed JARs. `exclude-unlisted-classes` disables discovery in the root;
+listed JARs are still discovered. The default `META-INF/orm.xml` is included.
+
+`@PersistenceAgent` supplies a container-managed, transaction-scoped
+`EntityAgent` for a JTA persistence unit. EE fields, setters, named declarations,
+repeatable declarations, and CDI injection are supported. Annotation properties
+are passed to agent creation. Configurations with different properties and
+Hibernate stateless sessions have separate scoped delegates. Applications must
+use Jakarta Transactions; calling `close()` or `getTransaction()` on an injected
+agent throws `IllegalStateException`.
+
+Consume and close query result streams before the invocation or transaction
+which owns their JDBC resources ends. In particular, returning a lazy stream
+from an EJB method for later consumption does not extend that resource lifetime.
+Hibernate Search's v5 migration helper is available in standard and legacy
+server tests; it is not part of the Preview Search 9 integration.
+
+=== Validating the integration from a checkout
+
+Build and provision Preview:
+
+[source,shell]
+----
+./mvnw -pl preview/build -am -DskipTests install
+----
+
+Run the focused metadata and discovery tests (including the shared descriptor
+parser regression):
+
+[source,shell]
+----
+./mvnw -pl jpa/subsystem,jpa/subsystem-preview -am \
+  -Dtest=PersistenceUnitXmlParserTestCase,Persistence4MetadataTestCase,ContainerDiscoveryTestCase \
+  -Dsurefire.failIfNoSpecifiedTests=false test
+----
+
+Run the shared stream, Lucene, CDI bridge, and EAR mass-indexing regressions
+against Preview, and the Preview-specific persistence agent test:
+
+[source,shell]
+----
+./mvnw -f testsuite/integration/basic/pom.xml -Dpreview-server-tests \
+  -Dtest=ResultStreamTestCase,HibernateSearchLuceneSimpleTestCase,HibernateSearchCDIInjectionTestCase,HibernateSearchLuceneEarMassIndexerTestCase test
+./mvnw -f testsuite/preview/basic/pom.xml -Dpreview-server-tests \
+  -Dtest=PersistenceAgentTestCase test
+----
+
+The test build demander and test dependencies must already be installed when
+running individual test modules. Elasticsearch and outbox-polling tests also
+require the container runtime described in the Preview testsuite instructions.
+
+Exercise XML-only mappings, listed JARs, and multiple persistence units:
+
+[source,shell]
+----
+./mvnw -f testsuite/integration/basic/pom.xml -Dpreview-server-tests \
+  -Dtest=OrmTestCase,JpaJarFileTestCase,MultiplePuTestCase,MultiplePersistenceContextInjectionsTestCase test
+----
+
+For a provisioned Search layer, first install the Preview test feature pack,
+then run its outbox-polling test:
+
+[source,shell]
+----
+./mvnw -f testsuite/test-feature-pack-preview/pom.xml install
+./mvnw -f testsuite/preview/basic/pom.xml -Dpreview-server-tests -Dts.layers \
+  -Dtest=HibernateSearchOutboxPollingTestCase process-test-classes \
+  surefire:test@hibernate-search.layer.surefire
+----
+
+Repeat the runtime commands with `JAVA_HOME` and `PATH` selecting each JDK
+under validation. The Lucene test verifies that ORM and Search resolve the same
+Accessor factory class; entity operations and mass indexing exercise generated
+accessors. To compare baseline Search and migration-helper coverage, run the
+shared tests without `-Dpreview-server-tests` against a built standard server.
+
 [[introduction]]
 == Introduction
 
