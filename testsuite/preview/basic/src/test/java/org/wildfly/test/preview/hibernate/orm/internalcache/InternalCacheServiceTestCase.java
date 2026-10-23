@@ -66,6 +66,6 @@ public class InternalCacheServiceTestCase {
         assertNotNull("Failed to extract SessionFactoryImplementor from EntityManagerFactory", emf.unwrap(SessionFactoryImplementor.class));
         InternalCacheFactory internalCacheFactory = emf.unwrap(SessionFactoryImplementor.class).getServiceRegistry().requireService(InternalCacheFactory.class);
         InternalCache<Object, Object> internalCache = internalCacheFactory.createInternalCache(10);//any number will do
-        assertEquals(internalCache.getClass().getName(), "org.wildfly.persistence.jipijapa.hibernate7.service.WildFlyCustomInternalCache");
+        assertEquals("org.wildfly.persistence.jipijapa.hibernate8.service.WildFlyCustomInternalCache", internalCache.getClass().getName());
     }
 }
