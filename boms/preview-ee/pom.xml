@@ -258,6 +258,12 @@
             </dependency>
 
             <dependency>
+                <groupId>${ee.maven.groupId}</groupId>
+                <artifactId>wildfly-jpa-container-4</artifactId>
+                <version>${ee.maven.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.hibernate.models</groupId>
                 <artifactId>hibernate-models</artifactId>
                 <version>${preview.version.org.hibernate.models}</version>
