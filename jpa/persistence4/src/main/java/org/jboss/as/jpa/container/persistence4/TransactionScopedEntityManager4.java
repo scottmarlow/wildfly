@@ -145,31 +145,52 @@ public final class TransactionScopedEntityManager4 extends TransactionScopedEnti
     }
 
     public <T> T get(Class<T> entityClass, Object primaryKey) {
-        return getEntityManager().get(entityClass, primaryKey);
+        EntityManager underlyingEntityManager = getEntityManager();
+        T result = underlyingEntityManager.get(entityClass, primaryKey);
+        detachNonTxInvocation(underlyingEntityManager);
+        return result;
     }
 
     public <T> T get(Class<T> entityClass, Object primaryKey, FindOption... options) {
-        return getEntityManager().get(entityClass, primaryKey, options);
+        EntityManager underlyingEntityManager = getEntityManager();
+        T result = underlyingEntityManager.get(entityClass, primaryKey, options);
+        detachNonTxInvocation(underlyingEntityManager);
+        return result;
     }
 
     public <T> T get(EntityGraph<T> entityGraph, Object primaryKey, FindOption... options) {
-        return getEntityManager().get(entityGraph, primaryKey, options);
+        EntityManager underlyingEntityManager = getEntityManager();
+        T result = underlyingEntityManager.get(entityGraph, primaryKey, options);
+        detachNonTxInvocation(underlyingEntityManager);
+        return result;
     }
 
     public <T> List<T> getMultiple(Class<T> entityClass, List<?> primaryKeys, FindOption... options) {
-        return getEntityManager().getMultiple(entityClass, primaryKeys, options);
+        EntityManager underlyingEntityManager = getEntityManager();
+        List<T> result = underlyingEntityManager.getMultiple(entityClass, primaryKeys, options);
+        detachNonTxInvocation(underlyingEntityManager);
+        return result;
     }
 
     public <T> List<T> getMultiple(EntityGraph<T> entityGraph, List<?> primaryKeys, FindOption... options) {
-        return getEntityManager().getMultiple(entityGraph, primaryKeys, options);
+        EntityManager underlyingEntityManager = getEntityManager();
+        List<T> result = underlyingEntityManager.getMultiple(entityGraph, primaryKeys, options);
+        detachNonTxInvocation(underlyingEntityManager);
+        return result;
     }
 
     public <T> List<T> findMultiple(Class<T> entityClass, List<?> primaryKeys, FindOption... options) {
-        return getEntityManager().findMultiple(entityClass, primaryKeys, options);
+        EntityManager underlyingEntityManager = getEntityManager();
+        List<T> result = underlyingEntityManager.findMultiple(entityClass, primaryKeys, options);
+        detachNonTxInvocation(underlyingEntityManager);
+        return result;
     }
 
     public <T> List<T> findMultiple(EntityGraph<T> entityGraph, List<?> primaryKeys, FindOption... options) {
-        return getEntityManager().findMultiple(entityGraph, primaryKeys, options);
+        EntityManager underlyingEntityManager = getEntityManager();
+        List<T> result = underlyingEntityManager.findMultiple(entityGraph, primaryKeys, options);
+        detachNonTxInvocation(underlyingEntityManager);
+        return result;
     }
 
     public Statement createStatement(String statement) {
@@ -193,32 +214,39 @@ public final class TransactionScopedEntityManager4 extends TransactionScopedEnti
     }
 
     public StatementOrTypedQuery createQuery(String qlString) {
-        return getEntityManager().createQuery(qlString);
+        EntityManager underlyingEntityManager = getEntityManager();
+        return detachStatementOrTypedQueryNonTxInvocation(underlyingEntityManager, underlyingEntityManager.createQuery(qlString));
     }
 
     public StatementOrTypedQuery createNamedQuery(String name) {
-        return getEntityManager().createNamedQuery(name);
+        EntityManager underlyingEntityManager = getEntityManager();
+        return detachStatementOrTypedQueryNonTxInvocation(underlyingEntityManager, underlyingEntityManager.createNamedQuery(name));
     }
 
     public StatementOrTypedQuery createNativeQuery(String sqlString) {
-        return getEntityManager().createNativeQuery(sqlString);
+        EntityManager underlyingEntityManager = getEntityManager();
+        return detachStatementOrTypedQueryNonTxInvocation(underlyingEntityManager, underlyingEntityManager.createNativeQuery(sqlString));
     }
 
     public StatementOrTypedQuery createNativeQuery(String sqlString, String resultSetMapping) {
-        return getEntityManager().createNativeQuery(sqlString, resultSetMapping);
+        EntityManager underlyingEntityManager = getEntityManager();
+        return detachStatementOrTypedQueryNonTxInvocation(underlyingEntityManager, underlyingEntityManager.createNativeQuery(sqlString, resultSetMapping));
     }
 
     @SuppressWarnings("unchecked")
     public TypedQuery createNativeQuery(String sqlString, Class resultClass) {
-        return getEntityManager().createNativeQuery(sqlString, resultClass);
+        EntityManager underlyingEntityManager = getEntityManager();
+        return detachTypedQueryNonTxInvocation(underlyingEntityManager, underlyingEntityManager.createNativeQuery(sqlString, resultClass));
     }
 
     public <T> TypedQuery<T> createNativeQuery(String sqlString, ResultSetMapping<T> resultSetMapping) {
-        return getEntityManager().createNativeQuery(sqlString, resultSetMapping);
+        EntityManager underlyingEntityManager = getEntityManager();
+        return detachTypedQueryNonTxInvocation(underlyingEntityManager, underlyingEntityManager.createNativeQuery(sqlString, resultSetMapping));
     }
 
     public <T> TypedQuery<T> createQuery(String qlString, EntityGraph<T> entityGraph) {
-        return getEntityManager().createQuery(qlString, entityGraph);
+        EntityManager underlyingEntityManager = getEntityManager();
+        return detachTypedQueryNonTxInvocation(underlyingEntityManager, underlyingEntityManager.createQuery(qlString, entityGraph));
     }
 
     public Statement createQuery(CriteriaStatement<?> criteriaStatement) {
