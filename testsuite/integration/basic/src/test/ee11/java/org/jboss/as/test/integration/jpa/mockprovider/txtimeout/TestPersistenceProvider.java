@@ -19,4 +19,9 @@ public class TestPersistenceProvider extends AbstractTestPersistenceProvider {
     public EntityManagerFactory createEntityManagerFactory(PersistenceConfiguration configuration) {
         return null;
     }
+
+    // Jakarta Persistence 4.0 adds this method; PersistenceConfiguration is unavailable in EE 10.
+    public boolean generateSchema(PersistenceConfiguration configuration) {
+        return false;
+    }
 }

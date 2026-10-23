@@ -13,8 +13,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
-import jakarta.persistence.Query;
-
 /**
  * TestEntityManager that implements createQuery
  *
@@ -44,28 +42,11 @@ public class TestEntityManager implements InvocationHandler {
         } else if (method.getName().equals("createQuery")) {
             TestQuery testQuery =
                     new TestQuery();
-            Class[] targetInterfaces = Query.class.getInterfaces();
-            Class[] proxyInterfaces = new Class[targetInterfaces.length + 1];  // include extra element for extensionClass
-            boolean alreadyHasInterfaceClass = false;
-            for (int interfaceIndex = 0; interfaceIndex < targetInterfaces.length; interfaceIndex++) {
-                Class interfaceClass = targetInterfaces[interfaceIndex];
-                if (interfaceClass.equals(jakarta.persistence.Query.class)) {
-                    proxyInterfaces = targetInterfaces;                     // targetInterfaces already has all interfaces
-                    alreadyHasInterfaceClass = true;
-                    break;
-                }
-                proxyInterfaces[1 + interfaceIndex] = interfaceClass;
-            }
-            if (!alreadyHasInterfaceClass) {
-                proxyInterfaces[0] = jakarta.persistence.Query.class;
-            }
-
-            Query proxyQuery = (Query) Proxy.newProxyInstance(
-                    testQuery.getClass().getClassLoader(), //use the target classloader so the proxy has the same scope
-                    proxyInterfaces,
+            return Proxy.newProxyInstance(
+                    testQuery.getClass().getClassLoader(),
+                    new Class<?>[]{method.getReturnType()},
                     testQuery
             );
-            return proxyQuery;
         } else if (method.getName().equals("close")) {
         }
         return null;

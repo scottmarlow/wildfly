@@ -81,11 +81,6 @@ public abstract class AbstractTestPersistenceProvider implements PersistenceProv
         return null;
     }
 
-    // Jakarta Persistence 4.0 added generateSchema(PersistenceConfiguration) to PersistenceProvider.
-    public boolean generateSchema(jakarta.persistence.PersistenceConfiguration configuration) {
-        return false;
-    }
-
     public ProviderUtil getProviderUtil() {
         return null;
     }
