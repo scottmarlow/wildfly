@@ -34,4 +34,3 @@ public class WildFlyClassTransformer extends EnhancingClassTransformerImpl {
         });
     }
 }
-
