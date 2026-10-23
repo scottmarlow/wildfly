@@ -4,9 +4,8 @@
  */
 package org.wildfly.persistence.jipijapa.hibernate8;
 
-import org.hibernate.bytecode.enhance.spi.DefaultEnhancementContext;
-import org.hibernate.bytecode.enhance.spi.UnloadedClass;
-import org.hibernate.bytecode.enhance.spi.UnloadedField;
+import org.hibernate.bytecode.enhance.spi.DefaultEnhancementModel;
+import org.hibernate.bytecode.enhance.spi.EnhancementOptions;
 import org.hibernate.jpa.internal.enhance.EnhancingClassTransformerImpl;
 
 /**
@@ -18,19 +17,8 @@ import org.hibernate.jpa.internal.enhance.EnhancingClassTransformerImpl;
 public class WildFlyClassTransformer extends EnhancingClassTransformerImpl {
 
     public WildFlyClassTransformer() {
-        super(new DefaultEnhancementContext() {
-
-            @Override
-            public boolean doBiDirectionalAssociationManagement(UnloadedField field) {
-                return false;
-            }
-
-            @Override
-            public boolean doExtendedEnhancement(UnloadedClass classDescriptor) {
-                // return false to disable extended enhancement so that non-entity classes are not enhanced.
-                return false;
-            }
-
-        });
+        // Enhance managed classes with lazy loading and dirty tracking, without
+        // bidirectional association management or extended client enhancement.
+        super(new DefaultEnhancementModel(), EnhancementOptions.of(true, true, false), null);
     }
 }
