@@ -343,17 +343,17 @@ public abstract class QueryNonTxInvocationDetacher implements StatementOrTypedQu
 
     @Override
     public <R> TypedQuery<R> ofType(Class<R> resultClass) {
-        return underlyingQuery.ofType(resultClass);
+        return TypedQueryNonTxInvocationDetacher.create(underlyingEntityManager, underlyingQuery.ofType(resultClass));
     }
 
     @Override
     public <R> TypedQuery<R> withEntityGraph(EntityGraph<R> entityGraph) {
-        return underlyingQuery.withEntityGraph(entityGraph);
+        return TypedQueryNonTxInvocationDetacher.create(underlyingEntityManager, underlyingQuery.withEntityGraph(entityGraph));
     }
 
     @Override
     public <R> TypedQuery<R> withResultSetMapping(ResultSetMapping<R> resultSetMapping) {
-        return underlyingQuery.withResultSetMapping(resultSetMapping);
+        return TypedQueryNonTxInvocationDetacher.create(underlyingEntityManager, underlyingQuery.withResultSetMapping(resultSetMapping));
     }
 
     // Covariant overrides that return StatementOrTypedQuery
