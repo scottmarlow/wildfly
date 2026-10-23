@@ -225,6 +225,13 @@ public class HibernatePersistenceProviderAdaptor implements PersistenceProviderA
         pu.addTransformer(new WildFlyClassTransformer());
     }
 
+    @Override
+    public boolean containerManagedEntityScanning() {
+        // Hibernate ORM 8 no longer scans the persistence unit archive during container-managed bootstrap
+        // (per the Jakarta Persistence 4 change); WildFly must enumerate the managed classes for the provider.
+        return true;
+    }
+
     /* start of TwoPhaseBootstrapCapable methods */
 
     public EntityManagerFactoryBuilder getBootstrap(final PersistenceUnitInfo info, final Map map) {

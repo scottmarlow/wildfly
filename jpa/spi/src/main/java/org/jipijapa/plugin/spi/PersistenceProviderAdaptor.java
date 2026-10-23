@@ -97,5 +97,20 @@ public interface PersistenceProviderAdaptor {
 
     default void addClassFileTransformer(PersistenceUnitMetadata pu) {
     }
+
+    /**
+     * Whether the container must enumerate the persistence unit's managed classes (entities, embeddables,
+     * mapped superclasses and attribute converters) into {@link PersistenceUnitMetadata#getManagedClassNames()}.
+     * <p>
+     * Jakarta Persistence 4 / Hibernate ORM 8 no longer scan the persistence unit archive during
+     * container-managed bootstrap; the container is expected to provide the managed class names. Providers
+     * that perform their own archive scanning (for example Hibernate ORM 7 and EclipseLink) return
+     * {@code false} and keep their existing behavior.
+     *
+     * @return {@code true} if the container should discover and add the managed class names for this provider
+     */
+    default boolean containerManagedEntityScanning() {
+        return false;
+    }
 }
 

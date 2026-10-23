@@ -273,6 +273,15 @@ public class PersistenceUnitServiceHandler {
                         final PersistenceProvider provider = lookupProvider(pu, persistenceProviderDeploymentHolder, deploymentUnit);
                         final PersistenceProviderAdaptor adaptor = getPersistenceProviderAdaptor(pu, persistenceProviderDeploymentHolder, deploymentUnit, provider, platform);
                         final List<PersistenceProviderIntegratorAdaptor> integratorAdaptors = getPersistenceProviderIntegratorAdaptors(deploymentUnit);
+
+                        // Providers that no longer scan the persistence unit archive during container-managed
+                        // bootstrap (Jakarta Persistence 4 / Hibernate ORM 8) rely on the container to supply the
+                        // managed class names. Discover them from the deployment index before the persistence unit
+                        // metadata is consumed (idempotent across the two-phase bootstrap calls).
+                        if (adaptor.containerManagedEntityScanning()) {
+                            ContainerManagedEntityScanner.addManagedClassNames(pu, deploymentUnit);
+                        }
+
                         final boolean twoPhaseBootStrapCapable = (adaptor instanceof TwoPhaseBootstrapCapable) && Configuration.allowTwoPhaseBootstrap(pu);
 
                         if (startEarly) {
