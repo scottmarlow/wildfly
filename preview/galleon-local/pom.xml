@@ -109,6 +109,10 @@
             <groupId>org.jboss.weld.module</groupId>
             <artifactId>weld-web</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>wildfly-jpa-preview</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.wildfly.deployment</groupId>

@@ -49,7 +49,7 @@
 
         <dependency>
             <groupId>${ee.maven.groupId}</groupId>
-            <artifactId>wildfly-jpa</artifactId>
+            <artifactId>wildfly-jpa-preview</artifactId>
         </dependency>
 
         <dependency>

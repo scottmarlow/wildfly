@@ -6,8 +6,9 @@
   -->
 
 <!--
-  WildFly Preview override: bundles the Jakarta Persistence 4 jpa-container (wildfly-jpa-container-4)
-  in place of the Persistence 3.2 container (wildfly-jpa-container-32) used by the shared feature-pack.
+  WildFly Preview override: bundles the Jakarta Persistence 4.0 build of the JPA subsystem
+  (wildfly-jpa-preview) and the Jakarta Persistence 4 jpa-container (wildfly-jpa-container-4) in place of
+  the wildfly-jpa / Persistence 3.2 container (wildfly-jpa-container-32) used by the shared feature-pack.
   -->
 <module xmlns="urn:jboss:module:1.9" name="org.jboss.as.jpa">
 
@@ -20,7 +21,7 @@
     </exports>
 
     <resources>
-        <artifact name="${org.wildfly:wildfly-jpa}"/>
+        <artifact name="${org.wildfly:wildfly-jpa-preview}"/>
         <artifact name="${org.wildfly:wildfly-jpa-container-4}"/>
         <artifact name="${org.wildfly:persistence-cdi-extension}"/>
     </resources>

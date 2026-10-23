@@ -20,7 +20,6 @@ import jakarta.persistence.LockModeType;
 import jakarta.persistence.LockOption;
 import jakarta.persistence.RefreshOption;
 import jakarta.persistence.Statement;
-import jakarta.persistence.StatementOrTypedQuery;
 import jakarta.persistence.StatementReference;
 import jakarta.persistence.SynchronizationType;
 import jakarta.persistence.TypedQuery;
@@ -33,7 +32,7 @@ import jakarta.transaction.TransactionSynchronizationRegistry;
 import org.jboss.as.jpa.container.ExtendedEntityManager;
 
 /**
- * ExtendedEntityManager subclass that implements the EntityManager methods added in Jakarta Persistence 3.2.
+ * ExtendedEntityManager subclass that implements the EntityManager methods added in Jakarta Persistence 3.2 and 4.0.
  */
 public final class ExtendedEntityManager4 extends ExtendedEntityManager {
 
@@ -92,6 +91,7 @@ public final class ExtendedEntityManager4 extends ExtendedEntityManager {
         };
     }
 
+    // Methods NEW in Jakarta Persistence 3.2 (delegate to adapter)
     public <T> TypedQuery<T> createQuery(CriteriaSelect<T> selectQuery) {
         return getAdapter().createQuery(selectQuery);
     }
@@ -144,6 +144,7 @@ public final class ExtendedEntityManager4 extends ExtendedEntityManager {
         getAdapter().setCacheStoreMode(cacheStoreMode);
     }
 
+    // Methods NEW in Jakarta Persistence 4.0 (delegate to underlying EM, not in base or adapter)
     public <T> T get(Class<T> entityClass, Object primaryKey) {
         return getEntityManager().get(entityClass, primaryKey);
     }
@@ -190,27 +191,6 @@ public final class ExtendedEntityManager4 extends ExtendedEntityManager {
 
     public Statement createNativeStatement(String sql) {
         return getEntityManager().createNativeStatement(sql);
-    }
-
-    public StatementOrTypedQuery createQuery(String qlString) {
-        return getEntityManager().createQuery(qlString);
-    }
-
-    public StatementOrTypedQuery createNamedQuery(String name) {
-        return getEntityManager().createNamedQuery(name);
-    }
-
-    public StatementOrTypedQuery createNativeQuery(String sqlString) {
-        return getEntityManager().createNativeQuery(sqlString);
-    }
-
-    public StatementOrTypedQuery createNativeQuery(String sqlString, String resultSetMapping) {
-        return getEntityManager().createNativeQuery(sqlString, resultSetMapping);
-    }
-
-    @SuppressWarnings("unchecked")
-    public TypedQuery createNativeQuery(String sqlString, Class resultClass) {
-        return getEntityManager().createNativeQuery(sqlString, resultClass);
     }
 
     public <T> TypedQuery<T> createNativeQuery(String sqlString, ResultSetMapping<T> resultSetMapping) {
