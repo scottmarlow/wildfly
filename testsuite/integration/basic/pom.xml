@@ -33,6 +33,7 @@
         <surefire.forked.process.timeout>3600</surefire.forked.process.timeout>
         <version.org.hibernate>${standard.version.org.hibernate}</version.org.hibernate>
         <version.org.hibernate.maven.plugin>${standard.version.org.hibernate}</version.org.hibernate.maven.plugin>
+        <hibernate.enhancer.core.groupId>org.hibernate</hibernate.enhancer.core.groupId>
         <version.org.hibernate.maven.plugin.groupId>org.hibernate.orm</version.org.hibernate.maven.plugin.groupId>
         <version.org.hibernate.maven.plugin.artifactId>hibernate-maven-plugin</version.org.hibernate.maven.plugin.artifactId>
         <!-- properties to enable bootable phases -->
@@ -414,16 +415,6 @@
         <dependency>
             <groupId>org.hibernate.search</groupId>
             <artifactId>hibernate-search-mapper-orm</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.hibernate.search</groupId>
-            <artifactId>hibernate-search-v5migrationhelper-engine</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.hibernate.search</groupId>
-            <artifactId>hibernate-search-v5migrationhelper-orm</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -938,7 +929,7 @@
                 </executions>
                 <dependencies>
                     <dependency>
-                        <groupId>org.hibernate</groupId>
+                        <groupId>${hibernate.enhancer.core.groupId}</groupId>
                         <artifactId>hibernate-core</artifactId>
                         <version>${version.org.hibernate}</version>
                     </dependency>
@@ -972,37 +963,7 @@
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
-                    <execution>
-                        <!-- See HibernateSearchOutboxPollingTestCase, HibernateSearchV5MigrationHelperJPATestCase,
-                             HibernateSearchV5MigrationHelperEarMassIndexerTestCase -->
-                        <id>copy-hibernate-search-extra-jars</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>copy</goal>
-                        </goals>
-                        <configuration>
-                            <artifactItems>
-                                <artifactItem>
-                                    <groupId>org.hibernate.search</groupId>
-                                    <artifactId>hibernate-search-v5migrationhelper-engine</artifactId>
-                                    <version>${version.org.hibernate.search}</version>
-                                    <type>jar</type>
-                                    <overWrite>true</overWrite>
-                                    <outputDirectory>${project.build.testOutputDirectory}/org/jboss/as/test/integration/hibernate/search/v5migrationhelper</outputDirectory>
-                                    <destFileName>hibernate-search-v5migrationhelper-engine.jar</destFileName>
-                                </artifactItem>
-                                <artifactItem>
-                                    <groupId>org.hibernate.search</groupId>
-                                    <artifactId>hibernate-search-v5migrationhelper-orm</artifactId>
-                                    <version>${version.org.hibernate.search}</version>
-                                    <type>jar</type>
-                                    <overWrite>true</overWrite>
-                                    <outputDirectory>${project.build.testOutputDirectory}/org/jboss/as/test/integration/hibernate/search/v5migrationhelper</outputDirectory>
-                                    <destFileName>hibernate-search-v5migrationhelper-orm.jar</destFileName>
-                                </artifactItem>
-                            </artifactItems>
-                        </configuration>
-                    </execution>
+
                     <execution>
                         <goals>
                             <goal>build-classpath</goal>
@@ -1820,6 +1781,95 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>search-v5-migration-helper</id>
+            <activation>
+                <property><name>!preview-server-tests</name></property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.hibernate.search</groupId>
+                    <artifactId>hibernate-search-v5migrationhelper-engine</artifactId>
+                    <scope>test</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.hibernate.search</groupId>
+                    <artifactId>hibernate-search-v5migrationhelper-orm</artifactId>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <!-- Resources for standard and legacy Search v5 migration-helper tests. -->
+                                <id>copy-hibernate-search-extra-jars</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>org.hibernate.search</groupId>
+                                            <artifactId>hibernate-search-v5migrationhelper-engine</artifactId>
+                                            <version>${version.org.hibernate.search}</version>
+                                            <type>jar</type>
+                                            <overWrite>true</overWrite>
+                                            <outputDirectory>${project.build.testOutputDirectory}/org/jboss/as/test/integration/hibernate/search/v5migrationhelper</outputDirectory>
+                                            <destFileName>hibernate-search-v5migrationhelper-engine.jar</destFileName>
+                                        </artifactItem>
+                                        <artifactItem>
+                                            <groupId>org.hibernate.search</groupId>
+                                            <artifactId>hibernate-search-v5migrationhelper-orm</artifactId>
+                                            <version>${version.org.hibernate.search}</version>
+                                            <type>jar</type>
+                                            <overWrite>true</overWrite>
+                                            <outputDirectory>${project.build.testOutputDirectory}/org/jboss/as/test/integration/hibernate/search/v5migrationhelper</outputDirectory>
+                                            <destFileName>hibernate-search-v5migrationhelper-orm.jar</destFileName>
+                                        </artifactItem>
+                                    </artifactItems>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>preview-orm-enhancement</id>
+            <activation>
+                <property><name>preview-server-tests</name></property>
+            </activation>
+            <properties>
+                <hibernate.enhancer.core.groupId>org.hibernate.orm</hibernate.enhancer.core.groupId>
+                <version.org.hibernate>${preview.version.org.hibernate}</version.org.hibernate>
+                <version.org.hibernate.maven.plugin>${preview.version.org.hibernate}</version.org.hibernate.maven.plugin>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <testExcludes>
+                                <testExclude>org/jboss/as/test/integration/hibernate/search/v5migrationhelper/**</testExclude>
+                            </testExcludes>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <excludes combine.children="append">
+                                <exclude>org/jboss/as/test/integration/hibernate/search/v5migrationhelper/**</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
 
         <profile>
             <id>basic.integration.tests.profile</id>

@@ -5,11 +5,11 @@
 
 package org.jboss.as.test.integration.jpa.resultstream;
 
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import jakarta.ejb.Stateful;
-import jakarta.ejb.TransactionAttribute;
-import jakarta.ejb.TransactionAttributeType;
 import jakarta.persistence.PersistenceContext;
 
 import jakarta.persistence.EntityManager;
@@ -35,9 +35,11 @@ public class ResultStreamTest {
         return t;
     }
 
-    @TransactionAttribute(TransactionAttributeType.NEVER)
-    public Stream getTicketStreamOrderedById() {
-        return em.createQuery( "select t from Ticket t order by t.id" ).getResultStream();
+    public List<Ticket> getTicketsOrderedById() {
+        // Consume and close the JDBC-backed stream before the invocation's transaction ends.
+        try (Stream<Ticket> stream = em.createQuery("select t from Ticket t order by t.id", Ticket.class).getResultStream()) {
+            return stream.collect(Collectors.toList());
+        }
     }
 
     public void deleteTickets() {

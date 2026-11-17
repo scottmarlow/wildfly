@@ -219,6 +219,31 @@
 
     <build>
         <plugins>
+            <!--
+                The Jakarta Persistence version-sensitive sources (EntityManager/Query wrappers and the
+                PersistenceUnitInfo implementation) live in a separate source root so the JPA 4 preview
+                subsystem (wildfly-jpa-preview) can reuse the version-neutral sources under src/main/java
+                while supplying its own JPA 4 variants of these classes. This standard build compiles the
+                Jakarta Persistence 3.x variants from src/main/java-jpa3.
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>add-jpa3-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.basedir}/src/main/java-jpa3</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

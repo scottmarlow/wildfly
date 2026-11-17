@@ -90,4 +90,33 @@
 
    </dependencies>
 
+   <build>
+      <plugins>
+         <!--
+            WeldJpaInjectionServices lives in a separate source root so the Weld 7 preview variant
+            (wildfly-weld-jpa-preview) can reuse the version-neutral sources under src/main/java while
+            supplying its own Weld 7 / Jakarta Persistence 4 variant (with EntityAgent injection). This
+            standard build compiles the Weld 6 variant from src/main/java-weld6.
+            -->
+         <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+               <execution>
+                  <id>add-weld6-source</id>
+                  <phase>generate-sources</phase>
+                  <goals>
+                     <goal>add-source</goal>
+                  </goals>
+                  <configuration>
+                     <sources>
+                        <source>${project.basedir}/src/main/java-weld6</source>
+                     </sources>
+                  </configuration>
+               </execution>
+            </executions>
+         </plugin>
+      </plugins>
+   </build>
+
 </project>

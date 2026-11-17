@@ -8,7 +8,6 @@ import jakarta.inject.Inject;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.core.api.annotation.Observer;
 import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.as.test.integration.hibernate.search.backend.elasticsearch.massindexer.Singer;
 import org.jboss.as.test.integration.hibernate.search.backend.elasticsearch.util.ElasticsearchServerSetupObserver;
 import org.jboss.as.test.shared.util.AssumeTestGroupUtil;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -71,11 +70,12 @@ public class HibernateSearchElasticsearchSimpleTestCase {
                 .createPersistenceUnit()
                 .name("jpa-search-test-pu")
                 .jtaDataSource("java:jboss/datasources/ExampleDS")
-                .clazz(Singer.class.getName())
+                .clazz(Book.class.getName())
                 .getOrCreateProperties()
                 .createProperty().name("hibernate.hbm2ddl.auto").value("create-drop").up()
                 .createProperty().name("hibernate.search.schema_management.strategy").value("drop-and-create-and-drop").up()
-                .createProperty().name("hibernate.search.automatic_indexing.synchronization.strategy").value("sync").up()
+                .createProperty().name(AssumeTestGroupUtil.isWildFlyPreview()
+                        ? "hibernate.search.indexing.plan.synchronization.strategy" : "hibernate.search.automatic_indexing.synchronization.strategy").value("sync").up()
                 .createProperty().name("hibernate.search.backend.type").value("elasticsearch").up()
                 .createProperty().name("hibernate.search.backend.hosts").value(ElasticsearchServerSetupObserver.getHttpHostAddress()).up()
                 .createProperty().name("hibernate.search.backend.analysis.configurer").value(AnalysisConfigurer.class.getName()).up()

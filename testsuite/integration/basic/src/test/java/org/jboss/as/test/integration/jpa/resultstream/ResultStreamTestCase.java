@@ -10,7 +10,6 @@ import static org.junit.Assert.assertEquals;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Stream;
 
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
@@ -28,8 +27,7 @@ import org.junit.runner.RunWith;
  * Hibernate test using Jakarta Persistence 2.2 API jakarta.persistence.Query#getResultStream
  * using {@link ResultStreamTest} bean.
  * <p>
- * Note that this test uses an extended persistence context, so that the Hibernate session will stay open long enough
- * to complete each test.  A transaction scoped entity manager would be closed after each Jakarta Transactions transaction completes.
+ * The bean consumes and closes the result stream inside its transaction, before JDBC resources are released.
  *
  * @author Zbyněk Roubalík
  * @author Gail Badner
@@ -71,10 +69,11 @@ public class ResultStreamTestCase {
         tickets.add( test.createTicket() );
         tickets.add( test.createTicket() );
 
-        Stream<Ticket> stream = (Stream<Ticket>) test.getTicketStreamOrderedById();
+        List<Ticket> results = test.getTicketsOrderedById();
+        assertEquals(tickets.size(), results.size());
 
         Iterator<Ticket> ticketIterator = tickets.iterator();
-        stream.forEach( t ->  assertEquals( t.getId(), ticketIterator.next().getId() ) );
+        results.forEach( t ->  assertEquals( t.getId(), ticketIterator.next().getId() ) );
 
         test.deleteTickets();
     }

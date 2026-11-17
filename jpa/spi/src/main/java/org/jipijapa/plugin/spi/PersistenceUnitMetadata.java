@@ -14,7 +14,6 @@ import jakarta.persistence.SharedCacheMode;
 import jakarta.persistence.ValidationMode;
 import jakarta.persistence.spi.ClassTransformer;
 import jakarta.persistence.spi.PersistenceUnitInfo;
-import jakarta.persistence.spi.PersistenceUnitTransactionType;
 import javax.sql.DataSource;
 
 /**
@@ -50,9 +49,58 @@ public interface PersistenceUnitMetadata extends PersistenceUnitInfo {
 
     void setManagedClassNames(List<String> classes);
 
+    /** Complete inventories default to the provider-scanned metadata used before Persistence 4. */
+    default List<String> getAllClassNames() {
+        return getManagedClassNames();
+    }
+
+    default void setAllClassNames(List<String> classes) {
+        setManagedClassNames(classes);
+    }
+
+    default List<String> getManagedPackageDescriptors() {
+        return java.util.Collections.emptyList();
+    }
+
+    default List<String> getManagedModuleDescriptors() {
+        return java.util.Collections.emptyList();
+    }
+
+    default List<String> getAllPackageDescriptors() {
+        return getManagedPackageDescriptors();
+    }
+
+    default List<String> getAllModuleDescriptors() {
+        return getManagedModuleDescriptors();
+    }
+
+    default void setManagedPackageDescriptors(List<String> packages) { }
+    default void setManagedModuleDescriptors(List<String> modules) { }
+    default void setAllPackageDescriptors(List<String> packages) { }
+    default void setAllModuleDescriptors(List<String> modules) { }
+    default void setDefaultToOneFetchType(jakarta.persistence.FetchType fetchType) { }
+
+    default Object createContainerManagedEntityAgent(jakarta.persistence.EntityManagerFactory factory, java.util.Map<String, String> properties) {
+        throw new UnsupportedOperationException("Persistence agents require Jakarta Persistence 4");
+    }
+
     void setExcludeUnlistedClasses(boolean excludeUnlistedClasses);
 
-    void setTransactionType(PersistenceUnitTransactionType transactionType);
+    /** Container transaction types, converted to the provider's enum by its metadata implementation. */
+    enum TransactionType {
+        JTA, RESOURCE_LOCAL
+    }
+
+    void setTransactionType(TransactionType transactionType);
+
+    /**
+     * Transaction type independent of the Jakarta Persistence API version. Shared subsystem code
+     * uses this accessor because PersistenceUnitInfo.getTransactionType() changes enum packages
+     * between Jakarta Persistence 3.x and 4.0.
+     *
+     * @return the transaction type, or {@code null} if unspecified
+     */
+    TransactionType getPersistenceUnitTransactionType();
 
     void setMappingFiles(List<String> mappingFiles);
 

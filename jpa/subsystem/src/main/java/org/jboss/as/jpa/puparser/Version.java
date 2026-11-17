@@ -19,7 +19,8 @@ public enum Version {
     JPA_2_1("http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd", "2.1"),
     JPA_2_2("http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd", "2.2"),
     JPA_3_0("https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd", "3.0"),
-    JPA_3_2("https://jakarta.ee/xml/ns/persistence/persistence_3_2.xsd", "3.2");
+    JPA_3_2("https://jakarta.ee/xml/ns/persistence/persistence_3_2.xsd", "3.2"),
+    JPA_4_0("https://jakarta.ee/xml/ns/persistence/persistence_4_0.xsd", "4.0");
 
 
     private static final Map<String, Version> locationBindings = new HashMap<String, Version>();

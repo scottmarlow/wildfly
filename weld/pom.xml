@@ -29,6 +29,7 @@
         <module>common</module>
         <module>ejb</module>
         <module>jpa</module>
+        <module>jpa-preview</module>
         <module>spi</module>
         <module>subsystem</module>
         <module>transactions</module>
