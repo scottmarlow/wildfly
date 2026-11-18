@@ -2,7 +2,7 @@
  * Copyright The WildFly Authors
  * SPDX-License-Identifier: Apache-2.0
  */
-package org.wildfly.test.preview.persistence.cdi;
+package org.wildfly.test.integration.persistence.cdi;
 
 import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityAgent;
